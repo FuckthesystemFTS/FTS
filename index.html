@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagina Interattiva con Token FTS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            background-color: #f0f0f0;
+        }
+        button {
+            display: block;
+            margin: 10px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #wallet {
+            margin-top: 30px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pagina Interattiva con Token FTS</h1>
+    
+    <!-- Aggiungi l'immagine 1 -->
+    <img src="image1.png" alt="Immagine 1">
+    
+    <!-- Pulsante per iscriversi al canale -->
+    <button id="button1" onclick="earnTokens('https://t.me/FucktheSystemCommunity', 'button1');">
+        Iscriviti al Canale
+    </button>
+    
+    <!-- Pulsante per condividere su X (Twitter) -->
+    <button id="button2" onclick="earnTokens('https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=Bz8Avh1Mo2O1EA4rSmCygg&s=19', 'button2');">
+        Condividi su X (Twitter)
+    </button>
+    
+    <!-- Pulsante per iscriversi su X (Twitter) -->
+    <button id="button3" onclick="earnTokens('https://x.com/Fu_ktheSytemFTS?t=UCp1MBxPC9VDeelmy1lNAQ&s=09', 'button3');">
+        Iscriviti su X (Twitter)
+    </button>
+    
+    <!-- Secondo pulsante per condividere su X (Twitter) -->
+    <button id="button4" onclick="earnTokens('https://x.com/Fu_ktheSytemFTS/status/1831960008734425334?t=vJeZ01kLLD6qHzzoUdM07Q&s=19', 'button4');">
+        Condividi su X (Twitter)
+    </button>
+    
+    <!-- Wallet simulativo per visualizzare i token -->
+    <div id="wallet">
+        Saldo Token FTS: <span id="tokenBalance">0</span> FTS
+    </div>
+    
+    <!-- Aggiungi l'immagine 2 -->
+    <img src="image2.png" alt="Immagine 2">
+
+    <script>
+        // Funzione per inizializzare il saldo dei token e lo stato dei pulsanti
+        function init() {
+            let tokenBalance = localStorage.getItem('tokenBalance');
+            if (!tokenBalance) {
+                localStorage.setItem('tokenBalance', '0');
+            }
+            document.getElementById('tokenBalance').innerText = localStorage.getItem('tokenBalance');
+            
+            // Disabilita i pulsanti se l'attività è già stata completata
+            ['button1', 'button2', 'button3', 'button4'].forEach(buttonId => {
+                if (localStorage.getItem(buttonId)) {
+                    document.getElementById(buttonId).disabled = true;
+                }
+            });
+        }
+
+        // Funzione per guadagnare token e disabilitare il pulsante
+        function earnTokens(url, buttonId) {
+            let tokenBalance = parseInt(localStorage.getItem('tokenBalance'), 10);
+            tokenBalance += 1000; // Aggiunge 1000 token al saldo
+            localStorage.setItem('tokenBalance', tokenBalance);
+            document.getElementById('tokenBalance').innerText = tokenBalance; // Aggiorna il display del saldo
+            
+            // Disabilita il pulsante e salva lo stato
+            document.getElementById(buttonId).disabled = true;
+            localStorage.setItem(buttonId, 'completed');
+            
+            // Reindirizza alla pagina desiderata
+            window.location.href = url;
+        }
+
+        // Inizializza la pagina al caricamento
+        window.onload = init;
+    </script>
+</body>
+</html>
