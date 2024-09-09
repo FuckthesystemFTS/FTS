@@ -3,25 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FuckTheSystem</title>
+    <title>Pagina Interattiva con Token FTS</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            margin: 0;
-            padding: 0;
+            margin-top: 50px;
             background-color: #f0f0f0;
-            position: relative;
-        }
-        h1 {
-            font-size: 36px;
-            color: white;
-            margin: 0;
-            padding: 20px;
-            background-color: rgba(0, 0, 0, 0.5);
-            position: absolute;
-            width: 100%;
-            z-index: 2;
         }
         button {
             display: block;
@@ -29,8 +17,6 @@
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
-            position: relative;
-            z-index: 2;
         }
         button:disabled {
             background-color: #ccc;
@@ -40,65 +26,46 @@
             margin-top: 30px;
             font-size: 20px;
             font-weight: bold;
-            position: relative;
-            z-index: 2;
         }
-        #image1-container {
-            position: relative;
-            width: 100%;
-        }
-        #image1-container img {
+        img {
             max-width: 100%;
             height: auto;
-        }
-        #overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <!-- Intestazione -->
-    <h1>FuckTheSystem</h1>
+    <h1>Pagina Interattiva con Token FTS</h1>
     
-    <!-- Contenitore dell'immagine con i pulsanti sopra -->
-    <div id="image1-container">
-        <!-- Aggiungi l'immagine 1 -->
-        <img src="image1.png" alt="Immagine 1">
-        <!-- Overlay per posizionare i pulsanti sopra l'immagine -->
-        <div id="overlay">
-            <!-- Pulsante per iscriversi al canale -->
-            <button id="button1" onclick="earnTokens('https://t.me/FucktheSystemCommunity', 'button1');">
-                Iscriviti al Canale
-            </button>
-            
-            <!-- Pulsante per condividere su X (Twitter) -->
-            <button id="button2" onclick="earnTokens('https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=Bz8Avh1Mo2O1EA4rSmCygg&s=19', 'button2');">
-                Condividi su X (Twitter)
-            </button>
-            
-            <!-- Pulsante per iscriversi su X (Twitter) -->
-            <button id="button3" onclick="earnTokens('https://x.com/Fu_ktheSytemFTS?t=UCp1MBxPC9VDeelmy1lNAQ&s=09', 'button3');">
-                Iscriviti su X (Twitter)
-            </button>
-            
-            <!-- Secondo pulsante per condividere su X (Twitter) -->
-            <button id="button4" onclick="earnTokens('https://x.com/Fu_ktheSytemFTS/status/1831960008734425334?t=vJeZ01kLLD6qHzzoUdM07Q&s=19', 'button4');">
-                Condividi su X (Twitter)
-            </button>
-            
-            <!-- Wallet simulativo per visualizzare i token -->
-            <div id="wallet">
-                Saldo Token FTS: <span id="tokenBalance">0</span> FTS
-            </div>
-        </div>
+    <!-- Aggiungi l'immagine 1 -->
+    <img src="image1.png" alt="Immagine 1">
+    
+    <!-- Pulsante per iscriversi al canale -->
+    <button id="button1" onclick="earnTokens('https://t.me/FucktheSystemCommunity', 'button1');">
+        Iscriviti al Canale
+    </button>
+    
+    <!-- Pulsante per condividere su X (Twitter) -->
+    <button id="button2" onclick="earnTokens('https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=Bz8Avh1Mo2O1EA4rSmCygg&s=19', 'button2');">
+        Condividi su X (Twitter)
+    </button>
+    
+    <!-- Pulsante per iscriversi su X (Twitter) -->
+    <button id="button3" onclick="earnTokens('https://x.com/Fu_ktheSytemFTS?t=UCp1MBxPC9VDeelmy1lNAQ&s=09', 'button3');">
+        Iscriviti su X (Twitter)
+    </button>
+    
+    <!-- Secondo pulsante per condividere su X (Twitter) -->
+    <button id="button4" onclick="earnTokens('https://x.com/Fu_ktheSytemFTS/status/1831960008734425334?t=vJeZ01kLLD6qHzzoUdM07Q&s=19', 'button4');">
+        Condividi su X (Twitter)
+    </button>
+    
+    <!-- Wallet simulativo per visualizzare i token -->
+    <div id="wallet">
+        Saldo Token FTS: <span id="tokenBalance">0</span> FTS
     </div>
-
-    <!-- Aggiungi l'immagine 2 sotto -->
+    
+    <!-- Aggiungi l'immagine 2 -->
     <img src="image2.png" alt="Immagine 2">
 
     <script>
