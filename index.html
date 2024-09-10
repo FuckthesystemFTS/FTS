@@ -64,26 +64,58 @@
         #tasks-list li {
             margin-bottom: 10px;
         }
+
+        #balance {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
-<body>
+<body onload="initializeApp()">
     <div id="app">
         <h1>FTS</h1>
         <p>Complete activities and earn tokens!</p>
+        <div id="balance">Token Balance: 0</div>
 
         <div id="tasks-section">
             <h2>Available Activities</h2>
             <ul id="tasks-list">
                 <li>
                     <p>Follow us on X</p>
-                    <button onclick="window.open('https://x.com/Fu_ktheSytemFTS?t=VeHR-YQR5-QVVUbw9Cwlgw&s=09', '_blank')">Complete</button>
+                    <button onclick="completeTask('follow')">Complete</button>
                 </li>
                 <li>
                     <p>Exclusive Offer</p>
-                    <button onclick="window.open('https://taplink.cc/fuckthesystem', '_blank')">Complete</button>
+                    <button onclick="completeTask('exclusive')">Complete</button>
                 </li>
             </ul>
         </div>
+
+        <button onclick="window.open('https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=gSR8pMZgrmUdn7yR2HJ8dQ&s=19', '_blank')">Retweet</button>
+        <button onclick="window.open('https://t.me/FucktheSystemCommunity', '_blank')">Join us</button>
     </div>
-</body>
-</html>
+
+    <script>
+        const TASKS = {
+            follow: 1000,
+            exclusive: 5000
+        };
+
+        function initializeApp() {
+            updateBalance();
+            document.querySelectorAll('#tasks-list button').forEach(button => {
+                const taskId = button.parentElement.textContent.trim().toLowerCase().includes('exclusive') ? 'exclusive' : 'follow';
+                if (localStorage.getItem(taskId) === 'completed') {
+                    button.disabled = true;
+                    button.textContent = 'Completed';
+                }
+            });
+        }
+
+        function updateBalance() {
+            const balance = localStorage.getItem('balance') || 0;
+            document.getElementById('balance').textContent = `Token Balance: ${balance}`;
+        }
+
+        function completeTask(task) {
+            if
