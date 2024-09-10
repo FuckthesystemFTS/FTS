@@ -99,7 +99,7 @@
 
         function updateBalance() {
             const balance = parseInt(localStorage.getItem('balance') || '0', 10);
-            document.getElementById('balance').textContent = Token Balance: ${balance};
+            document.getElementById('balance').textContent = `Token Balance: ${balance}`;
         }
 
         function completeTask(task, url, reward) {
@@ -113,7 +113,7 @@
                 updateBalance();
             }
             // Update button text to show it's completed
-            document.querySelector(button[onclick="completeTask('${task}', '${url}', ${reward})"]).textContent = 'Completed';
+            document.querySelector(`button[onclick="completeTask('${task}', '${url}', ${reward})"]`).textContent = 'Completed';
         }
     </script>
 </body>
