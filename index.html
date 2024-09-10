@@ -113,9 +113,22 @@
         }
 
         function updateBalance() {
-            const balance = localStorage.getItem('balance') || 0;
+            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
             document.getElementById('balance').textContent = `Token Balance: ${balance}`;
         }
 
         function completeTask(task) {
-            if
+            if (localStorage.getItem(task) === 'completed') {
+                alert('This task has already been completed.');
+                return;
+            }
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            localStorage.setItem('balance', currentBalance + TASKS[task]);
+            localStorage.setItem(task, 'completed');
+            updateBalance();
+            document.querySelector(`#tasks-list button[onclick="completeTask('${task}')"]`).disabled = true;
+            document.querySelector(`#tasks-list button[onclick="completeTask('${task}')"]`).textContent = 'Completed';
+        }
+    </script>
+</body>
+</html>
