@@ -98,11 +98,7 @@
     <script>
         function initializeApp() {
             updateBalance();
-            // Check and update the status of tasks
-            checkTaskStatus('follow');
-            checkTaskStatus('exclusive');
-            checkTaskStatus('retweet');
-            checkTaskStatus('join');
+            // No need to check button statuses; they should always be clickable
         }
 
         function updateBalance() {
@@ -121,14 +117,7 @@
                 updateBalance();
             }
             // Update button text to show it's completed
-            document.querySelector(`#tasks-list button[onclick="completeTask('${task}', '${url}', ${reward})"]`)?.textContent = 'Completed';
-        }
-
-        function checkTaskStatus(task) {
-            if (localStorage.getItem(task) === 'completed') {
-                // If the task is completed, update the button text
-                document.querySelector(`#tasks-list button[onclick="completeTask('${task}', '${url}', ${reward})"]`)?.textContent = 'Completed';
-            }
+            document.querySelector(`button[onclick="completeTask('${task}', '${url}', ${reward})"]`).textContent = 'Completed';
         }
     </script>
 </body>
