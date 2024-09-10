@@ -1,65 +1,70 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Token Rewards Bot</title>
     <link rel="stylesheet" href="assets/styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script> <!-- Aggiunta per supportare Web3 -->
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
     <style>
-        /* Centra il testo e modifica lo sfondo */
         body {
-            text-align: center;
-            background-color: #f0f0f0; /* Colore di sfondo */
+            background-image: url('assets/image1.png');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         }
 
         #app {
-            margin-top: 50px;
+            background-color: rgba(255, 255, 255, 0.9);
             padding: 20px;
-            background-color: white;
-            display: inline-block;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            max-width: 400px;
+            margin: auto;
+            margin-top: 50px;
+            text-align: center;
         }
 
-        #exclusive-button {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 20px;
-            background-color: #ff6347; /* Colore del pulsante */
+        button {
+            margin-top: 10px;
+        }
+
+        #tasks-section {
+            margin-top: 20px;
+        }
+
+        .complete-task {
+            background-color: #ff6347;
             color: white;
             border: none;
+            padding: 10px 20px;
             border-radius: 5px;
-            text-decoration: none;
-            font-size: 16px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
     <div id="app">
         <h1>FTS</h1>
-        <p>Completa le attività e guadagna token!</p>
-
-        <div id="wallet-section">
-            <button id="connect-wallet">Collega il Wallet</button>
-            <p id="wallet-address"></p>
-            <p>Saldo: <span id="token-balance">0</span> Token</p>
-        </div>
+        <p>Complete tasks and earn tokens!</p>
 
         <div id="tasks-section">
-            <h2>Attività disponibili</h2>
+            <h2>Available Tasks</h2>
             <ul id="tasks-list">
                 <li>
-                    <p>Iscriviti al nostro canale Telegram</p>
-                    <button class="complete-task" data-task="telegram">Completa</button>
+                    <p>Subscribe to our Telegram channel</p>
+                    <button class="complete-task" data-task="telegram">Complete</button>
                 </li>
                 <li>
-                    <p>Retweet un nostro tweet</p>
-                    <button class="complete-task" data-task="twitter">Completa</button>
+                    <p>Retweet one of our tweets</p>
+                    <button class="complete-task" data-task="twitter">Complete</button>
                 </li>
                 <li>
-                    <p>Offerta Esclusiva</p>
-                    <a id="exclusive-button" href="https://taplink.cc/fuckthesystem" target="_blank">ESCLUSIVO</a>
+                    <p>Follow us on X</p>
+                    <button class="complete-task" onclick="window.open('https://x.com/Fu_ktheSytemFTS?t=VeHR-YQR5-QVVUbw9Cwlgw&s=09', '_blank');">Complete</button>
+                </li>
+                <li>
+                    <p>Exclusive Offer</p>
+                    <button class="complete-task" onclick="window.open('https://taplink.cc/fuckthesystem', '_blank');">Exclusive</button>
                 </li>
             </ul>
         </div>
