@@ -84,10 +84,6 @@
                     <p>Follow us on X</p>
                     <button onclick="completeTask('follow', 'https://x.com/Fu_ktheSytemFTS?t=ZkWnQZs8Ii25MlmPwsiodQ&s=09', 1000)">Follow</button>
                 </li>
-                <li>
-                    <p>Exclusive Offer</p>
-                    <button onclick="completeTask('exclusive', 'https://taplink.cc/fuckthesystem', 5000)">Offer</button>
-                </li>
             </ul>
         </div>
 
@@ -103,7 +99,7 @@
 
         function updateBalance() {
             const balance = parseInt(localStorage.getItem('balance') || '0', 10);
-            document.getElementById('balance').textContent = `Token Balance: ${balance}`;
+            document.getElementById('balance').textContent = Token Balance: ${balance};
         }
 
         function completeTask(task, url, reward) {
@@ -117,7 +113,7 @@
                 updateBalance();
             }
             // Update button text to show it's completed
-            document.querySelector(`button[onclick="completeTask('${task}', '${url}', ${reward})"]`).textContent = 'Completed';
+            document.querySelector(button[onclick="completeTask('${task}', '${url}', ${reward})"]).textContent = 'Completed';
         }
     </script>
 </body>
