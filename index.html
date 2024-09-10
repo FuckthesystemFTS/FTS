@@ -6,66 +6,81 @@
     <title>Token Rewards Bot</title>
     <style>
         body {
-            background-image: url('assets/image3.png');
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-image: url('image3.png');
             background-size: cover;
             background-repeat: no-repeat;
-            background-attachment: fixed;
-            margin: 0;
-            font-family: Arial, sans-serif;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
         }
 
         #app {
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.8);
             padding: 20px;
             border-radius: 10px;
-            max-width: 400px;
-            margin: auto;
-            margin-top: 50px;
             text-align: center;
         }
 
         h1 {
-            margin-top: 0;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 18px;
+            margin-bottom: 20px;
         }
 
         button {
-            margin-top: 10px;
+            background-color: #ff5733;
+            color: white;
+            border: none;
             padding: 10px 20px;
             font-size: 16px;
-            cursor: pointer;
             border-radius: 5px;
-            border: none;
+            cursor: pointer;
+            margin-bottom: 10px;
         }
 
-        .complete-task {
-            background-color: #ff6347;
-            color: white;
+        button:hover {
+            background-color: #e64e2a;
+        }
+
+        #tasks-section h2 {
+            margin-top: 0;
+        }
+
+        #tasks-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #tasks-list li {
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
     <div id="app">
         <h1>FTS</h1>
-        <p>Complete tasks and earn tokens!</p>
+        <p>Complete activities and earn tokens!</p>
 
         <div id="tasks-section">
-            <h2>Available Tasks</h2>
+            <h2>Available Activities</h2>
             <ul id="tasks-list">
                 <li>
-                    <p>Subscribe to our Telegram channel</p>
-                    <button class="complete-task" data-task="telegram">Complete</button>
-                </li>
-                <li>
-                    <p>Retweet one of our tweets</p>
-                    <button class="complete-task" data-task="twitter">Complete</button>
-                </li>
-                <li>
                     <p>Follow us on X</p>
-                    <button class="complete-task" onclick="window.open('https://x.com/Fu_ktheSytemFTS?t=VeHR-YQR5-QVVUbw9Cwlgw&s=09', '_blank');">Complete</button>
+                    <button onclick="window.open('https://x.com/Fu_ktheSytemFTS?t=VeHR-YQR5-QVVUbw9Cwlgw&s=09', '_blank')">Complete</button>
                 </li>
                 <li>
                     <p>Exclusive Offer</p>
-                    <button class="complete-task" onclick="window.open('https://taplink.cc/fuckthesystem', '_blank');">Exclusive</button>
+                    <button onclick="window.open('https://taplink.cc/fuckthesystem', '_blank')">Complete</button>
                 </li>
             </ul>
         </div>
