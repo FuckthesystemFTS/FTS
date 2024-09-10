@@ -82,34 +82,27 @@
             <ul id="tasks-list">
                 <li>
                     <p>Follow us on X</p>
-                    <button onclick="completeTask('follow', 'https://x.com/Fu_ktheSytemFTS?t=ZkWnQZs8Ii25MlmPwsiodQ&s=09')">Complete</button>
+                    <button onclick="completeTask('follow', 'https://x.com/Fu_ktheSytemFTS?t=ZkWnQZs8Ii25MlmPwsiodQ&s=09', 1000)">Follow</button>
                 </li>
                 <li>
                     <p>Exclusive Offer</p>
-                    <button onclick="completeTask('exclusive', 'https://taplink.cc/fuckthesystem')">Complete</button>
+                    <button onclick="completeTask('exclusive', 'https://taplink.cc/fuckthesystem', 5000)">Offer</button>
                 </li>
             </ul>
         </div>
 
-        <button onclick="window.open('https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=gSR8pMZgrmUdn7yR2HJ8dQ&s=19', '_blank')">Retweet</button>
-        <button onclick="window.open('https://t.me/FucktheSystemCommunity', '_blank')">Join us</button>
+        <button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=gSR8pMZgrmUdn7yR2HJ8dQ&s=19', 2000)">Retweet</button>
+        <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">Join us</button>
     </div>
 
     <script>
-        const TASKS = {
-            follow: 1000,
-            exclusive: 5000
-        };
-
         function initializeApp() {
             updateBalance();
-            document.querySelectorAll('#tasks-list button').forEach(button => {
-                const taskId = button.parentElement.textContent.trim().toLowerCase().includes('exclusive') ? 'exclusive' : 'follow';
-                if (localStorage.getItem(taskId) === 'completed') {
-                    button.disabled = true;
-                    button.textContent = 'Completed';
-                }
-            });
+            // Check and update the status of tasks
+            checkTaskStatus('follow');
+            checkTaskStatus('exclusive');
+            checkTaskStatus('retweet');
+            checkTaskStatus('join');
         }
 
         function updateBalance() {
@@ -117,20 +110,25 @@
             document.getElementById('balance').textContent = `Token Balance: ${balance}`;
         }
 
-        function completeTask(task, url) {
-            if (localStorage.getItem(task) === 'completed') {
-                alert('This task has already been completed.');
-                return;
-            }
+        function completeTask(task, url, reward) {
             // Open the URL in a new tab
             window.open(url, '_blank');
-            // Update the token balance and mark the task as completed
-            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-            localStorage.setItem('balance', currentBalance + TASKS[task]);
-            localStorage.setItem(task, 'completed');
-            updateBalance();
-            document.querySelector(`#tasks-list button[onclick="completeTask('${task}', '${url}')"]`).disabled = true;
-            document.querySelector(`#tasks-list button[onclick="completeTask('${task}', '${url}')"]`).textContent = 'Completed';
+            // Update the token balance only if the task is not yet completed
+            if (localStorage.getItem(task) !== 'completed') {
+                const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+                localStorage.setItem('balance', currentBalance + reward);
+                localStorage.setItem(task, 'completed');
+                updateBalance();
+            }
+            // Update button text to show it's completed
+            document.querySelector(`#tasks-list button[onclick="completeTask('${task}', '${url}', ${reward})"]`)?.textContent = 'Completed';
+        }
+
+        function checkTaskStatus(task) {
+            if (localStorage.getItem(task) === 'completed') {
+                // If the task is completed, update the button text
+                document.querySelector(`#tasks-list button[onclick="completeTask('${task}', '${url}', ${reward})"]`)?.textContent = 'Completed';
+            }
         }
     </script>
 </body>
