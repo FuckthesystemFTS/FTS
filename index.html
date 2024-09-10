@@ -82,11 +82,11 @@
             <ul id="tasks-list">
                 <li>
                     <p>Follow us on X</p>
-                    <button onclick="completeTask('follow')">Complete</button>
+                    <button onclick="completeTask('follow', 'https://x.com/Fu_ktheSytemFTS?t=ZkWnQZs8Ii25MlmPwsiodQ&s=09')">Complete</button>
                 </li>
                 <li>
                     <p>Exclusive Offer</p>
-                    <button onclick="completeTask('exclusive')">Complete</button>
+                    <button onclick="completeTask('exclusive', 'https://taplink.cc/fuckthesystem')">Complete</button>
                 </li>
             </ul>
         </div>
@@ -117,17 +117,20 @@
             document.getElementById('balance').textContent = `Token Balance: ${balance}`;
         }
 
-        function completeTask(task) {
+        function completeTask(task, url) {
             if (localStorage.getItem(task) === 'completed') {
                 alert('This task has already been completed.');
                 return;
             }
+            // Open the URL in a new tab
+            window.open(url, '_blank');
+            // Update the token balance and mark the task as completed
             const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
             localStorage.setItem('balance', currentBalance + TASKS[task]);
             localStorage.setItem(task, 'completed');
             updateBalance();
-            document.querySelector(`#tasks-list button[onclick="completeTask('${task}')"]`).disabled = true;
-            document.querySelector(`#tasks-list button[onclick="completeTask('${task}')"]`).textContent = 'Completed';
+            document.querySelector(`#tasks-list button[onclick="completeTask('${task}', '${url}')"]`).disabled = true;
+            document.querySelector(`#tasks-list button[onclick="completeTask('${task}', '${url}')"]`).textContent = 'Completed';
         }
     </script>
 </body>
