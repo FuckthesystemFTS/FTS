@@ -29,7 +29,7 @@
         }
 
         h1 {
-            font-size: 48px;
+            font-size: 48px; /* Aumentato da 24px a 48px */
             margin-bottom: 10px;
             color: #ff5733;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0px 0px 10px white;
@@ -55,7 +55,7 @@
             background-color: #e64e2a;
         }
 
-        #tasks-section h2, #stake-section h2 {
+        #tasks-section h2 {
             margin-top: 0;
         }
 
@@ -99,46 +99,6 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             z-index: 1000;
         }
-
-        #stake-section {
-            margin-top: 20px;
-        }
-
-        .stake-card {
-            display: inline-block;
-            margin: 10px;
-            padding: 10px;
-            text-align: center;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .stake-card img {
-            width: 150px;
-            height: 200px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-        }
-
-        .stake-card button {
-            display: block;
-            margin: 10px auto;
-            background-color: #28a745;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        #stake-options, #amount-section {
-            display: none;
-            margin-top: 20px;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
     </style>
 </head>
 <body onload="initializeApp()">
@@ -162,59 +122,24 @@
 
         <button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=gSR8pMZgrmUdn7yR2HJ8dQ&s=19', 2000)">Retweet</button>
         <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">Join us</button>
-
-        <div id="stake-section">
-            <h2>Stake FTS</h2>
-            <div class="stake-card">
-                <img src="card1.png" alt="Card 1">
-                <button onclick="selectStakeOption(50)">50% APY</button>
-            </div>
-            <div class="stake-card">
-                <img src="card2.png" alt="Card 2">
-                <button onclick="selectStakeOption(100)">100% APY</button>
-            </div>
-            <div class="stake-card">
-                <img src="card3.png" alt="Card 3">
-                <button onclick="selectStakeOption(200)">200% APY</button>
-            </div>
-        </div>
-
-        <div id="stake-options">
-            <p>Choose your staking duration:</p>
-            <button onclick="selectStakeDuration('week')">Stake for one week</button>
-            <button onclick="selectStakeDuration('month')">Stake for one month</button>
-            <button onclick="selectStakeDuration('six-months')">Stake for six months</button>
-        </div>
-
-        <div id="amount-section">
-            <p>Enter the amount of FTS tokens to stake (Max 50% of balance):</p>
-            <input type="number" id="stake-amount" min="0" step="1">
-            <button onclick="confirmStake()">Confirm</button>
-            <button onclick="cancelStake()">Cancel</button>
-        </div>
     </div>
 
     <script>
-        let selectedAPY = 0;
-        let selectedDuration = '';
-        let balance = 0;
-        let earnedTokens = 0;
-
         function initializeApp() {
             updateBalance();
             checkDailyCheckIn();
         }
 
         function updateBalance() {
-            balance = parseInt(localStorage.getItem('balance') || '0', 10);
+            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
             document.getElementById('balance').textContent = `Token Balance: ${balance}`;
         }
 
         function completeTask(task, url, reward) {
             window.open(url, '_blank');
             if (localStorage.getItem(task) !== 'completed') {
-                balance += reward;
-                localStorage.setItem('balance', balance);
+                const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+                localStorage.setItem('balance', currentBalance + reward);
                 localStorage.setItem(task, 'completed');
                 updateBalance();
             }
@@ -224,7 +149,7 @@
         function checkDailyCheckIn() {
             const lastCheckIn = localStorage.getItem('lastCheckIn');
             const now = new Date();
-            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000); // Convert to UTC+2
+            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000); // Converte a UTC+2
 
             if (!lastCheckIn || isNewDay(utc2Now, new Date(lastCheckIn))) {
                 document.getElementById('daily-check-in').style.display = 'block';
@@ -232,8 +157,8 @@
         }
 
         function claimDailyReward() {
-            balance += 500;
-            localStorage.setItem('balance', balance);
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            localStorage.setItem('balance', currentBalance + 500);
             localStorage.setItem('lastCheckIn', new Date().toISOString());
             updateBalance();
             document.getElementById('daily-check-in').style.display = 'none';
@@ -246,8 +171,14 @@
             notification.style.display = 'block';
             setTimeout(() => {
                 notification.style.display = 'none';
-            }, 3000);
+            }, 3000); // La notifica sparisce dopo 3 secondi
         }
 
         function isNewDay(current, lastCheckIn) {
-            return current.getUTCFullYear()
+            return current.getUTCFullYear() !== lastCheckIn.getUTCFullYear() ||
+                   current.getUTCMonth() !== lastCheckIn.getUTCMonth() ||
+                   current.getUTCDate() !== lastCheckIn.getUTCDate();
+        }
+    </script>
+</body>
+</html>
