@@ -9,7 +9,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-image: url('image7.png'); /* Cambiato da image3.png a image7.png */
+            background-image: url('image7.png');
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center;
@@ -28,8 +28,11 @@
         }
 
         h1 {
-            font-size: 24px;
+            font-size: 48px; /* Aumentato da 24px a 48px */
             margin-bottom: 10px;
+            color: #ff5733; /* Mantiene il colore del testo */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), /* Effetto ombra per aggiungere profondità */
+                         0px 0px 10px white; /* Aggiunge un contorno bianco */
         }
 
         p {
@@ -69,6 +72,17 @@
             font-size: 20px;
             margin-bottom: 20px;
         }
+
+        #daily-check-in {
+            font-size: 18px;
+            margin-bottom: 20px;
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+        }
     </style>
 </head>
 <body onload="initializeApp()">
@@ -76,6 +90,8 @@
         <h1>FTS</h1>
         <p>Complete activities and earn tokens!</p>
         <div id="balance">Token Balance: 0</div>
+
+        <div id="daily-check-in" onclick="claimDailyReward()">Daily Check-in: Claim 500 Tokens</div>
 
         <div id="tasks-section">
             <h2>Available Activities</h2>
@@ -94,7 +110,7 @@
     <script>
         function initializeApp() {
             updateBalance();
-            // No need to check button statuses; they should always be clickable
+            checkDailyCheckIn();
         }
 
         function updateBalance() {
@@ -103,17 +119,39 @@
         }
 
         function completeTask(task, url, reward) {
-            // Open the URL in a new tab
             window.open(url, '_blank');
-            // Update the token balance only if the task is not yet completed
             if (localStorage.getItem(task) !== 'completed') {
                 const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
                 localStorage.setItem('balance', currentBalance + reward);
                 localStorage.setItem(task, 'completed');
                 updateBalance();
             }
-            // Update button text to show it's completed
             document.querySelector(`button[onclick="completeTask('${task}', '${url}', ${reward})"]`).textContent = 'Completed';
+        }
+
+        function checkDailyCheckIn() {
+            const lastCheckIn = localStorage.getItem('lastCheckIn');
+            const now = new Date();
+            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000); // Converte a UTC+2
+
+            if (!lastCheckIn || isNewDay(utc2Now, new Date(lastCheckIn))) {
+                document.getElementById('daily-check-in').style.display = 'block';
+            }
+        }
+
+        function claimDailyReward() {
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            localStorage.setItem('balance', currentBalance + 500);
+            localStorage.setItem('lastCheckIn', new Date().toISOString());
+            updateBalance();
+            document.getElementById('daily-check-in').style.display = 'none';
+            alert('You have claimed your daily 500 tokens!');
+        }
+
+        function isNewDay(current, lastCheckIn) {
+            return current.getUTCFullYear() !== lastCheckIn.getUTCFullYear() ||
+                   current.getUTCMonth() !== lastCheckIn.getUTCMonth() ||
+                   current.getUTCDate() !== lastCheckIn.getUTCDate();
         }
     </script>
 </body>
