@@ -21,7 +21,7 @@
         }
 
         #app {
-            background-color: white; /* Tolta la trasparenza, sfondo bianco */
+            background-color: white; /* Sfondo bianco */
             padding: 20px;
             border-radius: 10px;
             text-align: center;
@@ -38,7 +38,7 @@
         p {
             font-size: 18px;
             margin-bottom: 20px;
-            font-weight: bold; /* Grassetto per "Complete activities and earn tokens" */
+            font-weight: bold; /* Testo in grassetto */
         }
 
         button {
@@ -113,53 +113,6 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             z-index: 1000;
         }
-
-        /* Stili per la sezione di staking */
-        #staking-section {
-            margin-top: 30px;
-        }
-
-        .stake-button {
-            background-color: #ff5733;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-bottom: 10px;
-            width: 120px;
-        }
-
-        .stake-button:hover {
-            background-color: #e64e2a;
-        }
-
-        .stake-info {
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-
-        #confirm-stake-section {
-            margin-top: 20px;
-            display: none;
-        }
-
-        /* Pulsante Claim Staking */
-        #claim-staking {
-            background-color: #28a745;
-            color: white;
-            padding: 10px 20px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            display: none; /* Inizialmente nascosto */
-        }
-
-        #claim-staking:enabled {
-            display: block;
-        }
     </style>
 </head>
 <body onload="initializeApp()">
@@ -184,25 +137,6 @@
 
         <button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=gSR8pMZgrmUdn7yR2HJ8dQ&s=19', 2000)">Retweet</button>
         <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">Join us</button>
-
-        <!-- Staking Section -->
-        <div id="staking-section">
-            <h2>Stake FTS</h2>
-            <button class="stake-button" onclick="selectStake(50)">50% APY</button>
-            <button class="stake-button" onclick="selectStake(100)">100% APY</button>
-            <button class="stake-button" onclick="selectStake(200)">200% APY</button>
-
-            <div id="confirm-stake-section">
-                <p class="stake-info">You selected <span id="selected-apy"></span> for <span id="stake-duration"></span>.</p>
-                <p>Enter the amount of FTS tokens to stake (Max 50% of balance):</p>
-                <input type="number" id="stake-amount" />
-                <button class="stake-button" onclick="confirmStake()">Confirm Stake</button>
-                <button class="stake-button" style="background-color: #dc3545;" onclick="cancelStake()">Cancel</button>
-            </div>
-        </div>
-
-        <!-- Claim Staking Button -->
-        <button id="claim-staking" onclick="claimStaking()">Claim Staking</button>
     </div>
 
     <script>
