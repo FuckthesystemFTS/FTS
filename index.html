@@ -95,7 +95,7 @@
             padding: 10px;
             border-radius: 5px;
             cursor: pointer;
-            display: none;
+            display: none; /* Inizialmente nascosto */
         }
 
         #notification {
@@ -184,9 +184,40 @@
             const now = new Date();
             const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000); // Converte a UTC+2
 
-            if (!lastCheckIn || isNewDay(utc2Now, new Date(lastCheckIn))) {
+            if (!lastCheckIn || isMoreThan24Hours(utc2Now, new Date(lastCheckIn))) {
                 document.getElementById('daily-check-in').style.display = 'block';
+            } else {
+                document.getElementById('daily-check-in').style.display = 'none';
             }
+        }
+
+        function claimDailyReward() {
+            const now = new Date();
+            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000); // UTC+2
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            
+            localStorage.setItem('balance', currentBalance + 500); // Aggiungi 500 token
+            localStorage.setItem('lastCheckIn', utc2Now.toISOString()); // Salva la data dell'ultimo check-in
+
+            updateBalance();
+            showNotification('Daily Check 500 FTS');
+
+            // Nascondi il pulsante finché non passano 24 ore
+            document.getElementById('daily-check-in').style.display = 'none';
+        }
+
+        function isMoreThan24Hours(currentDate, lastDate) {
+            const timeDiff = currentDate - lastDate; // Differenza in millisecondi
+            return timeDiff >= 24 * 60 * 60 * 1000; // True se è passata più di 1 giornata (24 ore)
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
         }
     </script>
 </body>
