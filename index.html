@@ -32,11 +32,12 @@
             margin-bottom: 10px;
             color: #ff5733;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0px 0px 10px white;
+            position: relative;
+            top: -20px; /* Sposta il testo "FTS" leggermente più in alto */
         }
 
-        p {
-            font-size: 18px;
-            margin-bottom: 20px;
+        p, #balance, #earn-balance, #stake-info, #stake-form p, #tasks-section h2 {
+            font-weight: bold; /* Tutte le scritte in grassetto */
         }
 
         button {
@@ -97,7 +98,12 @@
         }
 
         #claim-section {
-            display: none;
+            display: block;
+        }
+
+        #claim-button {
+            opacity: 0.5; /* Disabilitato all'inizio */
+            pointer-events: none;
         }
     </style>
 </head>
@@ -105,7 +111,7 @@
     <div id="app">
         <h1>FTS</h1>
         <p>Complete activities and earn tokens!</p>
-        <div id="balance">Token Balance: 0</div>
+        <div id="balance">Token Balance: 5000 FTS</div>
         <div id="earn-balance">Balance FTS EARN: 0 FTS</div>
 
         <div id="daily-check-in" onclick="claimDailyReward()">Daily Check-in: Claim 500 Tokens</div>
@@ -127,16 +133,24 @@
             <button onclick="cancelStake()">Cancel</button>
         </div>
 
+        <!-- Sezione attività -->
+        <div id="tasks-section">
+            <h2>Complete Tasks to Earn Tokens</h2>
+            <button onclick="completeTask('task1', 'https://example.com', 100)">Task 1: Visit Website (100 Tokens)</button>
+            <button onclick="completeTask('task2', 'https://example.com', 200)">Task 2: Watch Video (200 Tokens)</button>
+            <button onclick="completeTask('task3', 'https://example.com', 300)">Task 3: Share on Social Media (300 Tokens)</button>
+        </div>
+
         <!-- Sezione claim -->
         <div id="claim-section">
-            <button onclick="claimStake()">Claim Staking Rewards</button>
+            <button id="claim-button" onclick="claimStake()">Claim Staking Rewards</button>
         </div>
     </div>
 
     <script>
         let selectedAPY = 0;
         let stakeAmount = 0;
-        let balance = 0;
+        let balance = 5000;  // Imposta balance iniziale
         let earnBalance = 0;
         let stakeDuration = '';
         let lastStakingTime = null;
@@ -147,8 +161,6 @@
         }
 
         function updateBalance() {
-            balance = parseInt(localStorage.getItem('balance') || '0', 10);
-            earnBalance = parseInt(localStorage.getItem('earnBalance') || '0', 10);
             document.getElementById('balance').textContent = `Token Balance: ${balance} FTS`;
             document.getElementById('earn-balance').textContent = `Balance FTS EARN: ${earnBalance} FTS`;
         }
@@ -202,44 +214,21 @@
             }
 
             balance -= stakeAmount;
-            localStorage.setItem('balance', balance);
+            earnBalance = stakeAmount; // I token usati nello staking diventano visibili su "Balance FTS EARN"
             updateBalance();
 
             lastStakingTime = Date.now();
             calculateEarnings();
             document.getElementById('stake-form').style.display = 'none';
-            document.getElementById('claim-section').style.display = 'block';
+            document.getElementById('claim-button').style.opacity = "0.5"; // Disabilitato
+            document.getElementById('claim-button').style.pointerEvents = "none";
+
+            // Abilita il pulsante di claim quando il periodo di staking è terminato
+            setTimeout(() => {
+                document.getElementById('claim-button').style.opacity = "1";
+                document.getElementById('claim-button').style.pointerEvents = "auto";
+            }, getStakingDuration(selectedAPY));
         }
 
         function calculateEarnings() {
-            const apyPerHour = selectedAPY / (12 * 365); // 12 aggiornamenti giornalieri
-            earnBalance += stakeAmount * (apyPerHour / 100);
-            localStorage.setItem('earnBalance', earnBalance);
-            updateBalance();
-
-            // Aggiorna ogni 12 ore
-            setTimeout(calculateEarnings, 12 * 60 * 60 * 1000);
-        }
-
-        function claimStake() {
-            balance += stakeAmount + earnBalance;
-            earnBalance = 0;
-            stakeAmount = 0;
-            localStorage.setItem('balance', balance);
-            localStorage.setItem('earnBalance', earnBalance);
-            updateBalance();
-            document.getElementById('claim-section').style.display = 'none';
-        }
-
-        function cancelStake() {
-            document.getElementById('stake-form').style.display = 'none';
-        }
-
-        function isNewDay(current, lastCheckIn) {
-            return current.getUTCFullYear() !== lastCheckIn.getUTCFullYear() ||
-                   current.getUTCMonth() !== lastCheckIn.getUTCMonth() ||
-                   current.getUTCDate() !== lastCheckIn.getUTCDate();
-        }
-    </script>
-</body>
-</html>
+            const apy
