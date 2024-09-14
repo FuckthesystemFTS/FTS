@@ -54,19 +54,9 @@
             background-color: #e64e2a;
         }
 
-        /* Stile per FTS BALANCE e EARN BALANCE */
         #balance, #earn-balance {
             font-size: 20px;
             margin-bottom: 20px;
-        }
-
-        #balance {
-            color: #ff5733;
-        }
-
-        /* Grassetto per i valori */
-        .bold {
-            font-weight: bold;
         }
 
         #tasks-section h2 {
@@ -109,20 +99,14 @@
         #claim-section {
             display: none;
         }
-
-        #countdown {
-            font-size: 20px;
-            margin-top: 20px;
-            color: #ff5733;
-        }
     </style>
 </head>
 <body onload="initializeApp()">
     <div id="app">
         <h1>FTS</h1>
         <p>Complete activities and earn tokens!</p>
-        <div id="balance">FTS Balance: <span class="bold" id="balance-value">0</span> FTS</div>
-        <div id="earn-balance">Balance FTS EARN: <span class="bold" id="earn-balance-value">0</span> FTS</div>
+        <div id="balance">Token Balance: 0</div>
+        <div id="earn-balance">Balance FTS EARN: 0 FTS</div>
 
         <div id="daily-check-in" onclick="claimDailyReward()">Daily Check-in: Claim 500 Tokens</div>
 
@@ -143,11 +127,6 @@
             <button onclick="cancelStake()">Cancel</button>
         </div>
 
-        <!-- Sezione countdown -->
-        <div id="countdown-section">
-            <div id="countdown"></div>
-        </div>
-
         <!-- Sezione claim -->
         <div id="claim-section">
             <button onclick="claimStake()">Claim Staking Rewards</button>
@@ -160,8 +139,7 @@
         let balance = 0;
         let earnBalance = 0;
         let stakeDuration = '';
-        let stakeEndTime = null;
-        let countdownInterval;
+        let lastStakingTime = null;
 
         function initializeApp() {
             updateBalance();
@@ -171,8 +149,8 @@
         function updateBalance() {
             balance = parseInt(localStorage.getItem('balance') || '0', 10);
             earnBalance = parseInt(localStorage.getItem('earnBalance') || '0', 10);
-            document.getElementById('balance-value').textContent = balance;
-            document.getElementById('earn-balance-value').textContent = earnBalance;
+            document.getElementById('balance').textContent = `Token Balance: ${balance} FTS`;
+            document.getElementById('earn-balance').textContent = `Balance FTS EARN: ${earnBalance} FTS`;
         }
 
         function completeTask(task, url, reward) {
@@ -227,29 +205,41 @@
             localStorage.setItem('balance', balance);
             updateBalance();
 
-            const now = new Date();
-            if (selectedAPY === 50) stakeEndTime = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 1 settimana
-            if (selectedAPY === 100) stakeEndTime = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 1 mese
-            if (selectedAPY === 200) stakeEndTime = new Date(now.getTime() + 182 * 24 * 60 * 60 * 1000); // 6 mesi
+            lastStakingTime = Date.now();
+            calculateEarnings();
+            document.getElementById('stake-form').style.display = 'none';
+            document.getElementById('claim-section').style.display = 'block';
+        }
 
-            startCountdown();
+        function calculateEarnings() {
+            const apyPerHour = selectedAPY / (12 * 365); // 12 aggiornamenti giornalieri
+            earnBalance += stakeAmount * (apyPerHour / 100);
+            localStorage.setItem('earnBalance', earnBalance);
+            updateBalance();
+
+            // Aggiorna ogni 12 ore
+            setTimeout(calculateEarnings, 12 * 60 * 60 * 1000);
+        }
+
+        function claimStake() {
+            balance += stakeAmount + earnBalance;
+            earnBalance = 0;
+            stakeAmount = 0;
+            localStorage.setItem('balance', balance);
+            localStorage.setItem('earnBalance', earnBalance);
+            updateBalance();
+            document.getElementById('claim-section').style.display = 'none';
+        }
+
+        function cancelStake() {
             document.getElementById('stake-form').style.display = 'none';
         }
 
-        function startCountdown() {
-            clearInterval(countdownInterval);
-            countdownInterval = setInterval(() => {
-                const now = new Date();
-                const timeRemaining = stakeEndTime - now;
-
-                if (timeRemaining <= 0) {
-                    clearInterval(countdownInterval);
-                    document.getElementById('countdown-section').style.display = 'none';
-                    document.getElementById('claim-section').style.display = 'block';
-                } else {
-                    const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                    const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-
-                    document.get
+        function isNewDay(current, lastCheckIn) {
+            return current.getUTCFullYear() !== lastCheckIn.getUTCFullYear() ||
+                   current.getUTCMonth() !== lastCheckIn.getUTCMonth() ||
+                   current.getUTCDate() !== lastCheckIn.getUTCDate();
+        }
+    </script>
+</body>
+</html>
