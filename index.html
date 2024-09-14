@@ -21,7 +21,6 @@
         }
 
         #app {
-            background-color: rgba(255, 255, 255, 0.8);
             padding: 20px;
             border-radius: 10px;
             text-align: center;
@@ -55,22 +54,13 @@
             background-color: #e64e2a;
         }
 
-        #tasks-section h2 {
-            margin-top: 0;
-        }
-
-        #tasks-list {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        #tasks-list li {
-            margin-bottom: 10px;
-        }
-
         #balance, #earn-balance {
             font-size: 20px;
             margin-bottom: 20px;
+        }
+
+        #tasks-section h2 {
+            margin-top: 0;
         }
 
         #daily-check-in {
@@ -84,48 +74,26 @@
             display: none;
         }
 
-        #notification {
-            display: none;
-            position: absolute;
-            top: 10%;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #28a745;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 5px;
-            font-size: 24px;
-            font-weight: bold;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-
-        /* Sezione staking */
-        .stake-card {
-            display: inline-block;
+        /* Sezione stake */
+        .stake-button {
             margin: 10px;
             padding: 20px;
             text-align: center;
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: #ff5733;
+            color: white;
+            border: none;
+            font-size: 18px;
             border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-            width: 150px;
-            height: 100px;
             cursor: pointer;
         }
 
-        .stake-card p {
-            font-size: 18px;
-            margin: 0;
+        .stake-button:hover {
+            background-color: #e64e2a;
         }
 
         #stake-form {
             display: none;
             margin-top: 20px;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
         }
 
         #claim-section {
@@ -141,34 +109,16 @@
         <div id="earn-balance">Balance FTS EARN: 0 FTS</div>
 
         <div id="daily-check-in" onclick="claimDailyReward()">Daily Check-in: Claim 500 Tokens</div>
-        <div id="notification">Daily Check 500 FTS</div>
-
-        <div id="tasks-section">
-            <h2>Available Activities</h2>
-            <ul id="tasks-list">
-                <li>
-                    <p>Follow us on X</p>
-                    <button onclick="completeTask('follow', 'https://x.com/Fu_ktheSytemFTS?t=ZkWnQZs8Ii25MlmPwsiodQ&s=09', 1000)">Follow</button>
-                </li>
-            </ul>
-        </div>
-        <button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=gSR8pMZgrmUdn7yR2HJ8dQ&s=19', 2000)">Retweet</button>
-        <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">Join us</button>
 
         <!-- Sezione Stake -->
         <div id="stake-section">
             <h2>Stake FTS</h2>
-            <div class="stake-card" onclick="selectStake(50)">
-                <p>50% APY</p>
-            </div>
-            <div class="stake-card" onclick="selectStake(100)">
-                <p>100% APY</p>
-            </div>
-            <div class="stake-card" onclick="selectStake(200)">
-                <p>200% APY</p>
-            </div>
+            <button class="stake-button" onclick="selectStake(50)">50% APY</button>
+            <button class="stake-button" onclick="selectStake(100)">100% APY</button>
+            <button class="stake-button" onclick="selectStake(200)">200% APY</button>
         </div>
 
+        <!-- Form di inserimento staking -->
         <div id="stake-form">
             <p id="stake-info"></p>
             <p>Enter the amount of FTS tokens to stake (Max 50% of balance):</p>
@@ -177,6 +127,7 @@
             <button onclick="cancelStake()">Cancel</button>
         </div>
 
+        <!-- Sezione claim -->
         <div id="claim-section">
             <button onclick="claimStake()">Claim Staking Rewards</button>
         </div>
@@ -210,13 +161,12 @@
                 localStorage.setItem(task, 'completed');
                 updateBalance();
             }
-            document.querySelector(`button[onclick="completeTask('${task}', '${url}', ${reward})"]`).textContent = 'Completed';
         }
 
         function checkDailyCheckIn() {
             const lastCheckIn = localStorage.getItem('lastCheckIn');
             const now = new Date();
-            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000); // Convert to UTC+2
+            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
             if (!lastCheckIn || isNewDay(utc2Now, new Date(lastCheckIn))) {
                 document.getElementById('daily-check-in').style.display = 'block';
@@ -228,8 +178,68 @@
             localStorage.setItem('balance', balance);
             localStorage.setItem('lastCheckIn', new Date().toISOString());
             updateBalance();
-            document.getElementById('daily-check-in').style.display = 'none';
-            showNotification('Daily Check 500 FTS');
         }
 
-        function showNotification(message) {
+        function selectStake(apy) {
+            selectedAPY = apy;
+            let duration;
+            if (apy === 50) duration = "1 week";
+            if (apy === 100) duration = "1 month";
+            if (apy === 200) duration = "6 months";
+
+            stakeDuration = duration;
+            document.getElementById('stake-info').textContent = `You selected ${apy}% APY for ${duration}.`;
+            document.getElementById('stake-form').style.display = 'block';
+        }
+
+        function confirmStake() {
+            const maxStake = balance * 0.5;
+            stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
+
+            if (stakeAmount > maxStake) {
+                alert(`You can stake a maximum of 50% of your balance (${maxStake} FTS).`);
+                return;
+            }
+
+            balance -= stakeAmount;
+            localStorage.setItem('balance', balance);
+            updateBalance();
+
+            lastStakingTime = Date.now();
+            calculateEarnings();
+            document.getElementById('stake-form').style.display = 'none';
+            document.getElementById('claim-section').style.display = 'block';
+        }
+
+        function calculateEarnings() {
+            const apyPerHour = selectedAPY / (12 * 365); // 12 aggiornamenti giornalieri
+            earnBalance += stakeAmount * (apyPerHour / 100);
+            localStorage.setItem('earnBalance', earnBalance);
+            updateBalance();
+
+            // Aggiorna ogni 12 ore
+            setTimeout(calculateEarnings, 12 * 60 * 60 * 1000);
+        }
+
+        function claimStake() {
+            balance += stakeAmount + earnBalance;
+            earnBalance = 0;
+            stakeAmount = 0;
+            localStorage.setItem('balance', balance);
+            localStorage.setItem('earnBalance', earnBalance);
+            updateBalance();
+            document.getElementById('claim-section').style.display = 'none';
+        }
+
+        function cancelStake() {
+            document.getElementById('stake-form').style.display = 'none';
+        }
+
+        function isNewDay(current, lastCheckIn) {
+            return current.getUTCFullYear() !== lastCheckIn.getUTCFullYear() ||
+                   current.getUTCMonth() !== lastCheckIn.getUTCMonth() ||
+                   current.getUTCDate() !== lastCheckIn.getUTCDate();
+        }
+    </script>
+</body>
+</html>
