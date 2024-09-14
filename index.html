@@ -29,18 +29,15 @@
         }
 
         h1 {
-            font-size: 48px;
+            font-size: 48px; /* Aumentato da 24px a 48px */
             margin-bottom: 10px;
             color: #ff5733;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0px 0px 10px white;
-            position: relative;
-            top: -20px; /* Solleva leggermente la scritta "FTS" */
         }
 
         p {
             font-size: 18px;
             margin-bottom: 20px;
-            font-weight: bold; /* Testo in grassetto */
         }
 
         button {
@@ -60,7 +57,6 @@
 
         #tasks-section h2 {
             margin-top: 0;
-            font-weight: bold; /* Testo in grassetto */
         }
 
         #tasks-list {
@@ -72,10 +68,9 @@
             margin-bottom: 10px;
         }
 
-        #balance, #earn-balance {
+        #balance {
             font-size: 20px;
             margin-bottom: 20px;
-            font-weight: bold; /* Testo in grassetto */
         }
 
         #daily-check-in {
@@ -104,19 +99,13 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             z-index: 1000;
         }
-
-        #claim-section button:disabled {
-            background-color: gray;
-            cursor: not-allowed;
-        }
     </style>
 </head>
 <body onload="initializeApp()">
     <div id="app">
         <h1>FTS</h1>
         <p>Complete activities and earn tokens!</p>
-        <div id="balance">Token Balance: 0 FTS</div>
-        <div id="earn-balance">Balance FTS EARN: 0 FTS</div>
+        <div id="balance">Token Balance: 0</div>
 
         <div id="daily-check-in" onclick="claimDailyReward()">Daily Check-in: Claim 500 Tokens</div>
         <div id="notification">Daily Check 500 FTS</div>
@@ -133,54 +122,24 @@
 
         <button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=gSR8pMZgrmUdn7yR2HJ8dQ&s=19', 2000)">Retweet</button>
         <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">Join us</button>
-
-        <!-- Sezione staking -->
-        <div id="stake-section">
-            <h2>Stake FTS</h2>
-            <button class="stake-button" onclick="selectStake(50)">50% APY</button>
-            <button class="stake-button" onclick="selectStake(100)">100% APY</button>
-            <button class="stake-button" onclick="selectStake(200)">200% APY</button>
-        </div>
-
-        <div id="stake-form">
-            <p id="stake-info"></p>
-            <p>Enter the amount of FTS tokens to stake (Max 50% of balance):</p>
-            <input type="number" id="stake-amount" min="0" step="1">
-            <button onclick="confirmStake()">Confirm Stake</button>
-            <button onclick="cancelStake()">Cancel</button>
-        </div>
-
-        <!-- Sezione claim -->
-        <div id="claim-section">
-            <button id="claim-button" disabled onclick="claimStake()">Claim Staking Rewards</button>
-        </div>
     </div>
 
     <script>
-        let selectedAPY = 0;
-        let stakeAmount = 0;
-        let balance = 0;
-        let earnBalance = 0;
-        let stakeDuration = 0;
-        let stakeStartTime = null;
-
         function initializeApp() {
             updateBalance();
             checkDailyCheckIn();
         }
 
         function updateBalance() {
-            balance = parseInt(localStorage.getItem('balance') || '0', 10);
-            earnBalance = parseInt(localStorage.getItem('earnBalance') || '0', 10);
-            document.getElementById('balance').textContent = `Token Balance: ${balance} FTS`;
-            document.getElementById('earn-balance').textContent = `Balance FTS EARN: ${earnBalance} FTS`;
+            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
+            document.getElementById('balance').textContent = `Token Balance: ${balance}`;
         }
 
         function completeTask(task, url, reward) {
             window.open(url, '_blank');
             if (localStorage.getItem(task) !== 'completed') {
-                balance += reward;
-                localStorage.setItem('balance', balance);
+                const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+                localStorage.setItem('balance', currentBalance + reward);
                 localStorage.setItem(task, 'completed');
                 updateBalance();
             }
@@ -190,7 +149,7 @@
         function checkDailyCheckIn() {
             const lastCheckIn = localStorage.getItem('lastCheckIn');
             const now = new Date();
-            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000); // Converte a UTC+2
 
             if (!lastCheckIn || isNewDay(utc2Now, new Date(lastCheckIn))) {
                 document.getElementById('daily-check-in').style.display = 'block';
@@ -198,8 +157,8 @@
         }
 
         function claimDailyReward() {
-            balance += 500;
-            localStorage.setItem('balance', balance);
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            localStorage.setItem('balance', currentBalance + 500);
             localStorage.setItem('lastCheckIn', new Date().toISOString());
             updateBalance();
             document.getElementById('daily-check-in').style.display = 'none';
@@ -212,21 +171,14 @@
             notification.style.display = 'block';
             setTimeout(() => {
                 notification.style.display = 'none';
-            }, 3000);
+            }, 3000); // La notifica sparisce dopo 3 secondi
         }
 
-        function selectStake(apy) {
-            selectedAPY = apy;
-            let duration;
-            if (apy === 50) duration = 7; // 1 settimana
-            if (apy === 100) duration = 30; // 1 mese
-            if (apy === 200) duration = 180; // 6 mesi
-
-            stakeDuration = duration * 24 * 60 * 60 * 1000; // In millisecondi
-            document.getElementById('stake-info').textContent = `You selected ${apy}% APY for ${duration} days.`;
-            document.getElementById('stake-form').style.display = 'block';
+        function isNewDay(current, lastCheckIn) {
+            return current.getUTCFullYear() !== lastCheckIn.getUTCFullYear() ||
+                   current.getUTCMonth() !== lastCheckIn.getUTCMonth() ||
+                   current.getUTCDate() !== lastCheckIn.getUTCDate();
         }
-
-        function confirmStake() {
-            const maxStake = balance * 0.5;
-            stakeAmount = parseInt
+    </script>
+</body>
+</html>
