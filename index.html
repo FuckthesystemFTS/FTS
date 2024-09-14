@@ -29,7 +29,7 @@
         }
 
         h1 {
-            font-size: 48px; /* Aumentato da 24px a 48px */
+            font-size: 48px;
             margin-bottom: 10px;
             color: #ff5733;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0px 0px 10px white;
@@ -68,7 +68,7 @@
             margin-bottom: 10px;
         }
 
-        #balance {
+        #balance, #earn-balance {
             font-size: 20px;
             margin-bottom: 20px;
         }
@@ -99,6 +99,38 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             z-index: 1000;
         }
+
+        /* Sezione staking */
+        .stake-card {
+            display: inline-block;
+            margin: 10px;
+            padding: 20px;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            width: 150px;
+            height: 100px;
+            cursor: pointer;
+        }
+
+        .stake-card p {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        #stake-form {
+            display: none;
+            margin-top: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #claim-section {
+            display: none;
+        }
     </style>
 </head>
 <body onload="initializeApp()">
@@ -106,6 +138,7 @@
         <h1>FTS</h1>
         <p>Complete activities and earn tokens!</p>
         <div id="balance">Token Balance: 0</div>
+        <div id="earn-balance">Balance FTS EARN: 0 FTS</div>
 
         <div id="daily-check-in" onclick="claimDailyReward()">Daily Check-in: Claim 500 Tokens</div>
         <div id="notification">Daily Check 500 FTS</div>
@@ -119,27 +152,61 @@
                 </li>
             </ul>
         </div>
-
         <button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=gSR8pMZgrmUdn7yR2HJ8dQ&s=19', 2000)">Retweet</button>
         <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">Join us</button>
+
+        <!-- Sezione Stake -->
+        <div id="stake-section">
+            <h2>Stake FTS</h2>
+            <div class="stake-card" onclick="selectStake(50)">
+                <p>50% APY</p>
+            </div>
+            <div class="stake-card" onclick="selectStake(100)">
+                <p>100% APY</p>
+            </div>
+            <div class="stake-card" onclick="selectStake(200)">
+                <p>200% APY</p>
+            </div>
+        </div>
+
+        <div id="stake-form">
+            <p id="stake-info"></p>
+            <p>Enter the amount of FTS tokens to stake (Max 50% of balance):</p>
+            <input type="number" id="stake-amount" min="0" step="1">
+            <button onclick="confirmStake()">Confirm Stake</button>
+            <button onclick="cancelStake()">Cancel</button>
+        </div>
+
+        <div id="claim-section">
+            <button onclick="claimStake()">Claim Staking Rewards</button>
+        </div>
     </div>
 
     <script>
+        let selectedAPY = 0;
+        let stakeAmount = 0;
+        let balance = 0;
+        let earnBalance = 0;
+        let stakeDuration = '';
+        let lastStakingTime = null;
+
         function initializeApp() {
             updateBalance();
             checkDailyCheckIn();
         }
 
         function updateBalance() {
-            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
-            document.getElementById('balance').textContent = `Token Balance: ${balance}`;
+            balance = parseInt(localStorage.getItem('balance') || '0', 10);
+            earnBalance = parseInt(localStorage.getItem('earnBalance') || '0', 10);
+            document.getElementById('balance').textContent = `Token Balance: ${balance} FTS`;
+            document.getElementById('earn-balance').textContent = `Balance FTS EARN: ${earnBalance} FTS`;
         }
 
         function completeTask(task, url, reward) {
             window.open(url, '_blank');
             if (localStorage.getItem(task) !== 'completed') {
-                const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-                localStorage.setItem('balance', currentBalance + reward);
+                balance += reward;
+                localStorage.setItem('balance', balance);
                 localStorage.setItem(task, 'completed');
                 updateBalance();
             }
@@ -149,7 +216,7 @@
         function checkDailyCheckIn() {
             const lastCheckIn = localStorage.getItem('lastCheckIn');
             const now = new Date();
-            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000); // Converte a UTC+2
+            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000); // Convert to UTC+2
 
             if (!lastCheckIn || isNewDay(utc2Now, new Date(lastCheckIn))) {
                 document.getElementById('daily-check-in').style.display = 'block';
@@ -157,8 +224,8 @@
         }
 
         function claimDailyReward() {
-            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-            localStorage.setItem('balance', currentBalance + 500);
+            balance += 500;
+            localStorage.setItem('balance', balance);
             localStorage.setItem('lastCheckIn', new Date().toISOString());
             updateBalance();
             document.getElementById('daily-check-in').style.display = 'none';
@@ -166,19 +233,3 @@
         }
 
         function showNotification(message) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 3000); // La notifica sparisce dopo 3 secondi
-        }
-
-        function isNewDay(current, lastCheckIn) {
-            return current.getUTCFullYear() !== lastCheckIn.getUTCFullYear() ||
-                   current.getUTCMonth() !== lastCheckIn.getUTCMonth() ||
-                   current.getUTCDate() !== lastCheckIn.getUTCDate();
-        }
-    </script>
-</body>
-</html>
