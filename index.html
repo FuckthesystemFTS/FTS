@@ -146,9 +146,25 @@
         }
 
         function updateBalance() {
-            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
+            let balance = parseInt(localStorage.getItem('balance'), 10);
+
+            // Se il saldo è NaN, ripristina i token a 5000
+            if (isNaN(balance)) {
+                alert('Il tuo saldo precedente non è valido. I token verranno ripristinati a 5000 FTS.');
+                balance = 5000; // Ripristina il saldo a 5000 FTS
+                localStorage.setItem('balance', balance); // Aggiorna il localStorage con il nuovo saldo
+            }
+
             document.getElementById('balance-value').textContent = balance;
-            const balanceEarn = parseInt(localStorage.getItem('balanceEarn') || '0', 10);
+
+            let balanceEarn = parseInt(localStorage.getItem('balanceEarn') || '0', 10);
+
+            // Stessa logica per il saldo Earn
+            if (isNaN(balanceEarn)) {
+                balanceEarn = 0; // Imposta un valore predefinito
+                localStorage.setItem('balanceEarn', balanceEarn); // Aggiorna il localStorage
+            }
+
             document.getElementById('balance-earn-value').textContent = balanceEarn;
         }
 
