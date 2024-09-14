@@ -21,7 +21,7 @@
         }
 
         #app {
-            background-color: rgba(255, 255, 255, 0.8);
+            background-color: white; /* Tolta la trasparenza, sfondo bianco */
             padding: 20px;
             border-radius: 10px;
             text-align: center;
@@ -38,6 +38,7 @@
         p {
             font-size: 18px;
             margin-bottom: 20px;
+            font-weight: bold; /* Grassetto per "Complete activities and earn tokens" */
         }
 
         button {
@@ -164,7 +165,7 @@
 <body onload="initializeApp()">
     <div id="app">
         <h1>FTS</h1>
-        <p>Complete activities and earn tokens!</p>
+        <p>Complete activities and earn tokens!</p> <!-- Testo in grassetto -->
         <div id="balance">Token Balance: <span id="balance-value">0</span> FTS</div>
         <div id="balance-earn">Balance FTS EARN: <span id="balance-earn-value">0</span> FTS</div>
 
@@ -234,3 +235,9 @@
             const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000); // Converte a UTC+2
 
             if (!lastCheckIn || isNewDay(utc2Now, new Date(lastCheckIn))) {
+                document.getElementById('daily-check-in').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
