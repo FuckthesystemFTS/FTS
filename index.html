@@ -7,6 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            font-weight: bold;
             margin: 0;
             padding: 0;
             background-image: url('image7.png');
@@ -18,10 +19,10 @@
             justify-content: center;
             align-items: center;
             flex-direction: column;
+            color: white; /* Default text color for readability */
         }
 
         #app {
-            background-color: white;
             padding: 20px;
             border-radius: 10px;
             text-align: center;
@@ -31,18 +32,19 @@
         h1 {
             font-size: 48px;
             margin-bottom: 10px;
-            color: #ff5733;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0px 0px 10px white;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Contorno nero per il titolo */
         }
 
         p {
             font-size: 18px;
             margin-bottom: 20px;
-            font-weight: bold;
+            color: white; /* Testo in bianco con contorno nero */
+            text-shadow: 1px 1px 2px black;
         }
 
         button {
-            background-color: #ff5733;
+            background-color: #006400; /* Verde scuro */
             color: white;
             border: none;
             padding: 10px 20px;
@@ -50,14 +52,17 @@
             border-radius: 5px;
             cursor: pointer;
             margin-bottom: 10px;
+            text-shadow: 1px 1px 2px black; /* Contorno nero per il testo dei pulsanti */
         }
 
         button:hover {
-            background-color: #e64e2a;
+            background-color: #004d00; /* Colore leggermente più scuro per il pulsante al passaggio del mouse */
         }
 
         #tasks-section h2 {
             margin-top: 0;
+            color: white; /* Testo in bianco con contorno nero */
+            text-shadow: 1px 1px 2px black;
         }
 
         #tasks-list {
@@ -67,35 +72,38 @@
 
         #tasks-list li {
             margin-bottom: 10px;
+            color: white; /* Testo in bianco con contorno nero */
+            text-shadow: 1px 1px 2px black;
         }
 
         #balance {
             font-size: 24px;
             margin-bottom: 20px;
-            color: #ff5733;
+            color: white; /* Testo in bianco con contorno nero */
+            text-shadow: 1px 1px 2px black;
         }
 
         #balance span {
-            color: black;
-            font-weight: bold;
+            color: white; /* Colore per lo span all'interno di #balance */
         }
 
         #balance-earn {
             font-size: 20px;
-            color: black;
-            font-weight: bold;
+            color: white; /* Testo in bianco con contorno nero */
             margin-bottom: 20px;
+            text-shadow: 1px 1px 2px black;
         }
 
         #daily-check-in {
             font-size: 18px;
             margin-bottom: 20px;
-            background-color: #28a745;
+            background-color: #006400; /* Verde scuro */
             color: white;
             padding: 10px;
             border-radius: 5px;
             cursor: pointer;
             display: none;
+            text-shadow: 1px 1px 2px black; /* Contorno nero per il testo */
         }
 
         #notification {
@@ -104,7 +112,7 @@
             top: 10%;
             left: 50%;
             transform: translateX(-50%);
-            background-color: #28a745;
+            background-color: #006400; /* Verde scuro */
             color: white;
             padding: 15px 30px;
             border-radius: 5px;
@@ -112,10 +120,12 @@
             font-weight: bold;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             z-index: 1000;
+            text-shadow: 1px 1px 2px black; /* Contorno nero per il testo della notifica */
         }
 
         #staking-section h2 {
-            color: #ff5733;
+            color: white; /* Testo in bianco con contorno nero */
+            text-shadow: 1px 1px 2px black;
         }
 
         #login-modal {
@@ -140,6 +150,9 @@
         #login-modal button {
             padding: 10px 20px;
             font-size: 16px;
+            background-color: #006400; /* Verde scuro */
+            color: white;
+            text-shadow: 1px 1px 2px black; /* Contorno nero per il testo del pulsante di login */
         }
     </style>
 </head>
@@ -210,8 +223,7 @@
             if (isNaN(balanceEarn)) {
                 balanceEarn = 0;
                 localStorage.setItem('balanceEarn', balanceEarn);
-            }
-            document.getElementById('balance-earn-value').textContent = balanceEarn;
+            }document.getElementById('balance-earn-value').textContent = balanceEarn;
         }
 
         function completeTask(task, url, reward) {
@@ -233,7 +245,7 @@
             if (!lastCheckIn || isMoreThan24Hours(utc2Now, new Date(lastCheckIn))) {
                 document.getElementById('daily-check-in').style.display = 'block';
             } else {
-              document.getElementById('daily-check-in').style.display = 'none';
+                document.getElementById('daily-check-in').style.display = 'none';
             }
         }
 
@@ -241,17 +253,11 @@
             const now = new Date();
             const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000);
             const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-            
             localStorage.setItem('balance', currentBalance + 500);
-            localStorage.setItem('lastCheckIn', utc2Now.toISOString());
-
+            localStorage.setItem('lastCheckIn', utc2Now);
             updateBalance();
-            showNotification('Daily Check 500 FTS');
             document.getElementById('daily-check-in').style.display = 'none';
-        }
-        function isMoreThan24Hours(currentDate, lastDate) {
-            const timeDiff = currentDate - lastDate;
-            return timeDiff >= 24 * 60 * 60 * 1000;
+            showNotification('Daily Check 500 FTS');
         }
 
         function showNotification(message) {
@@ -263,119 +269,46 @@
             }, 3000);
         }
 
-        // Funzioni per lo staking
+        function isMoreThan24Hours(date1, date2) {
+            const timeDiff = date1 - date2;
+            return timeDiff > 24 * 60 * 60 * 1000;
+        }
+
         function startStaking(apy, duration) {
             document.getElementById('staking-details').style.display = 'block';
             document.getElementById('staking-duration').textContent = duration;
-            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
-            document.getElementById('max-stake').textContent = balance;
-            localStorage.setItem('selectedAPY', apy);
-            localStorage.setItem('stakingDuration', duration);
+            document.getElementById('max-stake').textContent = apy + '%';
         }
 
         function confirmStaking() {
             const stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
-            const maxStake = parseInt(document.getElementById('max-stake').textContent, 10);
-
-            if (isNaN(stakeAmount) || stakeAmount <= 0 || stakeAmount > maxStake) {
-                alert('Inserisci un importo valido da stakare.');
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            
+            if (isNaN(stakeAmount) || stakeAmount <= 0) {
+                alert('Please enter a valid amount to stake.');
                 return;
             }
 
-            let currentBalance = parseInt(localStorage.getItem('balance'), 10);
-            const apy = parseInt(localStorage.getItem('selectedAPY'), 10);
-            const duration = localStorage.getItem('stakingDuration');
-
-            currentBalance -= stakeAmount;
-
-            let reward = (stakeAmount * apy) / 100;
-
-            // Adjust the reward based on the duration of staking
-            if (duration === '1 week') {
-                reward = reward / 52;  // 52 weeks in a year
-            } else if (duration === '4 weeks') {
-                reward = reward / 13;  // 4-week period approximates 1/13th of a year
-            } else if (duration === '3 months') {
-                reward = reward / 4;   // 3 months is roughly a quarter of a year
+            if (stakeAmount > currentBalance) {
+                alert('Insufficient balance to stake.');
+                return;
             }
 
-            let currentEarn = parseInt(localStorage.getItem('balanceEarn') || '0', 10);
-            currentEarn += reward;
-
-            localStorage.setItem('balance', currentBalance);
-            localStorage.setItem('balanceEarn', currentEarn);
-            localStorage.setItem('stakingAmount', stakeAmount);
-            localStorage.setItem('stakingStart', new Date().toISOString());
+            const newBalance = currentBalance - stakeAmount;
+            localStorage.setItem('balance', newBalance);
             updateBalance();
+            alert('Staking successful!');
 
             document.getElementById('staking-details').style.display = 'none';
-            alert('Staking completato! Hai guadagnato ' + reward.toFixed(2) + ' FTS.');
-        }
-
-        function checkStaking() {
-            const stakingStart = localStorage.getItem('stakingStart');
-            const now = new Date();
-            if (stakingStart) {
-                const startDate = new Date(stakingStart);
-                const apy = parseInt(localStorage.getItem('selectedAPY'), 10);
-                const duration = localStorage.getItem('stakingDuration');
-
-                let durationInDays;
-                if (duration === '1 week') {
-                    durationInDays = 7;
-                } else if (duration === '4 weeks') {
-                    durationInDays = 28;
-                } else if (duration === '3 months') {
-                    durationInDays = 90;
-                }
-
-                const stakingEndDate = new Date(startDate.getTime() + durationInDays * 24 * 60 * 60 * 1000);
-
-                if (now >= stakingEndDate) {
-                    const stakingAmount = parseInt(localStorage.getItem('stakingAmount'), 10);
-                    const reward = (stakingAmount * apy) / 100;
-
-                    let currentBalanceEarn = parseInt(localStorage.getItem('balanceEarn'), 10);
-                    currentBalanceEarn -= reward;
-
-                    let currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-                    currentBalance += stakingAmount + reward;
-
-                    localStorage.setItem('balance', currentBalance);
-                    localStorage.setItem('balanceEarn', currentBalanceEarn);
-                    localStorage.removeItem('stakingAmount');
-                    localStorage.removeItem('stakingStart');
-                    localStorage.removeItem('selectedAPY');
-                    localStorage.removeItem('stakingDuration');
-
-                    updateBalance();
-                    showNotification('Staking completato! Hai guadagnato ' + reward.toFixed(2) + ' FTS e l\'importo stakato è stato trasferito al saldo.');
-                }
-            }
-        }
-
-        // Funzione per il login admin
-        let followButtonTimer;
-
-        document.getElementById('follow-btn').addEventListener('mousedown', function () {
-            followButtonTimer = setTimeout(showLoginModal, 10000); // Mostra la finestra di login dopo 10 secondi
-        });
-
-        document.getElementById('follow-btn').addEventListener('mouseup', function () {
-            clearTimeout(followButtonTimer); // Se si rilascia prima dei 10 secondi, non si apre la finestra di login
-        });
-
-        function showLoginModal() {
-            document.getElementById('login-modal').style.display = 'block';
         }
 
         function validateAdmin() {
-            const password = document.getElementById('admin-password').value;
-            if (password === 'Maledettiscammer') {
-                alert('Accesso Admin confermato! Reindirizzamento all\'area admin.');
-                window.location.href = 'admin-dashboard.html'; // Simula il redirect alla pagina admin
+            const adminPassword = document.getElementById('admin-password').value;
+            if (adminPassword === 'your-admin-password') {
+                alert('Admin login successful.');
+                // Additional admin functionalities can be added here
             } else {
-                alert('Password errata. Riprova.');
+                alert('Incorrect password.');
             }
         }
     </script>
