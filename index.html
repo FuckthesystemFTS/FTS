@@ -19,7 +19,7 @@
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            color: white; 
+            color: white; /* Default text color for readability */
         }
 
         #app {
@@ -33,18 +33,18 @@
             font-size: 48px;
             margin-bottom: 10px;
             color: white;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Contorno nero per il titolo */
         }
 
         p {
             font-size: 18px;
             margin-bottom: 20px;
-            color: white; 
+            color: white; /* Testo in bianco con contorno nero */
             text-shadow: 1px 1px 2px black;
         }
 
         button {
-            background-color: #006400;
+            background-color: #006400; /* Verde scuro */
             color: white;
             border: none;
             padding: 10px 20px;
@@ -52,18 +52,16 @@
             border-radius: 5px;
             cursor: pointer;
             margin-bottom: 10px;
-            text-shadow: 1px 1px 2px black;
-            transition: background-color 0.3s, transform 0.2s;
+            text-shadow: 1px 1px 2px black; /* Contorno nero per il testo dei pulsanti */
         }
 
         button:hover {
-            background-color: #004d00;
-            transform: scale(1.05);
+            background-color: #004d00; /* Colore leggermente più scuro per il pulsante al passaggio del mouse */
         }
 
         #tasks-section h2 {
             margin-top: 0;
-            color: white;
+            color: white; /* Testo in bianco con contorno nero */
             text-shadow: 1px 1px 2px black;
         }
 
@@ -74,24 +72,24 @@
 
         #tasks-list li {
             margin-bottom: 10px;
-            color: white;
+            color: white; /* Testo in bianco con contorno nero */
             text-shadow: 1px 1px 2px black;
         }
 
         #balance {
             font-size: 24px;
             margin-bottom: 20px;
-            color: white;
+            color: white; /* Testo in bianco con contorno nero */
             text-shadow: 1px 1px 2px black;
         }
 
         #balance span {
-            color: white;
+            color: white; /* Colore per lo span all'interno di #balance */
         }
 
         #balance-earn {
             font-size: 20px;
-            color: white;
+            color: white; /* Testo in bianco con contorno nero */
             margin-bottom: 20px;
             text-shadow: 1px 1px 2px black;
         }
@@ -99,13 +97,13 @@
         #daily-check-in {
             font-size: 18px;
             margin-bottom: 20px;
-            background-color: #006400;
+            background-color: #006400; /* Verde scuro */
             color: white;
             padding: 10px;
             border-radius: 5px;
             cursor: pointer;
             display: none;
-            text-shadow: 1px 1px 2px black;
+            text-shadow: 1px 1px 2px black; /* Contorno nero per il testo */
         }
 
         #notification {
@@ -114,7 +112,7 @@
             top: 10%;
             left: 50%;
             transform: translateX(-50%);
-            background-color: #006400;
+            background-color: #006400; /* Verde scuro */
             color: white;
             padding: 15px 30px;
             border-radius: 5px;
@@ -122,11 +120,11 @@
             font-weight: bold;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             z-index: 1000;
-            text-shadow: 1px 1px 2px black;
+            text-shadow: 1px 1px 2px black; /* Contorno nero per il testo della notifica */
         }
 
         #staking-section h2 {
-            color: white;
+            color: white; /* Testo in bianco con contorno nero */
             text-shadow: 1px 1px 2px black;
         }
 
@@ -152,9 +150,9 @@
         #login-modal button {
             padding: 10px 20px;
             font-size: 16px;
-            background-color: #006400;
+            background-color: #006400; /* Verde scuro */
             color: white;
-            text-shadow: 1px 1px 2px black;
+            text-shadow: 1px 1px 2px black; /* Contorno nero per il testo del pulsante di login */
         }
     </style>
 </head>
@@ -181,6 +179,7 @@
         <button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/1831319940390896122?t=gSR8pMZgrmUdn7yR2HJ8dQ&s=19', 2000)">Retweet</button>
         <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">Join us</button>
 
+        <!-- Sezione Staking -->
         <div id="staking-section">
             <h2>Staking</h2>
             <button onclick="startStaking(50, '1 week')">50% APY (1 week)</button>
@@ -196,6 +195,7 @@
             <button onclick="confirmStaking()">Confirm Staking</button>
         </div>
 
+        <!-- Finestra di Login -->
         <div id="login-modal">
             <h2>Admin Login</h2>
             <input type="password" id="admin-password" placeholder="Enter Password">
@@ -213,7 +213,7 @@
         function updateBalance() {
             let balance = parseInt(localStorage.getItem('balance'), 10);
             if (isNaN(balance)) {
-                alert('Previous balance invalid. Token reset to 5000 FTS.');
+                alert('Saldo precedente non valido. Token ripristinati a 5000 FTS.');
                 balance = 5000;
                 localStorage.setItem('balance', balance);
             }
@@ -223,156 +223,92 @@
             if (isNaN(balanceEarn)) {
                 balanceEarn = 0;
                 localStorage.setItem('balanceEarn', balanceEarn);
-            }
-            document.getElementById('balance-earn-value').textContent = balanceEarn;
+            }document.getElementById('balance-earn-value').textContent = balanceEarn;
         }
 
         function completeTask(task, url, reward) {
             window.open(url, '_blank');
-            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-            const newBalance = currentBalance + reward;
-            localStorage.setItem('balance', newBalance);
-            updateBalance();
-            showNotification(`Task completed! You earned ${reward} FTS.`);
-        }
-
-        function startStaking(apy, duration) {
-            document.getElementById('staking-details').style.display = 'block';
-            document.getElementById('staking-duration').textContent = duration;
-            document.getElementById('max-stake').textContent = '1000'; 
-        }
-
-        function confirmStaking() {
-            const stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
-            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-
-            if (isNaN(stakeAmount) || stakeAmount <= 0) {
-                alert('Please enter a valid amount to stake.');
-                return;
-            }
-
-            if (stakeAmount > currentBalance) {
-                alert('You do not have enough tokens to stake this amount.');
-                return;
-            }
-
-            const maxStake = parseInt(document.getElementById('max-stake').textContent, 10);
-            if (stakeAmount > maxStake) {
-                alert(`You can stake a maximum of ${maxStake} FTS.`);
-                return;
-            }
-
-            const stakingDuration = document.getElementById('staking-duration').textContent;
-            const newBalance = currentBalance - stakeAmount;
-            localStorage.setItem('balance', newBalance);
-            updateBalance();
-
-            const stakeInfo = {
-                amount: stakeAmount,
-                duration: stakingDuration,
-                apy: document.getElementById('staking-duration').textContent,
-                startDate: new Date().toISOString()
-            };
-
-            localStorage.setItem('staking', JSON.stringify(stakeInfo));
-
-            alert(`You have successfully staked ${stakeAmount} FTS for ${stakingDuration}.`);
-            document.getElementById('staking-details').style.display = 'none';
-        }
-
-        function checkStaking() {
-            const staking = localStorage.getItem('staking');
-            if (staking) {
-                const stakeInfo = JSON.parse(staking);
-                const startDate = new Date(stakeInfo.startDate);
-                const now = new Date();
-                const stakingDuration = stakeInfo.duration;
-
-                let durationInMs = 0;
-
-                if (stakingDuration === '1 week') {
-                    durationInMs = 7 * 24 * 60 * 60 * 1000;
-                } else if (stakingDuration === '4 weeks') {
-                    durationInMs = 4 * 7 * 24 * 60 * 60 * 1000;
-                } else if (stakingDuration === '3 months') {
-                    durationInMs = 3 * 30 * 24 * 60 * 60 * 1000;
-                }
-
-                const timePassed = now - startDate;
-
-                if (timePassed >= durationInMs) {
-                    const reward = calculateStakingRewards(stakeInfo.amount, stakeInfo.apy);
-                    let currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-                    currentBalance += reward;
-                    localStorage.setItem('balance', currentBalance);
-                    updateBalance();
-
-                    localStorage.removeItem('staking');
-                    alert(`Your staking has completed! You have earned ${reward} FTS.`);
-                }
-            }
-        }
-
-        function calculateStakingRewards(amount, apy) {
-            let rate = 0;
-
-            if (apy === '50% APY (1 week)') {
-                rate = 0.50;
-            } else if (apy === '100% APY (4 weeks)') {
-                rate = 1.00;
-            } else if (apy === '200% APY (3 months)') {
-                rate = 2.00;
-            }
-
-            return Math.floor(amount * rate);
-        }
-
-        function claimDailyReward() {
-            const lastClaimDate = localStorage.getItem('lastClaimDate');
-            const now = new Date().toLocaleDateString();
-
-            if (lastClaimDate === now) {
-                alert('You have already claimed your daily reward.');
-            } else {
-                let currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-                currentBalance += 500; 
-                localStorage.setItem('balance', currentBalance);
-                localStorage.setItem('lastClaimDate', now);
+            if (localStorage.getItem(task) !== 'completed') {
+                const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+                localStorage.setItem('balance', currentBalance + reward);
+                localStorage.setItem(task, 'completed');
                 updateBalance();
-                showNotification('Daily Check-in 500 FTS!');
             }
+            document.querySelector(`button[onclick="completeTask('${task}', '${url}', ${reward})"]`).textContent = 'Completed';
         }
 
         function checkDailyCheckIn() {
-            const lastClaimDate = localStorage.getItem('lastClaimDate');
-            const now = new Date().toLocaleDateString();
+            const lastCheckIn = localStorage.getItem('lastCheckIn');
+            const now = new Date();
+            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
-            if (lastClaimDate !== now) {
+            if (!lastCheckIn || isMoreThan24Hours(utc2Now, new Date(lastCheckIn))) {
                 document.getElementById('daily-check-in').style.display = 'block';
             } else {
                 document.getElementById('daily-check-in').style.display = 'none';
             }
         }
 
+        function claimDailyReward() {
+            const now = new Date();
+            const utc2Now = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            localStorage.setItem('balance', currentBalance + 500);
+            localStorage.setItem('lastCheckIn', utc2Now);
+            updateBalance();
+            document.getElementById('daily-check-in').style.display = 'none';
+            showNotification('Daily Check 500 FTS');
+        }
+
         function showNotification(message) {
             const notification = document.getElementById('notification');
             notification.textContent = message;
             notification.style.display = 'block';
-
             setTimeout(() => {
                 notification.style.display = 'none';
             }, 3000);
         }
 
-        function validateAdmin() {
-            const password = document.getElementById('admin-password').value;
-            const correctPassword = 'admin123';
+        function isMoreThan24Hours(date1, date2) {
+            const timeDiff = date1 - date2;
+            return timeDiff > 24 * 60 * 60 * 1000;
+        }
 
-            if (password === correctPassword) {
-                alert('Admin login successful!');
-                document.getElementById('login-modal').style.display = 'none';
+        function startStaking(apy, duration) {
+            document.getElementById('staking-details').style.display = 'block';
+            document.getElementById('staking-duration').textContent = duration;
+            document.getElementById('max-stake').textContent = apy + '%';
+        }
+
+        function confirmStaking() {
+            const stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            
+            if (isNaN(stakeAmount) || stakeAmount <= 0) {
+                alert('Please enter a valid amount to stake.');
+                return;
+            }
+
+            if (stakeAmount > currentBalance) {
+                alert('Insufficient balance to stake.');
+                return;
+            }
+
+            const newBalance = currentBalance - stakeAmount;
+            localStorage.setItem('balance', newBalance);
+            updateBalance();
+            alert('Staking successful!');
+
+            document.getElementById('staking-details').style.display = 'none';
+        }
+
+        function validateAdmin() {
+            const adminPassword = document.getElementById('admin-password').value;
+            if (adminPassword === 'your-admin-password') {
+                alert('Admin login successful.');
+                // Additional admin functionalities can be added here
             } else {
-                alert('Incorrect password!');
+                alert('Incorrect password.');
             }
         }
     </script>
