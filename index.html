@@ -242,159 +242,117 @@
             completedTasks[taskId] = true;
             localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
             updateBalance();
-            showNotification(`Task completed! You earned ${reward} FTS.`);
+            showNotification(`Task completed! You earned ${reward} FTS`);
         }
 
-        function startStaking(apy, duration) {
-            document.getElementById('staking-details').style.display = 'block';
-            document.getElementById('staking-duration').textContent = duration;
-            document.getElementById('max-stake').textContent = '1000'; 
-        }
-
-        function confirmStaking() {
-            const stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
-            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-
-            if (isNaN(stakeAmount) || stakeAmount <= 0) {
-                alert('Please enter a valid amount to stake.');
-                return;
-            }
-
-            if (stakeAmount > currentBalance) {
-                alert('You do not have enough tokens to stake this amount.');
-                return;
-            }
-
-            const maxStake = parseInt(document.getElementById('max-stake').textContent, 10);
-            if (stakeAmount > maxStake) {
-                alert(`You can stake a maximum of ${maxStake} FTS.`);
-                return;
-            }
-
-            const stakingDuration = document.getElementById('staking-duration').textContent;
-            const newBalance = currentBalance - stakeAmount;
-            localStorage.setItem('balance', newBalance);
-            updateBalance();
-
-            const stakeInfo = {
-                amount: stakeAmount,
-                duration: stakingDuration,
-                apy: document.getElementById('staking-duration').textContent,
-                startDate: new Date().toISOString()
-            };
-
-            localStorage.setItem('staking', JSON.stringify(stakeInfo));
-
-            alert(`You have successfully staked ${stakeAmount} FTS for ${stakingDuration}.`);
-            document.getElementById('staking-details').style.display = 'none';
-        }
-
-        function checkStaking() {
-            const staking = localStorage.getItem('staking');
-            if (staking) {
-                const stakeInfo = JSON.parse(staking);
-                const startDate = new Date(stakeInfo.startDate);
-                const now = new Date();
-                const stakingDuration = stakeInfo.duration;
-
-                let durationInMs = 0;
-
-                if (stakingDuration === '1 week') {
-                    durationInMs = 7 * 24 * 60 * 60 * 1000;
-                } else if (stakingDuration === '4 weeks') {
-                    durationInMs = 4 * 7 * 24 * 60 * 60 * 1000;
-                } else if (stakingDuration === '3 months') {
-                    durationInMs = 3 * 30 * 24 * 60 * 60 * 1000;
+        function loadCompletedTasks() {
+            const completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || {};
+            for (const taskId in completedTasks) {
+                const taskElement = document.getElementById(taskId);
+                if (taskElement) {
+                    taskElement.style.display = 'none';
                 }
-
-                const timePassed = now - startDate;
-
-                if (timePassed >= durationInMs) {
-                    const reward = calculateStakingRewards(stakeInfo.amount, stakeInfo.apy);
-                    let currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-                    currentBalance += reward;
-                    localStorage.setItem('balance', currentBalance);
-                    updateBalance();
-
-                    localStorage.removeItem('staking');
-                    alert(`Your staking has completed! You have earned ${reward} FTS.`);
-                }
-            }
-        }
-
-        function calculateStakingRewards(amount, apy) {
-            let rate = 0;
-
-            if (apy === '50% APY (1 week)') {
-                rate = 0.50;
-            } else if (apy === '100% APY (4 weeks)') {
-                rate = 1.00;
-            } else if (apy === '200% APY (3 months)') {
-                rate = 2.00;
-            }
-
-            return Math.floor(amount * rate);
-        }
-
-        function claimDailyReward() {
-            const lastClaimDate = localStorage.getItem('lastClaimDate');
-            const now = new Date().toLocaleDateString();
-
-            if (lastClaimDate === now) {
-                alert('You have already claimed your daily reward.');
-            } else {
-                let currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-                currentBalance += 500; 
-                localStorage.setItem('balance', currentBalance);
-                localStorage.setItem('lastClaimDate', now);
-                updateBalance();
-                showNotification('Daily Check-in 500 FTS!');
             }
         }
 
         function checkDailyCheckIn() {
-            const lastClaimDate = localStorage.getItem('lastClaimDate');
-            const now = new Date().toLocaleDateString();
-
-            if (lastClaimDate !== now) {
+            const lastCheckIn = localStorage.getItem('lastCheckIn');
+            const today = new Date().toDateString();
+            if (lastCheckIn !== today) {
                 document.getElementById('daily-check-in').style.display = 'block';
-            } else {
-                document.getElementById('daily-check-in').style.display = 'none';
             }
+        }
+
+        function claimDailyReward() {
+            const today = new Date().toDateString();
+            localStorage.setItem('lastCheckIn', today);
+
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            const newBalance = currentBalance + 500;
+            localStorage.setItem('balance', newBalance);
+            updateBalance();
+
+            document.getElementById('daily-check-in').style.display = 'none';
+            showNotification('You claimed 500 FTS from Daily Check-in!');
         }
 
         function showNotification(message) {
             const notification = document.getElementById('notification');
             notification.textContent = message;
             notification.style.display = 'block';
-
             setTimeout(() => {
                 notification.style.display = 'none';
             }, 3000);
         }
 
-        function loadCompletedTasks() {
-            const completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || {};
-            for (const taskId in completedTasks) {
-                if (completedTasks[taskId]) {
-                    const taskElement = document.getElementById(taskId);
-                    if (taskElement) {
-                        taskElement.querySelector('button').disabled = true;
-                        taskElement.querySelector('button').textContent = 'Completed';
-                    }
-                }
+        function startStaking(apy, duration) {
+            document.getElementById('staking-duration').textContent = duration;
+            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
+            document.getElementById('max-stake').textContent = balance;
+            document.getElementById('staking-details').style.display = 'block';
+            document.getElementById('staking-details').setAttribute('data-apy', apy);
+        }
+
+        function confirmStaking() {
+            const stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
+            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
+            const apy = parseInt(document.getElementById('staking-details').getAttribute('data-apy'), 10);
+            const duration = document.getElementById('staking-duration').textContent;
+
+            if (stakeAmount > balance || stakeAmount <= 0) {
+                alert('Invalid stake amount. Please enter a valid amount.');
+                return;
+            }
+
+            const balanceEarn = parseInt(localStorage.getItem('balanceEarn') || '0', 10);
+            const updatedEarnBalance = balanceEarn + stakeAmount + (stakeAmount * apy / 100);
+            localStorage.setItem('balanceEarn', updatedEarnBalance);
+
+            const newBalance = balance - stakeAmount;
+            localStorage.setItem('balance', newBalance);
+            updateBalance();
+
+            localStorage.setItem('stakingEndTime', Date.now() + getDurationInMilliseconds(duration));
+            showNotification(`You have staked ${stakeAmount} FTS. You will earn ${apy}% APY in ${duration}.`);
+            checkStaking();
+        }
+
+        function getDurationInMilliseconds(duration) {
+            if (duration === '1 week') {
+                return 7 * 24 * 60 * 60 * 1000;
+            } else if (duration === '4 weeks') {
+                return 4 * 7 * 24 * 60 * 60 * 1000;
+            } else if (duration === '3 months') {
+                return 3 * 30 * 24 * 60 * 60 * 1000;
+            }
+            return 0;
+        }
+
+        function checkStaking() {
+            const stakingEndTime = parseInt(localStorage.getItem('stakingEndTime') || '0', 10);
+            const now = Date.now();
+
+            if (stakingEndTime > 0 && now >= stakingEndTime) {
+                const balanceEarn = parseInt(localStorage.getItem('balanceEarn') || '0', 10);
+                const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+                const newBalance = currentBalance + balanceEarn;
+
+                localStorage.setItem('balance', newBalance);
+                localStorage.setItem('balanceEarn', 0);
+                localStorage.removeItem('stakingEndTime');
+
+                showNotification('Your staking period has ended! Earned FTS have been transferred to your balance.');
+                updateBalance();
             }
         }
 
         function validateAdmin() {
             const password = document.getElementById('admin-password').value;
-            const correctPassword = 'admin123';
-
-            if (password === correctPassword) {
-                alert('Admin login successful!');
+            if (password === 'admin123') { // Replace with a secure password check in production
                 document.getElementById('login-modal').style.display = 'none';
+                alert('Login successful!');
             } else {
-                alert('Incorrect password!');
+                alert('Incorrect password. Try again.');
             }
         }
     </script>
