@@ -10,10 +10,10 @@
             font-weight: bold;
             margin: 0;
             padding: 0;
-            background-image: url('image7.png');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center;
+            background-image: url('image7.png'), url('image55.png'); /* Multiple backgrounds */
+            background-size: cover, contain; /* First image covers, second image fits */
+            background-repeat: no-repeat, no-repeat; /* No repetition for both images */
+            background-position: center, bottom; /* First image centered, second image at the bottom */
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -156,17 +156,6 @@
             color: white;
             text-shadow: 1px 1px 2px black;
         }
-
-        /* Aggiungi immagine image55.png in fondo */
-        #footer-image {
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 400px;
-            height: auto;
-        }
     </style>
 </head>
 <body onload="initializeApp()">
@@ -211,15 +200,6 @@
             <h2>Admin Login</h2>
             <input type="password" id="admin-password" placeholder="Enter Password">
             <button onclick="validateAdmin()">Login</button>
-        </div>
-
-        <!-- Immagine image55.png in fondo alla pagina -->
-        <img id="footer-image" src="image55.png" alt="Footer Image">
-</div>
-
-        <!-- Aggiungi l'immagine "image55.png" in fondo alla pagina -->
-        <div style="position: absolute; bottom: 0; width: 100%; text-align: center;">
-            <img src="image55.png" alt="Image 55" style="max-width: 100%; height: auto;">
         </div>
     </div>
 
@@ -368,11 +348,11 @@
 
         function validateAdmin() {
             const password = document.getElementById('admin-password').value;
-            if (password === 'admin123') { // Replace with a secure password check in production
-                document.getElementById('login-modal').style.display = 'none';
+            if (password === 'admin123') {
                 alert('Login successful!');
+                // Additional admin functionalities can be implemented here.
             } else {
-                alert('Incorrect password. Try again.');
+                alert('Invalid password!');
             }
         }
     </script>
