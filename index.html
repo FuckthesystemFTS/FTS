@@ -10,10 +10,10 @@
             font-weight: bold;
             margin: 0;
             padding: 0;
-            background-image: url('image7.png'), url('image55.png'); /* Multiple backgrounds */
-            background-size: cover, contain; /* First image covers, second image fits */
-            background-repeat: no-repeat, no-repeat; /* No repetition for both images */
-            background-position: center, bottom; /* First image centered, second image at the bottom */
+            background-image: url('image7.png');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -188,6 +188,7 @@
             <button onclick="startStaking(200, '3 months')">200% APY (3 months)</button>
         </div>
 
+
         <div id="staking-details" style="display:none;">
             <h3>Staking Details</h3>
             <p>Duration: <span id="staking-duration"></span></p>
@@ -348,11 +349,11 @@
 
         function validateAdmin() {
             const password = document.getElementById('admin-password').value;
-            if (password === 'admin123') {
+            if (password === 'admin123') { // Replace with a secure password check in production
+                document.getElementById('login-modal').style.display = 'none';
                 alert('Login successful!');
-                // Additional admin functionalities can be implemented here.
             } else {
-                alert('Invalid password!');
+                alert('Incorrect password. Try again.');
             }
         }
     </script>
