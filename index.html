@@ -165,7 +165,7 @@
         <div id="balance">Token Balance: <span id="balance-value">0</span> FTS</div>
         <div id="balance-earn">Balance FTS EARN: <span id="balance-earn-value">0</span> FTS</div>
 
-        <div id="daily-check-in" onclick="claimDailyReward()">Daily Check-in: Claim 500 Tokens</div>
+        <div id="daily-check-in" onclick="claimDailyReward()">Daily Check-in: Claim <span id="daily-reward-amount">500</span> Tokens</div>
         <div id="notification">Daily Check 500 FTS</div>
 
         <div id="tasks-section">
@@ -188,7 +188,6 @@
             <button onclick="startStaking(200, '3 months')">200% APY (3 months)</button>
         </div>
 
-
         <div id="staking-details" style="display:none;">
             <h3>Staking Details</h3>
             <p>Duration: <span id="staking-duration"></span></p>
@@ -204,12 +203,43 @@
         </div>
     </div>
 
-    <script>
+<script>
         function initializeApp() {
             updateBalance();
             checkDailyCheckIn();
             checkStaking();
             loadCompletedTasks();
+            checkFirstLogin();
+        }
+
+        function checkFirstLogin() {
+            const firstLogin = localStorage.getItem('firstLogin');
+            const currentDate = new Date();
+            if (!firstLogin) {
+                // First login logic
+                localStorage.setItem('firstLogin', currentDate.toString());
+                addTokens(40000);
+                alert('Welcome! You have received 40,000 tokens for your first login.');
+            } else {
+                // Check if it's been a year since the first login
+                const firstLoginDate = new Date(firstLogin);
+                const oneYearLater = new Date(firstLoginDate);
+                oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+                if (currentDate >= oneYearLater) {
+                    localStorage.removeItem('firstLogin'); // Reset for new year
+                    localStorage.setItem('firstLogin', currentDate.toString());
+                    addTokens(40000);
+                    alert('Welcome back! You have received 40,000 tokens for your first login after a year.');
+                }
+            }
+        }
+
+        function addTokens(amount) {
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            const newBalance = currentBalance + amount;
+            localStorage.setItem('balance', newBalance);
+            updateBalance();
         }
 
         function updateBalance() {
@@ -268,13 +298,24 @@
             const today = new Date().toDateString();
             localStorage.setItem('lastCheckIn', today);
 
+            let reward = 500; // Default reward for daily check-in
+            const firstLogin = localStorage.getItem('firstLogin');
+            const firstLoginDate = new Date(firstLogin);
+            const oneYearLater = new Date(firstLoginDate);
+            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+            // Check if within the first year for an additional reward
+            if (firstLogin && new Date() < oneYearLater) {
+                alert('You have already received your first login bonus of 40,000 tokens. Daily check-in reward is now 500 tokens.');
+            }
+
             const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-            const newBalance = currentBalance + 500;
+            const newBalance = currentBalance + reward;
             localStorage.setItem('balance', newBalance);
             updateBalance();
 
             document.getElementById('daily-check-in').style.display = 'none';
-            showNotification('You claimed 500 FTS from Daily Check-in!');
+            showNotification('You claimed ' + reward + ' FTS from Daily Check-in!');
         }
 
         function showNotification(message) {
