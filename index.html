@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -195,6 +195,7 @@
         let userWalletAddress;
         const tokenAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0"; // Indirizzo contratto FTS
         const tokenAbi = [
+            // Funzioni principali per interagire con il token FTS
             "function balanceOf(address owner) view returns (uint256)",
             "function transfer(address recipient, uint256 amount) public returns (bool)"
         ];
