@@ -125,13 +125,36 @@
             text-shadow: 1px 1px 2px black;
         }
 
-        #staking-section h2, #wallet-section h2, #transfer-section h2 {
+        #staking-section h2 {
             color: white;
             text-shadow: 1px 1px 2px black;
         }
 
-        #staking-details, #wallet-section, #transfer-section {
-            margin-top: 20px;
+        #login-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #login-modal input {
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        #login-modal button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #006400;
+            color: white;
+            text-shadow: 1px 1px 2px black;
         }
     </style>
 </head>
@@ -142,7 +165,7 @@
         <div id="balance-earn">Balance FTS EARN: <span id="balance-earn-value">0</span> FTS</div>
 
         <div id="daily-check-in" onclick="claimDailyReward()">Daily Check-in: Claim 500 Tokens</div>
-        <div id="notification">Daily check-in 500 FTS</div>
+        <div id="notification">Daily Check 500 FTS</div>
 
         <div id="tasks-section">
             <h2>Available Activities</h2>
@@ -164,6 +187,7 @@
             <button onclick="startStaking(200, '3 months')">200% APY (3 months)</button>
         </div>
 
+
         <div id="staking-details" style="display:none;">
             <h3>Staking Details</h3>
             <p>Duration: <span id="staking-duration"></span></p>
@@ -172,76 +196,36 @@
             <button onclick="confirmStaking()">Confirm Staking</button>
         </div>
 
-        <div id="wallet-section">
-            <h2>Wallet Management</h2>
-            <button onclick="connectWallet()">Connect Wallet</button>
-            <p>Connected Wallet: <span id="connected-wallet"></span></p>
-        </div>
-
-        <div id="transfer-section">
-            <h2>Token Transfer</h2>
-            <input type="number" id="transfer-amount" placeholder="Enter amount to transfer">
-            <button onclick="transferTokens()">Transfer Tokens</button>
-            <p id="transfer-status"></p>
-        </div>
+        <div id="login-modal">
+            <h2>Admin Login</h2>
+            <input type="password" id="admin-password" placeholder="Enter Password">
+            <button onclick="validateAdmin()">Login</button>
+ </div>
     </div>
 
-    <!-- Import WalletConnect -->
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.6.6/dist/umd/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
     <script>
-        let provider;
-        let signer;
-        let userWalletAddress;
-        const tokenAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0"; // Indirizzo contratto FTS
-        const tokenAbi = [
-            // Funzioni principali per interagire con il token FTS
-            "function balanceOf(address owner) view returns (uint256)",
-            "function transfer(address recipient, uint256 amount) public returns (bool)"
-        ];
-
-        // Funzione per connettersi tramite WalletConnect
-        async function connectWallet() {
-            const walletConnectProvider = new WalletConnectProvider({
-                rpc: {
-                    56: 'https://bsc-dataseed.binance.org/', // RPC URL per la rete Binance Smart Chain
-                },
-                chainId: 56, // Binance Smart Chain Mainnet
-            });
-
-            // Abilita WalletConnect
-            await walletConnectProvider.enable();
-            provider = new ethers.providers.Web3Provider(walletConnectProvider);
-            signer = provider.getSigner();
-            userWalletAddress = await signer.getAddress();
-
-            // Mostra l'indirizzo del wallet connesso
-            document.getElementById('connected-wallet').textContent = userWalletAddress;
-            localStorage.setItem('walletAddress', userWalletAddress);
-            updateBalance(); // Aggiorna il saldo dopo il login
-        }
-
         function initializeApp() {
             updateBalance();
             checkDailyCheckIn();
             checkStaking();
             loadCompletedTasks();
-            initializeWallet();
         }
 
-        async function updateBalance() {
-            const balance = await getTokenBalance();
-            document.getElementById('balance-value').textContent = balance;
-            localStorage.setItem('balance', balance);
-        }
-
-        async function getTokenBalance() {
-            if (userWalletAddress && provider) {
-                const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, provider);
-                const balance = await tokenContract.balanceOf(userWalletAddress);
-                return ethers.utils.formatUnits(balance, 18); // Assuming 18 decimals for FTS
+        function updateBalance() {
+            let balance = parseInt(localStorage.getItem('balance'), 10);
+            if (isNaN(balance)) {
+                alert('Previous balance invalid. Token reset to 5000 FTS.');
+                balance = 5000;
+                localStorage.setItem('balance', balance);
             }
-            return 0;
+            document.getElementById('balance-value').textContent = balance;
+
+            let balanceEarn = parseInt(localStorage.getItem('balanceEarn') || '0', 10);
+            if (isNaN(balanceEarn)) {
+                balanceEarn = 0;
+                localStorage.setItem('balanceEarn', balanceEarn);
+            }
+            document.getElementById('balance-earn-value').textContent = balanceEarn;
         }
 
         function completeTask(task, url, reward, taskId) {
@@ -258,21 +242,38 @@
             completedTasks[taskId] = true;
             localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
             updateBalance();
-            showNotification('Task completed! You earned ' + reward + ' FTS');
+            showNotification(`Task completed! You earned ${reward} FTS`);
         }
 
         function loadCompletedTasks() {
             const completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || {};
             for (const taskId in completedTasks) {
                 const taskElement = document.getElementById(taskId);
-                if (completedTasks[taskId]) {
-                    const taskButton = document.querySelector(`#${taskId} button`);
-                    if (taskButton) {
-                        taskButton.disabled = true;
-                        taskButton.textContent = 'Task Completed';
-                    }
+                if (taskElement) {
+                    taskElement.style.display = 'none';
                 }
             }
+        }
+
+        function checkDailyCheckIn() {
+            const lastCheckIn = localStorage.getItem('lastCheckIn');
+            const today = new Date().toDateString();
+            if (lastCheckIn !== today) {
+                document.getElementById('daily-check-in').style.display = 'block';
+            }
+        }
+
+        function claimDailyReward() {
+            const today = new Date().toDateString();
+            localStorage.setItem('lastCheckIn', today);
+
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            const newBalance = currentBalance + 500;
+            localStorage.setItem('balance', newBalance);
+            updateBalance();
+
+            document.getElementById('daily-check-in').style.display = 'none';
+            showNotification('You claimed 500 FTS from Daily Check-in!');
         }
 
         function showNotification(message) {
@@ -284,83 +285,74 @@
             }, 3000);
         }
 
-        function claimDailyReward() {
-            const lastClaim = localStorage.getItem('lastClaimDate');
-            const currentDate = new Date().toISOString().split('T')[0];
-            
-            if (lastClaim !== currentDate) {
-                const balance = parseInt(localStorage.getItem('balance') || '0', 10);
-                const newBalance = balance + 500;
-                localStorage.setItem('balance', newBalance);
-                localStorage.setItem('lastClaimDate', currentDate);
-                updateBalance();
-                showNotification('Daily check-in claimed: 500 FTS');
-            } else {
-                alert('You have already claimed your daily reward.');
-            }
-        }
-
-        function checkDailyCheckIn() {
-            const lastClaim = localStorage.getItem('lastClaimDate');
-            const currentDate = new Date().toISOString().split('T')[0];
-            if (lastClaim !== currentDate) {
-                document.getElementById('daily-check-in').style.display = 'block';
-            }
-        }
-
-        function startStaking(percentage, duration) {
-            document.getElementById('staking-details').style.display = 'block';
+        function startStaking(apy, duration) {
             document.getElementById('staking-duration').textContent = duration;
-            document.getElementById('max-stake').textContent = percentage * 100; // Max stake in FTS
+            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
+            document.getElementById('max-stake').textContent = balance;
+            document.getElementById('staking-details').style.display = 'block';
+            document.getElementById('staking-details').setAttribute('data-apy', apy);
         }
 
         function confirmStaking() {
-            const stakeAmount = document.getElementById('stake-amount').value;
-            if (!stakeAmount || isNaN(stakeAmount) || stakeAmount <= 0) {
-                alert('Please enter a valid staking amount.');
+            const stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
+            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
+            const apy = parseInt(document.getElementById('staking-details').getAttribute('data-apy'), 10);
+            const duration = document.getElementById('staking-duration').textContent;
+
+            if (stakeAmount > balance || stakeAmount <= 0) {
+                alert('Invalid stake amount. Please enter a valid amount.');
                 return;
             }
 
-            // Perform staking logic here
-            alert('Staking confirmed! Amount: ' + stakeAmount + ' FTS');
-            document.getElementById('staking-details').style.display = 'none';
+            const balanceEarn = parseInt(localStorage.getItem('balanceEarn') || '0', 10);
+            const updatedEarnBalance = balanceEarn + stakeAmount + (stakeAmount * apy / 100);
+            localStorage.setItem('balanceEarn', updatedEarnBalance);
+
+            const newBalance = balance - stakeAmount;
+            localStorage.setItem('balance', newBalance);
+            updateBalance();
+
+            localStorage.setItem('stakingEndTime', Date.now() + getDurationInMilliseconds(duration));
+            showNotification(`You have staked ${stakeAmount} FTS. You will earn ${apy}% APY in ${duration}.`);
+            checkStaking();
         }
 
-        async function transferTokens() {
-            const transferAmount = document.getElementById('transfer-amount').value;
-            if (!transferAmount || isNaN(transferAmount) || transferAmount <= 0) {
-                alert('Please enter a valid transfer amount.');
-                return;
+        function getDurationInMilliseconds(duration) {
+            if (duration === '1 week') {
+                return 7 * 24 * 60 * 60 * 1000;
+            } else if (duration === '4 weeks') {
+                return 4 * 7 * 24 * 60 * 60 * 1000;
+            } else if (duration === '3 months') {
+                return 3 * 30 * 24 * 60 * 60 * 1000;
             }
-
-            const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
-            const recipient = prompt('Enter recipient wallet address:');
-            if (recipient) {
-                try {
-                    const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(transferAmount, 18));
-                    await tx.wait();
-                    document.getElementById('transfer-status').textContent = `Transfer successful! ${transferAmount} FTS sent to ${recipient}`;
-                    updateBalance();
-                } catch (error) {
-                    document.getElementById('transfer-status').textContent = 'Transfer failed. Please try again.';
-                }
-            }
+            return 0;
         }
 
         function checkStaking() {
-            const stakingInfo = localStorage.getItem('staking');
-            if (stakingInfo) {
-                const stakingData = JSON.parse(stakingInfo);
-                document.getElementById('staking-details').style.display = 'none';
-                showNotification(`You are staking ${stakingData.amount} FTS for ${stakingData.duration}`);
+            const stakingEndTime = parseInt(localStorage.getItem('stakingEndTime') || '0', 10);
+            const now = Date.now();
+
+            if (stakingEndTime > 0 && now >= stakingEndTime) {
+                const balanceEarn = parseInt(localStorage.getItem('balanceEarn') || '0', 10);
+                const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+                const newBalance = currentBalance + balanceEarn;
+
+                localStorage.setItem('balance', newBalance);
+                localStorage.setItem('balanceEarn', 0);
+                localStorage.removeItem('stakingEndTime');
+
+                showNotification('Your staking period has ended! Earned FTS have been transferred to your balance.');
+                updateBalance();
             }
         }
 
-        function initializeWallet() {
-            const walletAddress = localStorage.getItem('walletAddress');
-            if (walletAddress) {
-                userWalletAddress = walletAddress;
-                document.getElementById('connected-wallet').textContent = userWalletAddress;
+        function validateAdmin() {
+            const password = document.getElementById('admin-password').value;
+            if (password === 'admin123') { // Replace with a secure password check in production
+                document.getElementById('login-modal').style.display = 'none';
+                alert('Login successful!');
+            } else {
+                alert('Incorrect password. Try again.');
             }
         }
     </script>
