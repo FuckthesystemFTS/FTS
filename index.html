@@ -232,6 +232,33 @@
             }
         }
 
+        function startStaking(amount, duration) {
+            document.getElementById('staking-details').style.display = 'block';
+            document.getElementById('staking-duration').textContent = duration;
+            document.getElementById('max-stake').textContent = amount;
+        }
+
+        function confirmStaking() {
+            const stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
+            const maxStake = parseInt(document.getElementById('max-stake').textContent, 10);
+
+            if (isNaN(stakeAmount) || stakeAmount <= 0 || stakeAmount > maxStake) {
+                alert('Invalid staking amount.');
+                return;
+            }
+
+            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            if (stakeAmount > currentBalance) {
+                alert('Insufficient balance for staking.');
+                return;
+            }
+
+            const newBalance = currentBalance - stakeAmount;
+            localStorage.setItem('balance', newBalance);
+            document.getElementById('balance-value').textContent = newBalance;
+            alert(`Successfully staked ${stakeAmount} FTS for ${document.getElementById('staking-duration').textContent}.`);
+        }
+
         function initializeApp() {
             const balance = parseInt(localStorage.getItem('balance') || '0', 10);
             document.getElementById('balance-value').textContent = balance;
