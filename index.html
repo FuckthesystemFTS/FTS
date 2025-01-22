@@ -182,8 +182,9 @@
 
         async function connectWalletConnect() {
             try {
+                console.log('Initializing WalletConnect...');
                 const walletConnectProvider = new WalletConnectProvider({
-                    projectId: 'd2dbf72ab740e1656b27eefd66a94298', // Replace with your WalletConnect project ID
+                    projectId: 'd2dbf72ab740e1656b27eefd66a94298',
                     chains: [56],
                     rpcMap: {
                         56: 'https://bsc-dataseed.binance.org/'
@@ -200,9 +201,9 @@
 
                 console.log('Wallet Address:', walletAddress);
 
-                // Request signature for authorization
                 const message = "Please sign this message to connect your wallet.";
                 console.log('Requesting signature...');
+
                 const signature = await signer.signMessage(message);
 
                 if (!signature) {
@@ -214,16 +215,13 @@
 
                 document.getElementById('connected-wallet').textContent = walletAddress;
 
-                // Fetch and display balances
                 const bnbBalance = await provider.getBalance(walletAddress);
                 console.log('BNB Balance:', ethers.utils.formatEther(bnbBalance));
                 document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
                 document.getElementById('bnb-balance').style.display = 'block';
 
                 const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-                const abi = [
-                    "function balanceOf(address owner) view returns (uint256)"
-                ];
+                const abi = ["function balanceOf(address owner) view returns (uint256)"];
 
                 const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
                 const tokenBalance = await tokenContract.balanceOf(walletAddress);
@@ -255,9 +253,7 @@
             }
 
             const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-            const abi = [
-                "function transfer(address to, uint256 amount) public returns (bool)"
-            ];
+            const abi = ["function transfer(address to, uint256 amount) public returns (bool)"];
 
             const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
 
