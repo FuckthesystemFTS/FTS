@@ -175,7 +175,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@2.0.0/dist/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
     <script>
         let provider, signer, walletAddress;
@@ -184,12 +184,10 @@
             try {
                 console.log('Initializing WalletConnect...');
                 const walletConnectProvider = new WalletConnectProvider.default({
-                    projectId: 'd2dbf72ab740e1656b27eefd66a94298',
                     rpc: {
                         56: 'https://bsc-dataseed.binance.org/'
                     },
-                    chains: [56],
-                    showQrModal: true,
+                    chainId: 56
                 });
 
                 console.log('Enabling WalletConnect provider...');
