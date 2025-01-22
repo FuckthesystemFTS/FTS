@@ -172,7 +172,12 @@
 
             async function connectWallet() {
                 try {
-                    const WalletConnectProvider = window.WalletConnectProvider.default;
+                    const WalletConnectProvider = window.WalletConnectProvider?.default || window.WalletConnectProvider;
+                    if (!WalletConnectProvider) {
+                        alert('WalletConnectProvider is not available. Please check your library import.');
+                        return;
+                    }
+
                     const walletConnectProvider = new WalletConnectProvider({
                         rpc: {
                             56: 'https://bsc-dataseed.binance.org/'
