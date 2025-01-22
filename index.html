@@ -195,26 +195,33 @@
                     chainId: 56
                 });
 
+                console.log('Enabling WalletConnect provider...');
                 await walletConnectProvider.enable();
+                console.log('WalletConnect enabled successfully.');
 
                 provider = new ethers.providers.Web3Provider(walletConnectProvider);
                 signer = provider.getSigner();
                 walletAddress = await signer.getAddress();
 
+                console.log('Wallet Address:', walletAddress);
+
                 // Request signature for authorization
                 const message = "Please sign this message to connect your wallet.";
+                console.log('Requesting signature...');
                 const signature = await signer.signMessage(message);
 
                 if (!signature) {
                     alert("Signature was not provided. Wallet connection failed.");
                     return;
                 }
+
                 console.log("User Signature:", signature);
 
                 document.getElementById('connected-wallet').textContent = walletAddress;
 
                 // Fetch and display balances
                 const bnbBalance = await provider.getBalance(walletAddress);
+                console.log('BNB Balance:', ethers.utils.formatEther(bnbBalance));
                 document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
                 document.getElementById('bnb-balance').style.display = 'block';
 
@@ -225,6 +232,7 @@
 
                 const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
                 const tokenBalance = await tokenContract.balanceOf(walletAddress);
+                console.log('Token Balance:', ethers.utils.formatUnits(tokenBalance, 18));
                 document.getElementById('balance-value').textContent = ethers.utils.formatUnits(tokenBalance, 18);
                 document.getElementById('balance').style.display = 'block';
 
