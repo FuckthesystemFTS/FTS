@@ -170,7 +170,6 @@
 
         async function connectWallet() {
             try {
-                console.log('Initializing WalletConnect');
                 const walletConnectProvider = new WalletConnectProvider({
                     rpc: {
                         56: 'https://bsc-dataseed.binance.org/'
@@ -179,7 +178,6 @@
                 });
 
                 await walletConnectProvider.enable();
-                console.log('WalletConnect enabled');
 
                 provider = new ethers.providers.Web3Provider(walletConnectProvider);
                 signer = provider.getSigner();
@@ -187,13 +185,17 @@
 
                 document.getElementById('connected-wallet').textContent = walletAddress;
 
-                walletConnectProvider.on('disconnect', (code, reason) => {
-                    console.log('Wallet disconnected:', code, reason);
+                walletConnectProvider.on('disconnect', () => {
                     document.getElementById('connected-wallet').textContent = 'Not connected';
                 });
+
+                walletConnectProvider.on('session_update', async () => {
+                    walletAddress = await signer.getAddress();
+                    document.getElementById('connected-wallet').textContent = walletAddress;
+                });
+
             } catch (error) {
-                console.error('Wallet connection failed:', error);
-                alert('Could not connect to the wallet. Please ensure you have a supported wallet and try again.');
+                alert('Wallet connection failed. Please ensure you are using a supported wallet.');
             }
         }
 
@@ -203,7 +205,6 @@
             const newBalance = currentBalance + reward;
             localStorage.setItem('balance', newBalance);
             document.getElementById('balance-value').textContent = newBalance;
-            alert(`Task completed! Earned ${reward} FTS.`);
         }
 
         async function transferTokens() {
@@ -226,47 +227,14 @@
                 const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount.toString(), 18));
                 await tx.wait();
                 alert(`Successfully transferred ${amount} FTS to ${recipient}`);
-            } catch (error) {
-                console.error('Error during transfer:', error);
-                alert('Error during transfer');
+            } catch {
+                alert('Error during transfer.');
             }
-        }
-
-        function startStaking(amount, duration) {
-            document.getElementById('staking-details').style.display = 'block';
-            document.getElementById('staking-duration').textContent = duration;
-            document.getElementById('max-stake').textContent = amount;
-        }
-
-        function confirmStaking() {
-            const stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
-            const maxStake = parseInt(document.getElementById('max-stake').textContent, 10);
-
-            if (isNaN(stakeAmount) || stakeAmount <= 0 || stakeAmount > maxStake) {
-                alert('Invalid staking amount.');
-                return;
-            }
-
-            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-            if (stakeAmount > currentBalance) {
-                alert('Insufficient balance for staking.');
-                return;
-            }
-
-            const newBalance = currentBalance - stakeAmount;
-            localStorage.setItem('balance', newBalance);
-            document.getElementById('balance-value').textContent = newBalance;
-            alert(`Successfully staked ${stakeAmount} FTS for ${document.getElementById('staking-duration').textContent}.`);
         }
 
         function initializeApp() {
             const balance = parseInt(localStorage.getItem('balance') || '0', 10);
             document.getElementById('balance-value').textContent = balance;
-            if (walletAddress) {
-                document.getElementById('connected-wallet').textContent = walletAddress;
-            } else {
-                document.getElementById('connected-wallet').textContent = 'Not connected';
-            }
         }
     </script>
 </body>
