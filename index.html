@@ -204,6 +204,11 @@
                 // Request signature for authorization
                 const message = "Please sign this message to connect your wallet.";
                 const signature = await signer.signMessage(message);
+
+                if (!signature) {
+                    alert("Signature was not provided. Wallet connection failed.");
+                    return;
+                }
                 console.log("User Signature:", signature);
 
                 document.getElementById('connected-wallet').textContent = walletAddress;
