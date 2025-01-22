@@ -19,7 +19,7 @@
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            color: white; 
+            color: white;
         }
 
         #app {
@@ -27,20 +27,23 @@
             border-radius: 10px;
             text-align: center;
             position: relative;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.8);
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         h1 {
-            font-size: 48px;
+            font-size: 32px;
             margin-bottom: 10px;
             color: white;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         p {
-            font-size: 18px;
+            font-size: 16px;
             margin-bottom: 20px;
-            color: white; 
+            color: white;
             text-shadow: 1px 1px 2px black;
         }
 
@@ -48,13 +51,14 @@
             background-color: #006400;
             color: white;
             border: none;
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 10px;
+            font-size: 14px;
             border-radius: 5px;
             cursor: pointer;
             margin-bottom: 10px;
             text-shadow: 1px 1px 2px black;
             transition: background-color 0.3s, transform 0.2s;
+            width: 100%;
         }
 
         button:hover {
@@ -62,49 +66,25 @@
             transform: scale(1.05);
         }
 
-        #tasks-section h2 {
-            margin-top: 0;
+        #tasks-section h2, #staking-section h2, #wallet-section h2, #transfer-section h2 {
+            font-size: 18px;
+            margin-top: 20px;
             color: white;
             text-shadow: 1px 1px 2px black;
         }
 
         #balance {
-            font-size: 24px;
+            font-size: 20px;
             margin-bottom: 20px;
             color: white;
             text-shadow: 1px 1px 2px black;
-        }
-
-        #balance span {
-            color: white;
         }
 
         #balance-earn {
-            font-size: 20px;
-            color: white;
+            font-size: 18px;
             margin-bottom: 20px;
-            text-shadow: 1px 1px 2px black;
-        }
-
-        #notification {
-            display: none;
-            position: absolute;
-            top: 10%;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #006400;
             color: white;
-            padding: 15px 30px;
-            border-radius: 5px;
-            font-size: 24px;
-            font-weight: bold;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
             text-shadow: 1px 1px 2px black;
-        }
-
-        #wallet-section, #staking-section, #transfer-section {
-            margin-top: 20px;
         }
 
         input {
@@ -112,7 +92,30 @@
             border-radius: 5px;
             border: 1px solid #ccc;
             margin-bottom: 10px;
-            width: calc(100% - 24px);
+            width: 100%;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            p {
+                font-size: 14px;
+            }
+
+            button {
+                font-size: 12px;
+            }
+
+            #balance {
+                font-size: 18px;
+            }
+
+            #balance-earn {
+                font-size: 16px;
+            }
         }
     </style>
 </head>
@@ -167,6 +170,7 @@
 
         async function connectWallet() {
             try {
+                console.log('Initializing WalletConnect');
                 const walletConnectProvider = new WalletConnectProvider({
                     rpc: {
                         56: 'https://bsc-dataseed.binance.org/'
@@ -175,6 +179,7 @@
                 });
 
                 await walletConnectProvider.enable();
+                console.log('WalletConnect enabled');
 
                 provider = new ethers.providers.Web3Provider(walletConnectProvider);
                 signer = provider.getSigner();
@@ -183,11 +188,11 @@
                 document.getElementById('connected-wallet').textContent = walletAddress;
 
                 walletConnectProvider.on('disconnect', (code, reason) => {
-                    console.log('Wallet disconnected', code, reason);
+                    console.log('Wallet disconnected:', code, reason);
                     document.getElementById('connected-wallet').textContent = 'Not connected';
                 });
             } catch (error) {
-                console.error('Failed to connect wallet:', error);
+                console.error('Wallet connection failed:', error);
                 alert('Could not connect to the wallet. Please ensure you have a supported wallet and try again.');
             }
         }
