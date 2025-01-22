@@ -175,18 +175,20 @@
                 });
 
                 await walletConnectProvider.enable();
+
                 provider = new ethers.providers.Web3Provider(walletConnectProvider);
                 signer = provider.getSigner();
                 walletAddress = await signer.getAddress();
 
-                if (walletAddress) {
-                    document.getElementById('connected-wallet').textContent = walletAddress;
-                } else {
-                    alert('Failed to retrieve wallet address. Please try again.');
-                }
+                document.getElementById('connected-wallet').textContent = walletAddress;
+
+                walletConnectProvider.on('disconnect', (code, reason) => {
+                    console.log('Wallet disconnected', code, reason);
+                    document.getElementById('connected-wallet').textContent = 'Not connected';
+                });
             } catch (error) {
-                console.error('Error connecting wallet:', error);
-                alert('Failed to connect wallet. Please ensure WalletConnect is supported and try again.');
+                console.error('Failed to connect wallet:', error);
+                alert('Could not connect to the wallet. Please ensure you have a supported wallet and try again.');
             }
         }
 
@@ -220,7 +222,7 @@
                 await tx.wait();
                 alert(`Successfully transferred ${amount} FTS to ${recipient}`);
             } catch (error) {
-                console.error(error);
+                console.error('Error during transfer:', error);
                 alert('Error during transfer');
             }
         }
