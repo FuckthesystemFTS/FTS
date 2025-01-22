@@ -175,7 +175,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@2.0.0/dist/index.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
     <script>
         let provider, signer, walletAddress;
@@ -183,16 +183,21 @@
         async function connectWalletConnect() {
             try {
                 console.log('Initializing WalletConnect...');
-                const walletConnectProvider = new WalletConnectProvider.default({
-                    rpc: {
-                        56: 'https://bsc-dataseed.binance.org/'
+                const walletConnectProvider = new WalletConnect.Client({
+                    projectId: 'd2dbf72ab740e1656b27eefd66a94298',
+                    metadata: {
+                        name: "Token Rewards Bot",
+                        description: "Connect to earn rewards.",
+                        url: "https://your-dapp-url.com",
+                        icons: ["https://your-icon-url.com/icon.png"]
                     },
-                    chainId: 56
+                    relayUrl: "wss://relay.walletconnect.com",
+                    chains: ["eip155:56"],
                 });
 
-                console.log('Enabling WalletConnect provider...');
-                await walletConnectProvider.enable();
-                console.log('WalletConnect enabled successfully.');
+                console.log('Connecting WalletConnect provider...');
+                const session = await walletConnectProvider.connect();
+                console.log('Session established:', session);
 
                 provider = new ethers.providers.Web3Provider(walletConnectProvider);
                 signer = provider.getSigner();
