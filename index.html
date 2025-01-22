@@ -135,9 +135,9 @@
         <h1>Token Rewards Bot</h1>
         <p>Earn tokens by completing activities, staking, and transferring with ease!</p>
         
-        <div id="bnb-balance">BNB Balance: <span id="bnb-value">0</span> BNB</div>
-        <div id="balance">Token Balance: <span id="balance-value">0</span> FTS</div>
-        <div id="balance-earn">Balance FTS EARN: <span id="balance-earn-value">0</span> FTS</div>
+        <div id="bnb-balance" style="display: none;">BNB Balance: <span id="bnb-value">0</span> BNB</div>
+        <div id="balance" style="display: none;">Token Balance: <span id="balance-value">0</span> FTS</div>
+        <div id="balance-earn" style="display: none;">Balance FTS EARN: <span id="balance-earn-value">0</span> FTS</div>
 
         <div id="tasks-section">
             <h2>Available Activities</h2>
@@ -201,10 +201,17 @@
                 signer = provider.getSigner();
                 walletAddress = await signer.getAddress();
 
+                // Request signature for authorization
+                const message = "Please sign this message to connect your wallet.";
+                const signature = await signer.signMessage(message);
+                console.log("User Signature:", signature);
+
                 document.getElementById('connected-wallet').textContent = walletAddress;
 
+                // Fetch and display balances
                 const bnbBalance = await provider.getBalance(walletAddress);
                 document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
+                document.getElementById('bnb-balance').style.display = 'block';
 
                 const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
                 const abi = [
@@ -214,12 +221,7 @@
                 const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
                 const tokenBalance = await tokenContract.balanceOf(walletAddress);
                 document.getElementById('balance-value').textContent = ethers.utils.formatUnits(tokenBalance, 18);
-
-                walletConnectProvider.on('disconnect', () => {
-                    document.getElementById('connected-wallet').textContent = 'Not connected';
-                    document.getElementById('bnb-value').textContent = '0';
-                    document.getElementById('balance-value').textContent = '0';
-                });
+                document.getElementById('balance').style.display = 'block';
 
             } catch (error) {
                 console.error('WalletConnect Error:', error);
@@ -262,8 +264,8 @@
         }
 
         function initializeApp() {
-            document.getElementById('bnb-value').textContent = '0';
-            document.getElementById('balance-value').textContent = '0';
+            document.getElementById('bnb-balance').style.display = 'none';
+            document.getElementById('balance').style.display = 'none';
         }
 
         document.addEventListener('DOMContentLoaded', () => {
