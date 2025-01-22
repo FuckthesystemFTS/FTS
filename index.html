@@ -119,7 +119,7 @@
         }
     </style>
 </head>
-<body onload="initializeApp()">
+<body>
     <div id="app">
         <h1>Token Rewards Bot</h1>
         <p>Earn tokens by completing activities, staking, and transferring with ease!</p>
@@ -164,124 +164,129 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.6.6/dist/umd/index.min.js"></script>
+    <script src="https://unpkg.com/@walletconnect/web3-provider/dist/umd/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
     <script>
-        let provider, signer, walletAddress;
+        document.addEventListener('DOMContentLoaded', () => {
+            let provider, signer, walletAddress;
 
-        async function connectWallet() {
-            try {
-                const walletConnectProvider = new WalletConnectProvider({
-                    rpc: {
-                        56: 'https://bsc-dataseed.binance.org/'
-                    },
-                    chainId: 56
-                });
-
-                await walletConnectProvider.enable();
-
-                provider = new ethers.providers.Web3Provider(walletConnectProvider);
-                signer = provider.getSigner();
-                walletAddress = await signer.getAddress();
-
-                document.getElementById('connected-wallet').textContent = walletAddress;
-
-                walletConnectProvider.on('disconnect', () => {
-                    document.getElementById('connected-wallet').textContent = 'Not connected';
-                });
-            } catch (error) {
-                console.error('WalletConnect Error:', error);
-                alert('Failed to connect wallet. Please check your wallet and try again.');
-            }
-        }
-
-        async function connectMetaMask() {
-            if (typeof window.ethereum !== 'undefined') {
+            async function connectWallet() {
                 try {
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    const WalletConnectProvider = window.WalletConnectProvider.default;
+                    const walletConnectProvider = new WalletConnectProvider({
+                        rpc: {
+                            56: 'https://bsc-dataseed.binance.org/'
+                        },
+                        chainId: 56
+                    });
+
+                    await walletConnectProvider.enable();
+
+                    provider = new ethers.providers.Web3Provider(walletConnectProvider);
                     signer = provider.getSigner();
                     walletAddress = await signer.getAddress();
 
                     document.getElementById('connected-wallet').textContent = walletAddress;
+
+                    walletConnectProvider.on('disconnect', () => {
+                        document.getElementById('connected-wallet').textContent = 'Not connected';
+                    });
                 } catch (error) {
-                    console.error('MetaMask Error:', error);
-                    alert('MetaMask connection failed. Please try again.');
+                    console.error('WalletConnect Error:', error);
+                    alert('Failed to connect wallet. Please check your wallet and try again.');
                 }
-            } else {
-                alert('MetaMask is not installed. Please install it to use this feature.');
-            }
-        }
-
-        function completeTask(taskName, url, reward) {
-            window.open(url, '_blank');
-            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-            const newBalance = currentBalance + reward;
-            localStorage.setItem('balance', newBalance);
-            document.getElementById('balance-value').textContent = newBalance;
-        }
-
-        async function transferTokens() {
-            const recipient = document.getElementById('recipient-wallet').value;
-            const amount = parseInt(document.getElementById('transfer-amount').value, 10);
-
-            if (!recipient || isNaN(amount) || amount <= 0) {
-                alert('Please provide a valid recipient address and amount.');
-                return;
             }
 
-            const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-            const abi = [
-                "function transfer(address to, uint256 amount) public returns (bool)"
-            ];
+            async function connectMetaMask() {
+                if (typeof window.ethereum !== 'undefined') {
+                    try {
+                        await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        provider = new ethers.providers.Web3Provider(window.ethereum);
+                        signer = provider.getSigner();
+                        walletAddress = await signer.getAddress();
 
-            const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
-
-            try {
-                const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount.toString(), 18));
-                await tx.wait();
-                alert(`Successfully transferred ${amount} FTS to ${recipient}`);
-            } catch (error) {
-                console.error('Token Transfer Error:', error);
-                alert('Error during transfer.');
-            }
-        }
-
-        function startStaking(amount, duration) {
-            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
-            const maxAllowedStake = Math.floor(balance * 0.5);
-
-            document.getElementById('staking-details').style.display = 'block';
-            document.getElementById('staking-duration').textContent = duration;
-            document.getElementById('max-stake').textContent = Math.min(amount, maxAllowedStake);
-        }
-
-        function confirmStaking() {
-            const stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
-            const maxStake = parseInt(document.getElementById('max-stake').textContent, 10);
-
-            if (isNaN(stakeAmount) || stakeAmount <= 0 || stakeAmount > maxStake) {
-                alert('Invalid staking amount.');
-                return;
+                        document.getElementById('connected-wallet').textContent = walletAddress;
+                    } catch (error) {
+                        console.error('MetaMask Error:', error);
+                        alert('MetaMask connection failed. Please try again.');
+                    }
+                } else {
+                    alert('MetaMask is not installed. Please install it to use this feature.');
+                }
             }
 
-            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-
-            if (stakeAmount > currentBalance) {
-                alert('Insufficient balance for staking.');
-                return;
+            function completeTask(taskName, url, reward) {
+                window.open(url, '_blank');
+                const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+                const newBalance = currentBalance + reward;
+                localStorage.setItem('balance', newBalance);
+                document.getElementById('balance-value').textContent = newBalance;
             }
 
-            const newBalance = currentBalance - stakeAmount;
-            localStorage.setItem('balance', newBalance);
-            document.getElementById('balance-value').textContent = newBalance;
-            alert(`Successfully staked ${stakeAmount} FTS for ${document.getElementById('staking-duration').textContent}.`);
-        }
+            async function transferTokens() {
+                const recipient = document.getElementById('recipient-wallet').value;
+                const amount = parseInt(document.getElementById('transfer-amount').value, 10);
 
-        function initializeApp() {
-            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
-            document.getElementById('balance-value').textContent = balance;
-        }
+                if (!recipient || isNaN(amount) || amount <= 0) {
+                    alert('Please provide a valid recipient address and amount.');
+                    return;
+                }
+
+                const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
+                const abi = [
+                    "function transfer(address to, uint256 amount) public returns (bool)"
+                ];
+
+                const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
+
+                try {
+                    const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount.toString(), 18));
+                    await tx.wait();
+                    alert(`Successfully transferred ${amount} FTS to ${recipient}`);
+                } catch (error) {
+                    console.error('Token Transfer Error:', error);
+                    alert('Error during transfer.');
+                }
+            }
+
+            function startStaking(amount, duration) {
+                const balance = parseInt(localStorage.getItem('balance') || '0', 10);
+                const maxAllowedStake = Math.floor(balance * 0.5);
+
+                document.getElementById('staking-details').style.display = 'block';
+                document.getElementById('staking-duration').textContent = duration;
+                document.getElementById('max-stake').textContent = Math.min(amount, maxAllowedStake);
+            }
+
+            function confirmStaking() {
+                const stakeAmount = parseInt(document.getElementById('stake-amount').value, 10);
+                const maxStake = parseInt(document.getElementById('max-stake').textContent, 10);
+
+                if (isNaN(stakeAmount) || stakeAmount <= 0 || stakeAmount > maxStake) {
+                    alert('Invalid staking amount.');
+                    return;
+                }
+
+                const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+
+                if (stakeAmount > currentBalance) {
+                    alert('Insufficient balance for staking.');
+                    return;
+                }
+
+                const newBalance = currentBalance - stakeAmount;
+                localStorage.setItem('balance', newBalance);
+                document.getElementById('balance-value').textContent = newBalance;
+                alert(`Successfully staked ${stakeAmount} FTS for ${document.getElementById('staking-duration').textContent}.`);
+            }
+
+            function initializeApp() {
+                const balance = parseInt(localStorage.getItem('balance') || '0', 10);
+                document.getElementById('balance-value').textContent = balance;
+            }
+
+            initializeApp();
+        });
     </script>
 </body>
 </html>
