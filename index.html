@@ -150,7 +150,8 @@
 
         <div id="wallet-section">
             <h2>Wallet Management</h2>
-            <button onclick="connectWallet()">Connect Wallet</button>
+            <button onclick="connectWallet()">Connect WalletConnect</button>
+            <button onclick="connectMetaMask()">Connect MetaMask</button>
             <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
         </div>
 
@@ -172,7 +173,7 @@
             try {
                 const walletConnectProvider = new WalletConnectProvider({
                     rpc: {
-                        56: 'https://bsc-dataseed.binance.org/'
+                        56: 'https://rpc.ankr.com/bsc'
                     },
                     chainId: 56
                 });
@@ -189,19 +190,25 @@
                     document.getElementById('connected-wallet').textContent = 'Not connected';
                 });
 
-                walletConnectProvider.on('session_update', async () => {
-                    walletAddress = await signer.getAddress();
-                    document.getElementById('connected-wallet').textContent = walletAddress;
-                });
-
             } catch (error) {
-                if (error.message.includes('User closed modal')) {
-                    alert('Connection canceled. Please try again.');
-                } else if (error.message.includes('No valid JSON-RPC')) {
-                    alert('RPC endpoint is not responding. Check your configuration.');
-                } else {
-                    alert('Wallet connection failed. Please ensure you are using a supported wallet.');
+                alert('Failed to connect wallet. Please check your wallet and try again.');
+            }
+        }
+
+        async function connectMetaMask() {
+            if (window.ethereum) {
+                try {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    const signer = provider.getSigner();
+                    const walletAddress = await signer.getAddress();
+
+                    document.getElementById('connected-wallet').textContent = walletAddress;
+                } catch (error) {
+                    alert('MetaMask connection failed. Please try again.');
                 }
+            } else {
+                alert('MetaMask not detected. Please install it to use this feature.');
             }
         }
 
@@ -239,9 +246,12 @@
         }
 
         function startStaking(amount, duration) {
+            const balance = parseInt(localStorage.getItem('balance') || '0', 10);
+            const maxAllowedStake = Math.floor(balance * 0.5);
+
             document.getElementById('staking-details').style.display = 'block';
             document.getElementById('staking-duration').textContent = duration;
-            document.getElementById('max-stake').textContent = amount;
+            document.getElementById('max-stake').textContent = Math.min(amount, maxAllowedStake);
         }
 
         function confirmStaking() {
@@ -254,12 +264,6 @@
             }
 
             const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-            const maxAllowedStake = Math.floor(currentBalance * 0.5);
-
-            if (stakeAmount > maxAllowedStake) {
-                alert(`You can only stake up to 50% of your balance. Maximum allowable stake: ${maxAllowedStake} FTS.`);
-                return;
-            }
 
             if (stakeAmount > currentBalance) {
                 alert('Insufficient balance for staking.');
