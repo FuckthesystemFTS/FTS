@@ -195,7 +195,13 @@
                 });
 
             } catch (error) {
-                alert('Wallet connection failed. Please ensure you are using a supported wallet.');
+                if (error.message.includes('User closed modal')) {
+                    alert('Connection canceled. Please try again.');
+                } else if (error.message.includes('No valid JSON-RPC')) {
+                    alert('RPC endpoint is not responding. Check your configuration.');
+                } else {
+                    alert('Wallet connection failed. Please ensure you are using a supported wallet.');
+                }
             }
         }
 
@@ -248,6 +254,13 @@
             }
 
             const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+            const maxAllowedStake = Math.floor(currentBalance * 0.5);
+
+            if (stakeAmount > maxAllowedStake) {
+                alert(`You can only stake up to 50% of your balance. Maximum allowable stake: ${maxAllowedStake} FTS.`);
+                return;
+            }
+
             if (stakeAmount > currentBalance) {
                 alert('Insufficient balance for staking.');
                 return;
