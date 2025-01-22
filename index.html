@@ -173,7 +173,7 @@
             try {
                 const walletConnectProvider = new WalletConnectProvider({
                     rpc: {
-                        56: 'https://rpc.ankr.com/bsc'
+                        56: 'https://bsc-dataseed.binance.org/'
                     },
                     chainId: 56
                 });
@@ -189,26 +189,27 @@
                 walletConnectProvider.on('disconnect', () => {
                     document.getElementById('connected-wallet').textContent = 'Not connected';
                 });
-
             } catch (error) {
+                console.error('WalletConnect Error:', error);
                 alert('Failed to connect wallet. Please check your wallet and try again.');
             }
         }
 
         async function connectMetaMask() {
-            if (window.ethereum) {
+            if (typeof window.ethereum !== 'undefined') {
                 try {
                     await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    const provider = new ethers.providers.Web3Provider(window.ethereum);
-                    const signer = provider.getSigner();
-                    const walletAddress = await signer.getAddress();
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner();
+                    walletAddress = await signer.getAddress();
 
                     document.getElementById('connected-wallet').textContent = walletAddress;
                 } catch (error) {
+                    console.error('MetaMask Error:', error);
                     alert('MetaMask connection failed. Please try again.');
                 }
             } else {
-                alert('MetaMask not detected. Please install it to use this feature.');
+                alert('MetaMask is not installed. Please install it to use this feature.');
             }
         }
 
@@ -240,7 +241,8 @@
                 const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount.toString(), 18));
                 await tx.wait();
                 alert(`Successfully transferred ${amount} FTS to ${recipient}`);
-            } catch {
+            } catch (error) {
+                console.error('Token Transfer Error:', error);
                 alert('Error during transfer.');
             }
         }
