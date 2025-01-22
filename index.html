@@ -150,8 +150,8 @@
 
         <div id="wallet-section">
             <h2>Wallet Management</h2>
-            <button onclick="connectWallet()">Connect WalletConnect</button>
-            <button onclick="connectMetaMask()">Connect MetaMask</button>
+            <button onclick="connectWalletConnect()">Connect with WalletConnect</button>
+            <button onclick="connectMetaMask()">Connect with MetaMask</button>
             <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
         </div>
 
@@ -169,7 +169,7 @@
     <script>
         let provider, signer, walletAddress;
 
-        async function connectWallet() {
+        async function connectWalletConnect() {
             try {
                 const WalletConnectProvider = window.WalletConnectProvider?.default || window.WalletConnectProvider;
                 if (!WalletConnectProvider) {
@@ -184,7 +184,12 @@
                     chainId: 56
                 });
 
+                const connectionTimeout = setTimeout(() => {
+                    alert('Connection timeout. Please try again.');
+                }, 15000);
+
                 await walletConnectProvider.enable();
+                clearTimeout(connectionTimeout);
 
                 provider = new ethers.providers.Web3Provider(walletConnectProvider);
                 signer = provider.getSigner();
@@ -197,7 +202,7 @@
                 });
             } catch (error) {
                 console.error('WalletConnect Error:', error);
-                alert('Failed to connect wallet. Please check your wallet and try again.');
+                alert('Failed to connect using WalletConnect. Please try again.');
             }
         }
 
@@ -205,6 +210,13 @@
             if (typeof window.ethereum !== 'undefined') {
                 try {
                     await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+                    if (currentChainId !== '0x38') {
+                        alert('Please switch to the Binance Smart Chain network in MetaMask.');
+                        return;
+                    }
+
                     provider = new ethers.providers.Web3Provider(window.ethereum);
                     signer = provider.getSigner();
                     walletAddress = await signer.getAddress();
@@ -289,7 +301,9 @@
             document.getElementById('balance-value').textContent = balance;
         }
 
-        initializeApp();
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
     </script>
 </body>
 </html>
