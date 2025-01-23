@@ -1,277 +1,378 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Token Rewards Bot</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            margin: 0;
-            padding: 0;
-            background-image: url('image7.png');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            color: white;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bot Ricompense Token</title>
+  <style>
+    /* STILE DI BASE */
+    body {
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      margin: 0;
+      padding: 0;
+      background-image: url('image7.png'); /* Cambia se vuoi */
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      color: white;
+    }
 
-        #app {
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            position: relative;
-            background: rgba(0, 0, 0, 0.8);
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
+    /* CONTENITORE PRINCIPALE */
+    #app {
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      position: relative;
+      background: rgba(0, 0, 0, 0.8);
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
 
-        h1 {
-            font-size: 32px;
-            margin-bottom: 10px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
 
-        p {
-            font-size: 16px;
-            margin-bottom: 20px;
-            color: white;
-            text-shadow: 1px 1px 2px black;
-        }
+    p {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
 
-        button {
-            background-color: #006400;
-            color: white;
-            border: none;
-            padding: 10px;
-            font-size: 14px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-bottom: 10px;
-            text-shadow: 1px 1px 2px black;
-            transition: background-color 0.3s, transform 0.2s;
-            width: 100%;
-        }
+    /* BOTTONI */
+    button {
+      background-color: #006400;
+      color: white;
+      border: none;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      text-shadow: 1px 1px 2px black;
+      transition: background-color 0.3s, transform 0.2s;
+      width: 100%;
+    }
 
-        button:hover {
-            background-color: #004d00;
-            transform: scale(1.05);
-        }
+    button:hover {
+      background-color: #004d00;
+      transform: scale(1.05);
+    }
 
-        #tasks-section h2, #staking-section h2, #wallet-section h2, #transfer-section h2 {
-            font-size: 18px;
-            margin-top: 20px;
-            color: white;
-            text-shadow: 1px 1px 2px black;
-        }
+    /* SEZIONI */
+    #tasks-section h2,
+    #staking-section h2,
+    #wallet-section h2,
+    #transfer-section h2 {
+      font-size: 18px;
+      margin-top: 20px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
 
-        #balance {
-            font-size: 20px;
-            margin-bottom: 20px;
-            color: white;
-            text-shadow: 1px 1px 2px black;
-        }
+    /* SALDI */
+    #bnb-balance {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
 
-        #bnb-balance {
-            font-size: 18px;
-            margin-bottom: 10px;
-            color: white;
-            text-shadow: 1px 1px 2px black;
-        }
+    #balance {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
 
-        #balance-earn {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: white;
-            text-shadow: 1px 1px 2px black;
-        }
+    #balance-earn {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
 
-        input {
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            margin-bottom: 10px;
-            width: 100%;
-            font-size: 14px;
-        }
+    /* INPUT TESTO/NUMERICI */
+    input {
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+      width: 100%;
+      font-size: 14px;
+    }
 
-        @media (max-width: 600px) {
-            h1 {
-                font-size: 24px;
-            }
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 24px;
+      }
 
-            p {
-                font-size: 14px;
-            }
+      p {
+        font-size: 14px;
+      }
 
-            button {
-                font-size: 12px;
-            }
+      button {
+        font-size: 12px;
+      }
 
-            #balance {
-                font-size: 18px;
-            }
+      #balance {
+        font-size: 18px;
+      }
 
-            #bnb-balance {
-                font-size: 16px;
-            }
+      #bnb-balance {
+        font-size: 16px;
+      }
 
-            #balance-earn {
-                font-size: 16px;
-            }
-        }
-    </style>
+      #balance-earn {
+        font-size: 16px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div id="app">
-        <h1>Token Rewards Bot</h1>
-        <p>Earn tokens by completing activities, staking, and transferring with ease!</p>
-        
-        <div id="bnb-balance" style="display: none;">BNB Balance: <span id="bnb-value">0</span> BNB</div>
-        <div id="balance" style="display: none;">Token Balance: <span id="balance-value">0</span> FTS</div>
-        <div id="balance-earn" style="display: none;">Balance FTS EARN: <span id="balance-earn-value">0</span> FTS</div>
+  <div id="app">
+    <!-- TITOLO & DESCRIZIONE -->
+    <h1>Bot Ricompense Token</h1>
+    <p>Guadagna token completando attività, facendo staking e trasferendo i tuoi token!</p>
 
-        <div id="tasks-section">
-            <h2>Available Activities</h2>
-            <button onclick="completeTask('follow', 'https://x.com/Fu_ktheSytemFTS', 1000)">Follow on Twitter</button>
-            <button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/123456', 2000)">Retweet</button>
-            <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">Join Telegram</button>
-        </div>
-
-        <div id="staking-section">
-            <h2>Staking Options</h2>
-            <button onclick="startStaking(50, '1 week')">50% APY (1 week)</button>
-            <button onclick="startStaking(100, '4 weeks')">100% APY (4 weeks)</button>
-            <button onclick="startStaking(200, '3 months')">200% APY (3 months)</button>
-            <div id="staking-details" style="display: none;">
-                <h3>Staking Details</h3>
-                <p>Duration: <span id="staking-duration"></span></p>
-                <p>Max Stake: <span id="max-stake"></span> FTS</p>
-                <input type="number" id="stake-amount" placeholder="Enter amount to stake">
-                <button onclick="confirmStaking()">Confirm Staking</button>
-            </div>
-        </div>
-
-        <div id="wallet-section">
-            <h2>Wallet Management</h2>
-            <button onclick="connectWalletConnect()">Connect with WalletConnect</button>
-            <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
-        </div>
-
-        <div id="transfer-section">
-            <h2>Token Transfer</h2>
-            <input type="text" id="recipient-wallet" placeholder="Recipient Wallet Address">
-            <input type="number" id="transfer-amount" placeholder="Amount to Transfer">
-            <button onclick="transferTokens()">Transfer Tokens</button>
-            <p id="transfer-status"></p>
-        </div>
+    <!-- SALDO BNB (nascosto finché non si connette) -->
+    <div id="bnb-balance" style="display: none;">
+      Saldo BNB: <span id="bnb-value">0</span> BNB
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@2.0.0/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
-    <script>
-        let provider, signer, walletAddress;
+    <!-- SALDO TOKEN (nascosto finché non si connette) -->
+    <div id="balance" style="display: none;">
+      Saldo Token: <span id="balance-value">0</span> FTS
+    </div>
 
-        async function connectWalletConnect() {
-            try {
-                console.log('Initializing WalletConnect...');
-                const walletConnectClient = new WalletConnectClient({
-                    projectId: 'd2dbf72ab740e1656b27eefd66a94298',
-                    relayUrl: 'wss://relay.walletconnect.com',
-                    metadata: {
-                        name: "Token Rewards Bot",
-                        description: "Connect to earn rewards.",
-                        url: "https://your-dapp-url.com",
-                        icons: ["https://your-dapp-url.com/icon.png"]
-                    }
-                });
+    <!-- SALDO FTS EARN IPOTETICO -->
+    <div id="balance-earn" style="display: none;">
+      Saldo FTS EARN: <span id="balance-earn-value">0</span> FTS
+    </div>
 
-                const session = await walletConnectClient.connect({
-                    requiredNamespaces: {
-                        eip155: {
-                            methods: ["eth_sendTransaction", "personal_sign", "eth_sign"],
-                            chains: ["eip155:56"],
-                            events: ["chainChanged", "accountsChanged"]
-                        }
-                    }
-                });
+    <!-- SEZIONE TASK -->
+    <div id="tasks-section">
+      <h2>Attività Disponibili</h2>
+      <!-- Esempi di task: segui su Twitter, retweet, ecc. -->
+      <button onclick="completeTask('follow', 'https://x.com/Fu_ktheSytemFTS', 1000)">
+        Segui su Twitter (1000 FTS)
+      </button>
+<button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/123456', 2000)">
+        Retweet (2000 FTS)
+      </button>
+      <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">
+        Unisciti a Telegram (2000 FTS)
+      </button>
+    </div>
 
-                console.log('Session established:', session);
-                provider = new ethers.providers.Web3Provider(walletConnectClient);
-                signer = provider.getSigner();
-                walletAddress = await signer.getAddress();
+    <!-- SEZIONE STAKING -->
+    <div id="staking-section">
+      <h2>Opzioni di Staking</h2>
+      <button onclick="startStaking(50, '1 settimana')">50% APY (1 settimana)</button>
+      <button onclick="startStaking(100, '4 settimane')">100% APY (4 settimane)</button>
+      <button onclick="startStaking(200, '3 mesi')">200% APY (3 mesi)</button>
+      
+      <div id="staking-details" style="display: none;">
+        <h3>Dettagli Staking</h3>
+        <p>Durata: <span id="staking-duration"></span></p>
+        <p>Staking Massimo: <span id="max-stake"></span> FTS</p>
+        <input type="number" id="stake-amount" placeholder="Inserisci importo da mettere in staking" />
+        <button onclick="confirmStaking()">Conferma Staking</button>
+      </div>
+    </div>
 
-                console.log('Wallet Address:', walletAddress);
-                document.getElementById('connected-wallet').textContent = walletAddress;
+    <!-- SEZIONE WALLET -->
+    <div id="wallet-section">
+      <h2>Gestione Wallet</h2>
+      <button onclick="connectWalletConnect()">Connetti con WalletConnect</button>
+      <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
+    </div>
 
-                const bnbBalance = await provider.getBalance(walletAddress);
-                console.log('BNB Balance:', ethers.utils.formatEther(bnbBalance));
-                document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
-                document.getElementById('bnb-balance').style.display = 'block';
+    <!-- SEZIONE TRASFERIMENTO TOKEN -->
+    <div id="transfer-section">
+      <h2>Trasferimento Token</h2>
+      <input type="text" id="recipient-wallet" placeholder="Indirizzo Wallet Destinatario" />
+      <input type="number" id="transfer-amount" placeholder="Importo da Trasferire" />
+      <button onclick="transferTokens()">Trasferisci Token</button>
+      <p id="transfer-status"></p>
+    </div>
+  </div>
 
-                const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-                const abi = ["function balanceOf(address owner) view returns (uint256)"];
-                const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
+  <!-- LIBRERIE WALLETCONNECT E ETHERS (v2 e v5) -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@2.0.0/dist/index.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
 
-                const tokenBalance = await tokenContract.balanceOf(walletAddress);
-                console.log('Token Balance:', ethers.utils.formatUnits(tokenBalance, 18));
-                document.getElementById('balance-value').textContent = ethers.utils.formatUnits(tokenBalance, 18);
-                document.getElementById('balance').style.display = 'block';
+  <script>
+    // Variabili globali per provider, signer e indirizzo del wallet
+    let provider, signer, walletAddress;
 
-            } catch (error) {
-                console.error('WalletConnect Error:', error);
-                alert('Failed to connect using WalletConnect. Please try again.');
-            }
-        }
+    /**
+     * Funzione per connettersi a WalletConnect v2 e recuperare saldo BNB + FTS.
+     */
+    async function connectWalletConnect() {
+      try {
+        console.log('Inizializzazione di WalletConnect...');
 
-        function completeTask(taskName, url, reward) {
-            window.open(url, '_blank');
-            const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
-            const newBalance = currentBalance + reward;
-            localStorage.setItem('balance', newBalance);
-            document.getElementById('balance-value').textContent = newBalance;
-        }
-
-        async function transferTokens() {
-            const recipient = document.getElementById('recipient-wallet').value;
-            const amount = parseInt(document.getElementById('transfer-amount').value, 10);
-
-            if (!recipient || isNaN(amount) || amount <= 0) {
-                alert('Please provide a valid recipient address and amount.');
-                return;
-            }
-
-            const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-            const abi = ["function transfer(address to, uint256 amount) public returns (bool)"];
-
-            const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
-
-            try {
-                const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount.toString(), 18));
-                await tx.wait();
-                alert(`Successfully transferred ${amount} FTS to ${recipient}`);
-            } catch (error) {
-                console.error('Token Transfer Error:', error);
-                alert('Error during transfer.');
-            }
-        }
-
-        function initializeApp() {
-            document.getElementById('bnb-balance').style.display = 'none';
-            document.getElementById('balance').style.display = 'none';
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeApp();
+        // Creazione dell'istanza del client WalletConnect
+        const walletConnectClient = new WalletConnectClient({
+          projectId: 'd2dbf72ab740e1656b27eefd66a94298', // Sostituisci con il tuo projectId, se necessario
+          relayUrl: 'wss://relay.walletconnect.com',
+          metadata: {
+            name: "Bot Ricompense Token",
+            description: "Connettiti per guadagnare ricompense.",
+            url: "https://tuo-sito-dapp.com", // aggiorna con il tuo URL
+            icons: ["https://tuo-sito-dapp.com/icon.png"] // aggiorna con la tua icona
+          }
         });
-    </script>
+
+        // Avvia la sessione (mostrerà il QR code da inquadrare con un wallet compatibile)
+        const session = await walletConnectClient.connect({
+          requiredNamespaces: {
+            eip155: {
+              methods: ["eth_sendTransaction", "personal_sign", "eth_sign"],
+              chains: ["eip155:56"], // BNB Smart Chain
+              events: ["chainChanged", "accountsChanged"]
+            }
+          }
+        });
+
+        console.log('Sessione stabilita:', session);
+
+        // Crea un provider Ethers.js basato su WalletConnect
+        provider = new ethers.providers.Web3Provider(walletConnectClient);
+        signer = provider.getSigner();
+
+        // Recupera l'indirizzo del wallet connesso
+        walletAddress = await signer.getAddress();
+        console.log('Indirizzo del Wallet:', walletAddress);
+        document.getElementById('connected-wallet').textContent = walletAddress;
+// Recupera il saldo BNB (in wei) e convertilo in Ether (BNB in questo caso)
+        const bnbBalance = await provider.getBalance(walletAddress);
+        const bnbFormatted = ethers.utils.formatEther(bnbBalance);
+        console.log('Saldo BNB:', bnbFormatted);
+        document.getElementById('bnb-value').textContent = bnbFormatted;
+        document.getElementById('bnb-balance').style.display = 'block';
+
+        // Recupera il saldo del token FTS
+        const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0"; // Cambia con il tuo contratto
+        const abi = ["function balanceOf(address owner) view returns (uint256)"];
+        const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
+
+        const tokenBalance = await tokenContract.balanceOf(walletAddress);
+        const tokenFormatted = ethers.utils.formatUnits(tokenBalance, 18);
+        console.log('Saldo Token (FTS):', tokenFormatted);
+
+        document.getElementById('balance-value').textContent = tokenFormatted;
+        document.getElementById('balance').style.display = 'block';
+
+      } catch (error) {
+        console.error('Errore WalletConnect:', error);
+        alert('Connessione con WalletConnect fallita. Riprova.');
+      }
+    }
+
+    /**
+     * Funzione per “completare” una task (apre un link e aggiorna un saldo locale).
+     * @param {string} taskName - Nome della task (es. "follow", "retweet", ecc.).
+     * @param {string} url - URL da aprire.
+     * @param {number} reward - Ricompensa in FTS (solo locale, per esempio).
+     */
+    function completeTask(taskName, url, reward) {
+      // Apri il link in una nuova scheda
+      window.open(url, '_blank');
+
+      // Aggiorna il "balance" locale in localStorage (non on-chain!)
+      const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+      const newBalance = currentBalance + reward;
+      localStorage.setItem('balance', newBalance);
+
+      // Aggiorna l'interfaccia con il nuovo "saldo"
+      document.getElementById('balance-value').textContent = newBalance;
+      document.getElementById('balance').style.display = 'block';
+    }
+
+    /**
+     * Funzione per trasferire token FTS on-chain (necessita di signer e token contract).
+     */
+    async function transferTokens() {
+      const recipient = document.getElementById('recipient-wallet').value.trim();
+      const amount = parseInt(document.getElementById('transfer-amount').value, 10);
+
+      if (!recipient  isNaN(amount)  amount <= 0) {
+        alert('Fornisci un indirizzo destinatario e un importo validi.');
+        return;
+      }
+
+      try {
+        const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0"; // Cambia se necessario
+        const abi = ["function transfer(address to, uint256 amount) public returns (bool)"];
+        const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
+
+        // Trasferimento on-chain
+        const tx = await tokenContract.transfer(
+          recipient,
+          ethers.utils.parseUnits(amount.toString(), 18)
+        );
+        await tx.wait();
+
+        alert(Trasferimento di ${amount} FTS a ${recipient} completato con successo!);
+      } catch (error) {
+        console.error('Errore durante il trasferimento del token:', error);
+        alert('Errore durante il trasferimento.');
+      }
+    }
+
+    /**
+     * Funzione chiamata alla scelta di un'opzione di staking (solo UI).
+     * @param {number} apy - APY (esempio 50, 100, 200).
+     * @param {string} duration - Durata in termini testuali (es. "1 settimana").
+     */
+    function startStaking(apy, duration) {
+      // Mostra i dettagli di staking
+      document.getElementById('staking-details').style.display = 'block';
+      document.getElementById('staking-duration').textContent = duration;
+      // Esempio: imposta un valore massimo di staking
+      document.getElementById('max-stake').textContent = '1000'; // Cambia a tuo piacere
+    }
+/**
+     * Funzione “stub” per confermare lo staking (senza logica on-chain reale).
+     */
+    function confirmStaking() {
+      const stakeAmount = document.getElementById('stake-amount').value;
+      alert(Staking di ${stakeAmount} FTS in corso... (esempio, da implementare));
+      // Qui dovresti aggiungere logica/contratto di staking reale
+    }
+
+    /**
+     * Inizializza l'app: nasconde i saldi e carica l'eventuale bilancio locale salvato.
+     */
+    function initializeApp() {
+      // Nasconde le sezioni di saldo BNB e token on-chain finché non si connette un wallet
+      document.getElementById('bnb-balance').style.display = 'none';
+      document.getElementById('balance').style.display = 'none';
+
+      // Carica il saldo locale (task completate) se presente
+      const localBal = parseInt(localStorage.getItem('balance') || '0', 10);
+      if (localBal > 0) {
+        document.getElementById('balance-value').textContent = localBal;
+        document.getElementById('balance').style.display = 'block';
+      }
+    }
+
+    // Al caricamento della pagina, esegue initializeApp()
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeApp();
+    });
+  </script>
 </body>
 </html>
