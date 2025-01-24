@@ -181,7 +181,7 @@
       <button onclick="startStaking(50, '1 settimana')">50% APY (1 settimana)</button>
       <button onclick="startStaking(100, '4 settimane')">100% APY (4 settimane)</button>
       <button onclick="startStaking(200, '3 mesi')">200% APY (3 mesi)</button>
-      
+
       <div id="staking-details" style="display: none;">
         <h3>Dettagli Staking</h3>
         <p>Durata: <span id="staking-duration"></span></p>
@@ -213,155 +213,93 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
 
   <script>
-    // Variabili globali per provider, signer e indirizzo del wallet
     let provider, signer, walletAddress;
 
-    /**
-     * Funzione per connettersi a WalletConnect v2 e recuperare saldo BNB + FTS.
-     */
     async function connectWalletConnect() {
       try {
-        console.log('Inizializzazione di WalletConnect...');
-
-        // Creazione dell'istanza del client WalletConnect
         const walletConnectClient = new WalletConnectClient({
-          projectId: 'd2dbf72ab740e1656b27eefd66a94298', // Sostituisci con il tuo projectId, se necessario
+          projectId: 'd2dbf72ab740e1656b27eefd66a94298',
           relayUrl: 'wss://relay.walletconnect.com',
           metadata: {
             name: "Bot Ricompense Token",
             description: "Connettiti per guadagnare ricompense.",
-            url: "https://tuo-sito-dapp.com", // aggiorna con il tuo URL
-            icons: ["https://tuo-sito-dapp.com/icon.png"] // aggiorna con la tua icona
+            url: "https://tuo-sito-dapp.com",
+            icons: ["https://tuo-sito-dapp.com/icon.png"]
           }
         });
 
-        // Avvia la sessione (mostrerà il QR code da inquadrare con un wallet compatibile)
         const session = await walletConnectClient.connect({
           requiredNamespaces: {
             eip155: {
               methods: ["eth_sendTransaction", "personal_sign", "eth_sign"],
-              chains: ["eip155:56"], // BNB Smart Chain
+              chains: ["eip155:56"],
               events: ["chainChanged", "accountsChanged"]
             }
           }
         });
 
-        console.log('Sessione stabilita:', session);
-
-        // Crea un provider Ethers.js basato su WalletConnect
         provider = new ethers.providers.Web3Provider(walletConnectClient);
         signer = provider.getSigner();
-
-        // Recupera l'indirizzo del wallet connesso
         walletAddress = await signer.getAddress();
-        console.log('Indirizzo del Wallet:', walletAddress);
         document.getElementById('connected-wallet').textContent = walletAddress;
-// Recupera il saldo BNB (in wei) e convertilo in Ether (BNB in questo caso)
         const bnbBalance = await provider.getBalance(walletAddress);
-        const bnbFormatted = ethers.utils.formatEther(bnbBalance);
-        console.log('Saldo BNB:', bnbFormatted);
-        document.getElementById('bnb-value').textContent = bnbFormatted;
+        document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
         document.getElementById('bnb-balance').style.display = 'block';
-
-        // Recupera il saldo del token FTS
-        const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0"; // Cambia con il tuo contratto
+        const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
         const abi = ["function balanceOf(address owner) view returns (uint256)"];
         const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
-
         const tokenBalance = await tokenContract.balanceOf(walletAddress);
-        const tokenFormatted = ethers.utils.formatUnits(tokenBalance, 18);
-        console.log('Saldo Token (FTS):', tokenFormatted);
-
-        document.getElementById('balance-value').textContent = tokenFormatted;
+        document.getElementById('balance-value').textContent = ethers.utils.formatUnits(tokenBalance, 18);
         document.getElementById('balance').style.display = 'block';
-
       } catch (error) {
-        console.error('Errore WalletConnect:', error);
         alert('Connessione con WalletConnect fallita. Riprova.');
       }
     }
 
-    /**
-     * Funzione per “completare” una task (apre un link e aggiorna un saldo locale).
-     * @param {string} taskName - Nome della task (es. "follow", "retweet", ecc.).
-     * @param {string} url - URL da aprire.
-     * @param {number} reward - Ricompensa in FTS (solo locale, per esempio).
-     */
     function completeTask(taskName, url, reward) {
-      // Apri il link in una nuova scheda
       window.open(url, '_blank');
-
-      // Aggiorna il "balance" locale in localStorage (non on-chain!)
       const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
       const newBalance = currentBalance + reward;
       localStorage.setItem('balance', newBalance);
-
-      // Aggiorna l'interfaccia con il nuovo "saldo"
       document.getElementById('balance-value').textContent = newBalance;
       document.getElementById('balance').style.display = 'block';
     }
 
-    /**
-     * Funzione per trasferire token FTS on-chain (necessita di signer e token contract).
-     */
     async function transferTokens() {
       const recipient = document.getElementById('recipient-wallet').value.trim();
       const amount = parseInt(document.getElementById('transfer-amount').value, 10);
 
-      if (!recipient  isNaN(amount)  amount <= 0) {
+      if (!recipient || isNaN(amount) || amount <= 0) {
         alert('Fornisci un indirizzo destinatario e un importo validi.');
         return;
       }
 
       try {
-        const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0"; // Cambia se necessario
+        const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
         const abi = ["function transfer(address to, uint256 amount) public returns (bool)"];
         const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
-
-        // Trasferimento on-chain
-        const tx = await tokenContract.transfer(
-          recipient,
-          ethers.utils.parseUnits(amount.toString(), 18)
-        );
+        const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount.toString(), 18));
         await tx.wait();
-
-        alert(Trasferimento di ${amount} FTS a ${recipient} completato con successo!);
+        alert(`Trasferimento di ${amount} FTS a ${recipient} completato con successo!`);
       } catch (error) {
-        console.error('Errore durante il trasferimento del token:', error);
         alert('Errore durante il trasferimento.');
       }
     }
 
-    /**
-     * Funzione chiamata alla scelta di un'opzione di staking (solo UI).
-     * @param {number} apy - APY (esempio 50, 100, 200).
-     * @param {string} duration - Durata in termini testuali (es. "1 settimana").
-     */
     function startStaking(apy, duration) {
-      // Mostra i dettagli di staking
       document.getElementById('staking-details').style.display = 'block';
       document.getElementById('staking-duration').textContent = duration;
-      // Esempio: imposta un valore massimo di staking
-      document.getElementById('max-stake').textContent = '1000'; // Cambia a tuo piacere
+      document.getElementById('max-stake').textContent = '1000';
     }
-/**
-     * Funzione “stub” per confermare lo staking (senza logica on-chain reale).
-     */
+
     function confirmStaking() {
       const stakeAmount = document.getElementById('stake-amount').value;
-      alert(Staking di ${stakeAmount} FTS in corso... (esempio, da implementare));
-      // Qui dovresti aggiungere logica/contratto di staking reale
+      alert(`Staking di ${stakeAmount} FTS in corso...`);
     }
 
-    /**
-     * Inizializza l'app: nasconde i saldi e carica l'eventuale bilancio locale salvato.
-     */
     function initializeApp() {
-      // Nasconde le sezioni di saldo BNB e token on-chain finché non si connette un wallet
       document.getElementById('bnb-balance').style.display = 'none';
       document.getElementById('balance').style.display = 'none';
-
-      // Carica il saldo locale (task completate) se presente
       const localBal = parseInt(localStorage.getItem('balance') || '0', 10);
       if (localBal > 0) {
         document.getElementById('balance-value').textContent = localBal;
@@ -369,7 +307,6 @@
       }
     }
 
-    // Al caricamento della pagina, esegue initializeApp()
     document.addEventListener('DOMContentLoaded', () => {
       initializeApp();
     });
