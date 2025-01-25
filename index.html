@@ -1,17 +1,16 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bot Ricompense Token</title>
+  <title>Token Rewards Bot</title>
   <style>
-    /* STILE DI BASE */
     body {
       font-family: Arial, sans-serif;
       font-weight: bold;
       margin: 0;
       padding: 0;
-      background-image: url('image7.png'); /* Cambia se vuoi */
+      background-image: url('image7.png');
       background-size: cover;
       background-repeat: no-repeat;
       background-position: center;
@@ -23,7 +22,6 @@
       color: white;
     }
 
-    /* CONTENITORE PRINCIPALE */
     #app {
       padding: 20px;
       border-radius: 10px;
@@ -49,7 +47,6 @@
       text-shadow: 1px 1px 2px black;
     }
 
-    /* BOTTONI */
     button {
       background-color: #006400;
       color: white;
@@ -69,21 +66,12 @@
       transform: scale(1.05);
     }
 
-    /* SEZIONI */
     #tasks-section h2,
     #staking-section h2,
     #wallet-section h2,
     #transfer-section h2 {
       font-size: 18px;
       margin-top: 20px;
-      color: white;
-      text-shadow: 1px 1px 2px black;
-    }
-
-    /* SALDI */
-    #bnb-balance {
-      font-size: 18px;
-      margin-bottom: 10px;
       color: white;
       text-shadow: 1px 1px 2px black;
     }
@@ -95,6 +83,13 @@
       text-shadow: 1px 1px 2px black;
     }
 
+    #bnb-balance {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
+
     #balance-earn {
       font-size: 18px;
       margin-bottom: 20px;
@@ -102,7 +97,6 @@
       text-shadow: 1px 1px 2px black;
     }
 
-    /* INPUT TESTO/NUMERICI */
     input {
       padding: 10px;
       border-radius: 5px;
@@ -141,74 +135,62 @@
 </head>
 <body>
   <div id="app">
-    <!-- TITOLO & DESCRIZIONE -->
-    <h1>Bot Ricompense Token</h1>
-    <p>Guadagna token completando attività, facendo staking e trasferendo i tuoi token!</p>
+    <h1>Token Rewards Bot</h1>
+    <p>Earn tokens by completing activities, staking, and transferring with ease!</p>
 
-    <!-- SALDO BNB (nascosto finché non si connette) -->
     <div id="bnb-balance" style="display: none;">
-      Saldo BNB: <span id="bnb-value">0</span> BNB
+      BNB Balance: <span id="bnb-value">0</span> BNB
     </div>
-
-    <!-- SALDO TOKEN (nascosto finché non si connette) -->
     <div id="balance" style="display: none;">
-      Saldo Token: <span id="balance-value">0</span> FTS
+      Token Balance: <span id="balance-value">0</span> FTS
     </div>
-
-    <!-- SALDO FTS EARN IPOTETICO -->
     <div id="balance-earn" style="display: none;">
-      Saldo FTS EARN: <span id="balance-earn-value">0</span> FTS
+      Balance FTS EARN: <span id="balance-earn-value">0</span> FTS
     </div>
 
-    <!-- SEZIONE TASK -->
     <div id="tasks-section">
-      <h2>Attività Disponibili</h2>
-      <!-- Esempi di task: segui su Twitter, retweet, ecc. -->
+      <h2>Available Activities</h2>
       <button onclick="completeTask('follow', 'https://x.com/Fu_ktheSytemFTS', 1000)">
-        Segui su Twitter (1000 FTS)
+        Follow on Twitter
       </button>
-<button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/123456', 2000)">
-        Retweet (2000 FTS)
+      <button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/123456', 2000)">
+        Retweet
       </button>
       <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">
-        Unisciti a Telegram (2000 FTS)
+        Join Telegram
       </button>
     </div>
 
-    <!-- SEZIONE STAKING -->
     <div id="staking-section">
-      <h2>Opzioni di Staking</h2>
-      <button onclick="startStaking(50, '1 settimana')">50% APY (1 settimana)</button>
-      <button onclick="startStaking(100, '4 settimane')">100% APY (4 settimane)</button>
-      <button onclick="startStaking(200, '3 mesi')">200% APY (3 mesi)</button>
-
+      <h2>Staking Options</h2>
+      <button onclick="startStaking(50, '1 week')">50% APY (1 week)</button>
+      <button onclick="startStaking(100, '4 weeks')">100% APY (4 weeks)</button>
+      <button onclick="startStaking(200, '3 months')">200% APY (3 months)</button>
       <div id="staking-details" style="display: none;">
-        <h3>Dettagli Staking</h3>
-        <p>Durata: <span id="staking-duration"></span></p>
-        <p>Staking Massimo: <span id="max-stake"></span> FTS</p>
-        <input type="number" id="stake-amount" placeholder="Inserisci importo da mettere in staking" />
-        <button onclick="confirmStaking()">Conferma Staking</button>
+        <h3>Staking Details</h3>
+        <p>Duration: <span id="staking-duration"></span></p>
+        <p>Max Stake: <span id="max-stake"></span> FTS</p>
+        <input type="number" id="stake-amount" placeholder="Enter amount to stake" />
+        <button onclick="confirmStaking()">Confirm Staking</button>
       </div>
     </div>
 
-    <!-- SEZIONE WALLET -->
     <div id="wallet-section">
-      <h2>Gestione Wallet</h2>
-      <button onclick="connectWalletConnect()">Connetti con WalletConnect</button>
-      <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
+      <h2>Wallet Management</h2>
+      <button onclick="connectWalletConnect()">Connect with WalletConnect</button>
+      <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
     </div>
 
-    <!-- SEZIONE TRASFERIMENTO TOKEN -->
     <div id="transfer-section">
-      <h2>Trasferimento Token</h2>
-      <input type="text" id="recipient-wallet" placeholder="Indirizzo Wallet Destinatario" />
-      <input type="number" id="transfer-amount" placeholder="Importo da Trasferire" />
-      <button onclick="transferTokens()">Trasferisci Token</button>
+      <h2>Token Transfer</h2>
+      <input type="text" id="recipient-wallet" placeholder="Recipient Wallet Address" />
+      <input type="number" id="transfer-amount" placeholder="Amount to Transfer" />
+      <button onclick="transferTokens()">Transfer Tokens</button>
       <p id="transfer-status"></p>
     </div>
   </div>
 
-  <!-- LIBRERIE WALLETCONNECT E ETHERS (v2 e v5) -->
+  <!-- WalletConnect and Ethers libraries -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@2.0.0/dist/index.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
 
@@ -217,14 +199,15 @@
 
     async function connectWalletConnect() {
       try {
+        console.log('Initializing WalletConnect...');
         const walletConnectClient = new WalletConnectClient({
           projectId: 'd2dbf72ab740e1656b27eefd66a94298',
           relayUrl: 'wss://relay.walletconnect.com',
           metadata: {
-            name: "Bot Ricompense Token",
-            description: "Connettiti per guadagnare ricompense.",
-            url: "https://tuo-sito-dapp.com",
-            icons: ["https://tuo-sito-dapp.com/icon.png"]
+            name: "Token Rewards Bot",
+            description: "Connect to earn rewards.",
+            url: "https://your-dapp-url.com",
+            icons: ["https://your-dapp-url.com/icon.png"]
           }
         });
 
@@ -238,21 +221,33 @@
           }
         });
 
+        console.log('Session established:', session);
         provider = new ethers.providers.Web3Provider(walletConnectClient);
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
+
+        console.log('Wallet Address:', walletAddress);
         document.getElementById('connected-wallet').textContent = walletAddress;
+
         const bnbBalance = await provider.getBalance(walletAddress);
-        document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
+        const bnbFormatted = ethers.utils.formatEther(bnbBalance);
+        console.log('BNB Balance:', bnbFormatted);
+        document.getElementById('bnb-value').textContent = bnbFormatted;
         document.getElementById('bnb-balance').style.display = 'block';
+
         const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
         const abi = ["function balanceOf(address owner) view returns (uint256)"];
         const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
+
         const tokenBalance = await tokenContract.balanceOf(walletAddress);
-        document.getElementById('balance-value').textContent = ethers.utils.formatUnits(tokenBalance, 18);
+        const tokenFormatted = ethers.utils.formatUnits(tokenBalance, 18);
+        console.log('Token Balance:', tokenFormatted);
+        document.getElementById('balance-value').textContent = tokenFormatted;
         document.getElementById('balance').style.display = 'block';
+
       } catch (error) {
-        alert('Connessione con WalletConnect fallita. Riprova.');
+        console.error('WalletConnect Error:', error);
+        alert('Failed to connect using WalletConnect. Please try again.');
       }
     }
 
@@ -270,7 +265,7 @@
       const amount = parseInt(document.getElementById('transfer-amount').value, 10);
 
       if (!recipient || isNaN(amount) || amount <= 0) {
-        alert('Fornisci un indirizzo destinatario e un importo validi.');
+        alert('Please provide a valid recipient address and amount.');
         return;
       }
 
@@ -278,11 +273,14 @@
         const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
         const abi = ["function transfer(address to, uint256 amount) public returns (bool)"];
         const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
+
         const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount.toString(), 18));
         await tx.wait();
-        alert(`Trasferimento di ${amount} FTS a ${recipient} completato con successo!`);
+
+        alert(`Successfully transferred ${amount} FTS to ${recipient}`);
       } catch (error) {
-        alert('Errore durante il trasferimento.');
+        console.error('Token Transfer Error:', error);
+        alert('Error during transfer.');
       }
     }
 
@@ -294,12 +292,13 @@
 
     function confirmStaking() {
       const stakeAmount = document.getElementById('stake-amount').value;
-      alert(`Staking di ${stakeAmount} FTS in corso...`);
+      alert(`Staking ${stakeAmount} FTS... (stub)`);
     }
 
     function initializeApp() {
       document.getElementById('bnb-balance').style.display = 'none';
       document.getElementById('balance').style.display = 'none';
+
       const localBal = parseInt(localStorage.getItem('balance') || '0', 10);
       if (localBal > 0) {
         document.getElementById('balance-value').textContent = localBal;
