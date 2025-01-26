@@ -153,7 +153,7 @@
     async function connectWalletConnect() {
       try {
         const walletConnectClient = new WalletConnect.default({
-          bridge: "https://bridge.walletconnect.org"
+          bridge: "https://bridge.walletconnect.org" // Bridge URL
         });
 
         await walletConnectClient.createSession();
@@ -163,7 +163,10 @@
         alert("Scan this QR Code in your WalletConnect-compatible wallet: " + uri);
 
         walletConnectClient.on("connect", async (error, payload) => {
-          if (error) throw error;
+          if (error) {
+            console.error("Connection Error:", error);
+            throw error;
+          }
 
           const { accounts } = payload.params[0];
           walletAddress = accounts[0];
@@ -174,18 +177,28 @@
 
           document.getElementById('connected-wallet').textContent = walletAddress;
 
-          const bnbBalance = await provider.getBalance(walletAddress);
-          document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
-          document.getElementById('bnb-balance').style.display = 'block';
+          try {
+            const bnbBalance = await provider.getBalance(walletAddress);
+            document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
+            document.getElementById('bnb-balance').style.display = 'block';
 
-          const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-          const abi = ["function balanceOf(address owner) view returns (uint256)"];
-          const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
+            const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
+            const abi = ["function balanceOf(address owner) view returns (uint256)"];
+            const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
 
-          const tokenBalance = await tokenContract.balanceOf(walletAddress);
-          document.getElementById('balance-value').textContent = ethers.utils.formatUnits(tokenBalance, 18);
-          document.getElementById('balance').style.display = 'block';
+            const tokenBalance = await tokenContract.balanceOf(walletAddress);
+            document.getElementById('balance-value').textContent = ethers.utils.formatUnits(tokenBalance, 18);
+            document.getElementById('balance').style.display = 'block';
+          } catch (balanceError) {
+            console.error("Error fetching balances:", balanceError);
+          }
         });
+
+        walletConnectClient.on("disconnect", () => {
+          console.log("Wallet disconnected");
+          alert("Wallet disconnected");
+        });
+
       } catch (error) {
         console.error('WalletConnect Error:', error);
         alert('Failed to connect using WalletConnect. Please try again.');
