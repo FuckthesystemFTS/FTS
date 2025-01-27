@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Token Rewards Bot</title>
   <style>
-    /* Stili identici */
+    /* Stili per il layout */
     body {
       font-family: Arial, sans-serif;
       font-weight: bold;
@@ -32,6 +32,13 @@
       width: 90%;
       max-width: 400px;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
 
     button {
@@ -87,84 +94,109 @@
 
     <div id="wallet-section">
       <h2>Wallet Management</h2>
-      <button onclick="connectWalletConnect()">Connect with WalletConnect</button>
+      <button id="connect-button" onclick="connectWalletConnect()">Connect with WalletConnect</button>
       <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
     </div>
   </div>
 
-  <!-- WalletConnect v2 (SignClient) and Ethers.js -->
-  <script src="https://unpkg.com/@walletconnect/sign-client@2.0.0/dist/umd/index.min.js"></script>
+  <!-- Librerie necessarie -->
+  <script src="https://unpkg.com/@walletconnect/sign-client@2.0.0/dist/umd/index.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
 
   <script>
+    // Variabili globali
     let walletConnectClient;
     let signer, walletAddress, provider;
 
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        // Verifica che WalletConnectSign sia disponibile
+        if (!window.WalletConnectSign) {
+          throw new Error("WalletConnectSign library not loaded. Check your script path or connection.");
+        }
+      } catch (error) {
+        console.error(error.message);
+        alert(error.message);
+        return;
+      }
+    });
+
     async function connectWalletConnect() {
       try {
-        console.log('Initializing WalletConnect v2...');
+        console.log("Initializing WalletConnect v2...");
         
-        // Assicuriamoci che SignClient sia disponibile
-        if (!window.WalletConnectSign) {
-          throw new Error("WalletConnectSign library not loaded");
-        }
-
+        // Inizializza WalletConnect v2
         walletConnectClient = await window.WalletConnectSign.SignClient.init({
-          projectId: 'd2dbf72ab740e1656b27eefd66a94298', // Inserisci il tuo projectId
-          relayUrl: 'wss://relay.walletconnect.com',
+          projectId: "d2dbf72ab740e1656b27eefd66a94298", // Project ID da WalletConnect Cloud
+          relayUrl: "wss://relay.walletconnect.com",
           metadata: {
             name: "Token Rewards Bot",
             description: "Connect to earn rewards.",
             url: "https://your-dapp-url.com",
-            icons: ["https://your-dapp-url.com/icon.png"]
-          }
+            icons: ["https://your-dapp-url.com/icon.png"],
+          },
         });
 
-        // Connessione al wallet
         const session = await walletConnectClient.connect({
           requiredNamespaces: {
             eip155: {
               methods: ["eth_sendTransaction", "personal_sign", "eth_sign"],
               chains: ["eip155:56"], // Binance Smart Chain
-              events: ["chainChanged", "accountsChanged"]
-            }
-          }
+              events: ["chainChanged", "accountsChanged"],
+            },
+          },
         });
 
-        console.log('Session established:', session);
+        console.log("Session established:", session);
 
         // Estrai indirizzo del wallet
         const accounts = session.namespaces.eip155.accounts;
         walletAddress = accounts[0].split(":")[2];
-        document.getElementById('connected-wallet').textContent = walletAddress;
+        console.log("Connected Wallet Address:", walletAddress);
+        document.getElementById("connected-wallet").textContent = walletAddress;
 
+        // Configura provider e signer per Ethers.js
         provider = new ethers.providers.Web3Provider(walletConnectClient);
         signer = provider.getSigner();
 
         await showBalances();
       } catch (error) {
-        console.error('WalletConnect Error:', error);
-        alert('Connection failed: ' + error.message);
+        console.error("WalletConnect Error:", error);
+        alert(`Connection failed: ${error.message}`);
       }
     }
 
     async function showBalances() {
       try {
+        // Saldo BNB
         const bnbBalance = await provider.getBalance(walletAddress);
-        document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
-        document.getElementById('bnb-balance').style.display = 'block';
+        const bnbFormatted = ethers.utils.formatEther(bnbBalance);
+        console.log("BNB Balance:", bnbFormatted);
+        document.getElementById("bnb-value").textContent = bnbFormatted;
+        document.getElementById("bnb-balance").style.display = "block";
+
+        // Saldo Token FTS
+        const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
+        const abi = ["function balanceOf(address owner) view returns (uint256)"];
+        const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
+
+        const tokenBalance = await tokenContract.balanceOf(walletAddress);
+        const tokenFormatted = ethers.utils.formatUnits(tokenBalance, 18);
+        console.log("Token Balance:", tokenFormatted);
+        document.getElementById("balance-value").textContent = tokenFormatted;
+        document.getElementById("balance").style.display = "block";
       } catch (error) {
-        console.error('Error fetching balances:', error);
+        console.error("Error fetching balances:", error);
       }
     }
 
     function completeTask(taskName, url, reward) {
-      window.open(url, '_blank');
-      const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+      window.open(url, "_blank");
+      const currentBalance = parseInt(localStorage.getItem("balance") || "0", 10);
       const newBalance = currentBalance + reward;
-      localStorage.setItem('balance', newBalance);
-      document.getElementById('balance-value').textContent = newBalance;
-      document.getElementById('balance').style.display = 'block';
+      localStorage.setItem("balance", newBalance);
+      document.getElementById("balance-value").textContent = newBalance;
+      document.getElementById("balance").style.display = "block";
     }
   </script>
 </body>
