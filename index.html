@@ -115,20 +115,6 @@
       </button>
     </div>
 
-    <div id="staking-section">
-      <h2>Staking Options</h2>
-      <button onclick="startStaking(50, '1 week')">50% APY (1 week)</button>
-      <button onclick="startStaking(100, '4 weeks')">100% APY (4 weeks)</button>
-      <button onclick="startStaking(200, '3 months')">200% APY (3 months)</button>
-      <div id="staking-details" style="display: none;">
-        <h3>Staking Details</h3>
-        <p>Duration: <span id="staking-duration"></span></p>
-        <p>Max Stake: <span id="max-stake"></span> FTS</p>
-        <input type="number" id="stake-amount" placeholder="Enter amount to stake" min="0" />
-        <button onclick="confirmStaking()">Confirm Staking</button>
-      </div>
-    </div>
-
     <div id="wallet-section">
       <h2>Wallet Management</h2>
       <button onclick="connectWalletConnect()">Connect with WalletConnect</button>
@@ -144,77 +130,78 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@2.0.0/dist/index.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@1.8.0/dist/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
 
   <script>
     let provider, signer, walletAddress;
 
     async function connectWalletConnect() {
       try {
-        const { Client } = WalletConnect;
-
-        const client = new Client({
-          projectId: "your-project-id", // Replace with your WalletConnect project ID
-          relayUrl: "wss://relay.walletconnect.com",
-          metadata: {
-            name: "Token Rewards Bot",
-            description: "Connect to earn rewards",
-            url: "https://your-dapp-url.com",
-            icons: ["https://your-dapp-url.com/icon.png"]
-          }
+        const walletConnectClient = new WalletConnect.default({
+          bridge: "https://bridge.walletconnect.org"
         });
 
-        const session = await client.connect({
-          requiredNamespaces: {
-            eip155: {
-              methods: ["eth_sendTransaction", "personal_sign"],
-              chains: ["eip155:1", "eip155:56"],
-              events: ["accountsChanged", "chainChanged"]
-            }
-          }
+        await walletConnectClient.createSession();
+
+        const uri = walletConnectClient.uri;
+        console.log("WalletConnect URI:", uri);
+        alert("Scan this QR Code in your WalletConnect-compatible wallet: " + uri);
+
+        walletConnectClient.on("connect", async (error, payload) => {
+          if (error) throw error;
+
+          const { accounts } = payload.params[0];
+          walletAddress = accounts[0];
+          console.log("Connected Wallet Address:", walletAddress);
+
+          provider = new ethers.providers.Web3Provider(walletConnectClient);
+          signer = provider.getSigner(walletAddress);
+
+          document.getElementById('connected-wallet').textContent = walletAddress;
+
+          const bnbBalance = await provider.getBalance(walletAddress);
+          document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
+          document.getElementById('bnb-balance').style.display = 'block';
+
+          const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
+          const abi = ["function balanceOf(address owner) view returns (uint256)"];
+          const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
+
+          const tokenBalance = await tokenContract.balanceOf(walletAddress);
+          document.getElementById('balance-value').textContent = ethers.utils.formatUnits(tokenBalance, 18);
+          document.getElementById('balance').style.display = 'block';
+
+          walletConnectClient.on("disconnect", () => {
+            alert("Wallet disconnected.");
+            document.getElementById('connected-wallet').textContent = "Not connected";
+            document.getElementById('bnb-balance').style.display = 'none';
+            document.getElementById('balance').style.display = 'none';
+          });
         });
 
-        walletAddress = session.namespaces.eip155.accounts[0].split(":")[2];
-
-        provider = new ethers.providers.Web3Provider(client);
-        signer = provider.getSigner(walletAddress);
-
-        document.getElementById("connected-wallet").textContent = walletAddress;
-
-        const bnbBalance = await provider.getBalance(walletAddress);
-        document.getElementById("bnb-value").textContent = ethers.utils.formatEther(bnbBalance);
-        document.getElementById("bnb-balance").style.display = "block";
-
-        const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-        const abi = ["function balanceOf(address owner) view returns (uint256)"];
-        const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
-
-        const tokenBalance = await tokenContract.balanceOf(walletAddress);
-        document.getElementById("balance-value").textContent = ethers.utils.formatUnits(tokenBalance, 18);
-        document.getElementById("balance").style.display = "block";
       } catch (error) {
-        console.error("WalletConnect Error:", error);
-        alert("Failed to connect using WalletConnect. Please try again.");
+        console.error('WalletConnect Error:', error);
+        alert('Failed to connect using WalletConnect. Please try again.');
       }
     }
 
     function completeTask(taskName, url, reward) {
-      window.open(url, "_blank");
-      const currentBalance = parseInt(localStorage.getItem("balance") || "0", 10);
+      window.open(url, '_blank');
+      const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
       const newBalance = currentBalance + reward;
-      localStorage.setItem("balance", newBalance);
+      localStorage.setItem('balance', newBalance);
 
-      document.getElementById("balance-value").textContent = newBalance;
-      document.getElementById("balance").style.display = "block";
+      document.getElementById('balance-value').textContent = newBalance;
+      document.getElementById('balance').style.display = 'block';
     }
 
     async function transferTokens() {
-      const recipient = document.getElementById("recipient-wallet").value.trim();
-      const amount = parseFloat(document.getElementById("transfer-amount").value);
+      const recipient = document.getElementById('recipient-wallet').value.trim();
+      const amount = parseFloat(document.getElementById('transfer-amount').value);
 
       if (!recipient || isNaN(amount) || amount <= 0) {
-        alert("Please provide a valid recipient address and amount.");
+        alert('Please provide a valid recipient address and amount.');
         return;
       }
 
@@ -228,26 +215,9 @@
 
         alert(`Successfully transferred ${amount} FTS to ${recipient}`);
       } catch (error) {
-        console.error("Token Transfer Error:", error);
-        alert("Error during transfer.");
+        console.error('Token Transfer Error:', error);
+        alert('Error during transfer.');
       }
-    }
-
-    function startStaking(apy, duration) {
-      document.getElementById("staking-details").style.display = "block";
-      document.getElementById("staking-duration").textContent = duration;
-      document.getElementById("max-stake").textContent = "1000";
-    }
-
-    function confirmStaking() {
-      const stakeAmount = parseFloat(document.getElementById("stake-amount").value);
-      const maxStake = parseFloat(document.getElementById("max-stake").textContent);
-
-      if (isNaN(stakeAmount) || stakeAmount <= 0 || stakeAmount > maxStake) {
-        alert("Invalid staking amount.");
-        return;
-      }
-      alert(`Staking ${stakeAmount} FTS...`);
     }
   </script>
 </body>
