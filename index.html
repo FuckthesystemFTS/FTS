@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Token Rewards Bot</title>
   <style>
+    /* Stili identici */
     body {
       font-family: Arial, sans-serif;
       font-weight: bold;
@@ -33,20 +34,6 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 
-    h1 {
-      font-size: 32px;
-      margin-bottom: 10px;
-      color: white;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    }
-
-    p {
-      font-size: 16px;
-      margin-bottom: 20px;
-      color: white;
-      text-shadow: 1px 1px 2px black;
-    }
-
     button {
       background-color: #006400;
       color: white;
@@ -66,53 +53,36 @@
       transform: scale(1.05);
     }
 
-    input {
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      margin-bottom: 10px;
-      width: 100%;
-      font-size: 14px;
+    #tasks-section {
+      margin-top: 20px;
     }
 
-    @media (max-width: 600px) {
-      h1 {
-        font-size: 24px;
-      }
-
-      p {
-        font-size: 14px;
-      }
-
-      button {
-        font-size: 12px;
-      }
+    #bnb-balance,
+    #balance {
+      font-size: 18px;
+      margin-bottom: 10px;
+      display: none;
+      color: white;
     }
   </style>
 </head>
 <body>
   <div id="app">
     <h1>Token Rewards Bot</h1>
-    <p>Earn tokens by completing activities, staking, and transferring with ease!</p>
+    <p>Earn tokens by completing activities and transferring with ease!</p>
 
-    <div id="bnb-balance" style="display: none;">
+    <div id="bnb-balance">
       BNB Balance: <span id="bnb-value">0</span> BNB
     </div>
-    <div id="balance" style="display: none;">
+    <div id="balance">
       Token Balance: <span id="balance-value">0</span> FTS
     </div>
 
     <div id="tasks-section">
       <h2>Available Activities</h2>
-      <button aria-label="Follow on Twitter" onclick="completeTask('follow', 'https://x.com/Fu_ktheSytemFTS', 1000)">
-        Follow on Twitter
-      </button>
-      <button aria-label="Retweet" onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/123456', 2000)">
-        Retweet
-      </button>
-      <button aria-label="Join Telegram" onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">
-        Join Telegram
-      </button>
+      <button onclick="completeTask('follow', 'https://x.com/Fu_ktheSytemFTS', 1000)">Follow on Twitter</button>
+      <button onclick="completeTask('retweet', 'https://x.com/Fu_ktheSytemFTS/status/123456', 2000)">Retweet</button>
+      <button onclick="completeTask('join', 'https://t.me/FucktheSystemCommunity', 2000)">Join Telegram</button>
     </div>
 
     <div id="wallet-section">
@@ -120,69 +90,71 @@
       <button onclick="connectWalletConnect()">Connect with WalletConnect</button>
       <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
     </div>
-
-    <div id="transfer-section">
-      <h2>Token Transfer</h2>
-      <input type="text" id="recipient-wallet" placeholder="Recipient Wallet Address" required pattern="0x[a-fA-F0-9]{40}" />
-      <input type="number" id="transfer-amount" placeholder="Amount to Transfer" required min="0.01" step="0.01" />
-      <button onclick="transferTokens()">Transfer Tokens</button>
-      <p id="transfer-status"></p>
-    </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@2.0.0-beta.15/dist/index.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <!-- WalletConnect v2 (SignClient) and Ethers.js -->
+  <script src="https://unpkg.com/@walletconnect/sign-client@2.0.0/dist/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.min.js"></script>
 
   <script>
-    let provider, signer, walletAddress;
+    let walletConnectClient;
+    let signer, walletAddress, provider;
 
     async function connectWalletConnect() {
       try {
-        const walletConnectClient = await WalletConnect.init({
-          projectId: "d2dbf72ab740e1656b27eefd66a94298",
-          relayUrl: "wss://relay.walletconnect.com",
+        console.log('Initializing WalletConnect v2...');
+        
+        // Assicuriamoci che SignClient sia disponibile
+        if (!window.WalletConnectSign) {
+          throw new Error("WalletConnectSign library not loaded");
+        }
+
+        walletConnectClient = await window.WalletConnectSign.SignClient.init({
+          projectId: 'd2dbf72ab740e1656b27eefd66a94298', // Inserisci il tuo projectId
+          relayUrl: 'wss://relay.walletconnect.com',
+          metadata: {
+            name: "Token Rewards Bot",
+            description: "Connect to earn rewards.",
+            url: "https://your-dapp-url.com",
+            icons: ["https://your-dapp-url.com/icon.png"]
+          }
         });
 
+        // Connessione al wallet
         const session = await walletConnectClient.connect({
           requiredNamespaces: {
             eip155: {
-              methods: ["eth_sendTransaction", "personal_sign"],
-              chains: ["eip155:1"],
-              events: ["accountsChanged", "chainChanged"],
-            },
-          },
+              methods: ["eth_sendTransaction", "personal_sign", "eth_sign"],
+              chains: ["eip155:56"], // Binance Smart Chain
+              events: ["chainChanged", "accountsChanged"]
+            }
+          }
         });
 
-        walletAddress = session.namespaces.eip155.accounts[0].split(":")[2];
-        console.log("Connected Wallet Address:", walletAddress);
+        console.log('Session established:', session);
 
-        provider = new ethers.providers.Web3Provider(walletConnectClient);
-        signer = provider.getSigner(walletAddress);
-
+        // Estrai indirizzo del wallet
+        const accounts = session.namespaces.eip155.accounts;
+        walletAddress = accounts[0].split(":")[2];
         document.getElementById('connected-wallet').textContent = walletAddress;
 
+        provider = new ethers.providers.Web3Provider(walletConnectClient);
+        signer = provider.getSigner();
+
+        await showBalances();
+      } catch (error) {
+        console.error('WalletConnect Error:', error);
+        alert('Connection failed: ' + error.message);
+      }
+    }
+
+    async function showBalances() {
+      try {
         const bnbBalance = await provider.getBalance(walletAddress);
         document.getElementById('bnb-value').textContent = ethers.utils.formatEther(bnbBalance);
         document.getElementById('bnb-balance').style.display = 'block';
-
-        const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-        const abi = ["function balanceOf(address owner) view returns (uint256)"];
-        const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
-
-        const tokenBalance = await tokenContract.balanceOf(walletAddress);
-        document.getElementById('balance-value').textContent = ethers.utils.formatUnits(tokenBalance, 18);
-        document.getElementById('balance').style.display = 'block';
-
-        walletConnectClient.on("disconnect", () => {
-          alert("Wallet disconnected.");
-          document.getElementById('connected-wallet').textContent = "Not connected";
-          document.getElementById('bnb-balance').style.display = 'none';
-          document.getElementById('balance').style.display = 'none';
-        });
-
       } catch (error) {
-        console.error('WalletConnect Error:', error);
-        alert('Failed to connect using WalletConnect. Please try again.');
+        console.error('Error fetching balances:', error);
       }
     }
 
@@ -191,33 +163,8 @@
       const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
       const newBalance = currentBalance + reward;
       localStorage.setItem('balance', newBalance);
-
       document.getElementById('balance-value').textContent = newBalance;
       document.getElementById('balance').style.display = 'block';
-    }
-
-    async function transferTokens() {
-      const recipient = document.getElementById('recipient-wallet').value.trim();
-      const amount = parseFloat(document.getElementById('transfer-amount').value);
-
-      if (!recipient || isNaN(amount) || amount <= 0) {
-        alert('Please provide a valid recipient address and amount.');
-        return;
-      }
-
-      try {
-        const tokenContractAddress = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-        const abi = ["function transfer(address to, uint256 amount) public returns (bool)"];
-        const tokenContract = new ethers.Contract(tokenContractAddress, abi, signer);
-
-        const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount.toString(), 18));
-        await tx.wait();
-
-        alert(`Successfully transferred ${amount} FTS to ${recipient}`);
-      } catch (error) {
-        console.error('Token Transfer Error:', error);
-        alert('Error during transfer.');
-      }
     }
   </script>
 </body>
