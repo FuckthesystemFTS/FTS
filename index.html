@@ -6,7 +6,7 @@
   <title>FTS Wallet Bot</title>
   <!-- Include ethers.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-  <!-- Include web3modal -->
+  <!-- Include Web3Modal -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3modal/1.9.5/web3modal.min.js"></script>
   <!-- Include WalletConnect -->
   <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
@@ -86,9 +86,6 @@
     ];
     let provider, signer, walletAddress;
 
-    // Detect if the user is on mobile or desktop
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
     // Initialize Web3Modal
     const web3Modal = new Web3Modal.default({
       cacheProvider: false, // Always show the selection popup
@@ -115,25 +112,10 @@
 
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
-        // Desktop: Show all wallets
-        if (!isMobile) {
-          const instance = await web3Modal.connect(); // Opens the wallet selection modal
-          provider = new ethers.providers.Web3Provider(instance);
-          signer = provider.getSigner();
-          walletAddress = await signer.getAddress();
-        } 
-        // Mobile: Use WalletConnect by default
-        else {
-          const walletConnectProvider = new WalletConnectProvider.default({
-            rpc: {
-              56: "https://bsc-dataseed.binance.org/" // Binance Smart Chain RPC
-            }
-          });
-          await walletConnectProvider.enable();
-          provider = new ethers.providers.Web3Provider(walletConnectProvider);
-          signer = provider.getSigner();
-          walletAddress = await signer.getAddress();
-        }
+        const instance = await web3Modal.connect(); // Opens the wallet selection modal
+        provider = new ethers.providers.Web3Provider(instance);
+        signer = provider.getSigner();
+        walletAddress = await signer.getAddress();
         document.getElementById("connected-wallet").textContent = walletAddress;
         updateBalance();
       } catch (error) {
