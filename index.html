@@ -6,10 +6,6 @@
   <title>FTS Wallet Bot</title>
   <!-- Include ethers.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-  <!-- Include Web3Modal -->
-  <script src="https://cdn.jsdelivr.net/npm/web3modal@1.9.5/dist/index.min.js"></script>
-  <!-- Include WalletConnect -->
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -66,7 +62,7 @@
   <div id="app">
     <h1>FTS Wallet Bot</h1>
     <div id="wallet-section">
-      <button id="connect-wallet-button">Connect Wallet</button>
+      <button id="connect-wallet-button">Connect MetaMask</button>
       <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
       <p>Token Balance: <span id="balance-value">0</span> FTS</p>
     </div>
@@ -86,41 +82,23 @@
     ];
     let provider, signer, walletAddress;
 
-    // Initialize Web3Modal
-    const web3Modal = new Web3Modal.default({
-      cacheProvider: false,
-      providerOptions: {
-        injected: {
-          display: {
-            name: "MetaMask",
-            description: "Browser extension wallet"
-          },
-          package: null
-        },
-        walletconnect: {
-          package: WalletConnectProvider.default,
-          options: {
-            rpc: {
-              56: "https://bsc-dataseed.binance.org/"
-            }
-          }
-        }
-      }
-    });
-
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
+      if (typeof window.ethereum === "undefined") {
+        showNotification("MetaMask is not installed. Please install it to continue.");
+        return;
+      }
       try {
-        console.log("Opening wallet selection...");
-        const instance = await web3Modal.connect();
-        provider = new ethers.providers.Web3Provider(instance);
+        console.log("Requesting MetaMask connection...");
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         console.log("Connected wallet:", walletAddress);
         document.getElementById("connected-wallet").textContent = walletAddress;
         updateBalance();
       } catch (error) {
-        console.error("Error connecting wallet:", error);
-        showNotification("Failed to connect wallet.");
+        console.error("Error connecting to MetaMask:", error);
+        showNotification("Failed to connect to MetaMask.");
       }
     });
 
