@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FTS Wallet Bot</title>
+  <title>FTS Wallet Bot - Trust Wallet</title>
   <!-- Include ethers.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
   <style>
@@ -63,7 +63,7 @@
   <div id="app">
     <h1>FTS Wallet Bot</h1>
     <div id="wallet-section">
-      <button id="connect-wallet-button">Connect MetaMask</button>
+      <button id="connect-wallet-button">Connect Trust Wallet</button>
       <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
       <p>Token Balance: <span id="balance-value">0</span> FTS</p>
     </div>
@@ -86,11 +86,11 @@
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
         if (!window.ethereum) {
-          showNotification("MetaMask not detected. Please install MetaMask.");
+          showNotification("Trust Wallet not detected. Please install Trust Wallet.");
           return;
         }
 
-        console.log("Requesting MetaMask connection...");
+        console.log("Requesting Trust Wallet connection...");
         await window.ethereum.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
         await window.ethereum.request({ method: "eth_requestAccounts" });
 
@@ -101,8 +101,8 @@
         document.getElementById("connected-wallet").textContent = walletAddress;
         updateBalance();
       } catch (error) {
-        console.error("Error connecting to MetaMask:", error);
-        showNotification("Failed to connect to MetaMask.");
+        console.error("Error connecting to Trust Wallet:", error);
+        showNotification("Failed to connect to Trust Wallet.");
       }
     });
 
