@@ -15,12 +15,13 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background-color: #f4f4f9;
+      background: url('image7.png') no-repeat center center fixed;
+      background-size: cover;
     }
     #app {
       text-align: center;
       padding: 20px;
-      background: #fff;
+      background: rgba(255, 255, 255, 0.9);
       border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       width: 400px;
@@ -85,13 +86,11 @@
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
         if (typeof window.ethereum === "undefined") {
-          // Se MetaMask non è rilevato, reindirizza all'app MetaMask
           const metamaskAppLink = "https://metamask.app.link/dapp/your-website-url.com";
           window.location.href = metamaskAppLink;
           return;
         }
 
-        // Richiedi connessione tramite MetaMask
         console.log("Requesting MetaMask connection...");
         await window.ethereum.request({ method: "eth_requestAccounts" });
         provider = new ethers.providers.Web3Provider(window.ethereum);
