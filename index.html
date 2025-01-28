@@ -84,7 +84,7 @@
 
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       if (typeof window.ethereum === "undefined") {
-        showNotification("MetaMask is not installed. Please install it to continue.");
+        alert("MetaMask is not detected. If you are on mobile, please use the MetaMask app browser to open this site.");
         return;
       }
       try {
