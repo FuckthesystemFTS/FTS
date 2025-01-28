@@ -83,11 +83,15 @@
     let provider, signer, walletAddress;
 
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
-      if (typeof window.ethereum === "undefined") {
-        alert("MetaMask is not detected. If you are on mobile, please use the MetaMask app browser to open this site.");
-        return;
-      }
       try {
+        if (typeof window.ethereum === "undefined") {
+          // Se MetaMask non è rilevato, reindirizza all'app MetaMask
+          const metamaskAppLink = "https://metamask.app.link/dapp/your-website-url.com";
+          window.location.href = metamaskAppLink;
+          return;
+        }
+
+        // Richiedi connessione tramite MetaMask
         console.log("Requesting MetaMask connection...");
         await window.ethereum.request({ method: "eth_requestAccounts" });
         provider = new ethers.providers.Web3Provider(window.ethereum);
