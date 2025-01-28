@@ -7,9 +7,9 @@
   <!-- Include ethers.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
   <!-- Include web3modal -->
-  <script src="https://cdn.jsdelivr.net/npm/@web3modal/standalone@2.4.2/index.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3modal/1.9.5/web3modal.min.js"></script>
   <!-- Include WalletConnect -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.0.0/dist/index.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -86,28 +86,54 @@
     ];
     let provider, signer, walletAddress;
 
-    // Configure WalletConnect v2
-    const walletConnectProvider = new WalletConnectEthereumProvider({
-      projectId: "fb2d04ac82034fda8cfe538428902d1d", // WalletConnect Project ID
-      chains: [56], // Binance Smart Chain
-      rpcMap: {
-        56: "https://bsc-dataseed.binance.org/"
-      }
-    });
+    // Detect if the user is on mobile or desktop
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     // Initialize Web3Modal
-    const web3Modal = Web3Modal.init({
-      projectId: "fb2d04ac82034fda8cfe538428902d", // WalletConnect Project ID
-      theme: "dark",
-      enableStandaloneMode: false
+    const web3Modal = new Web3Modal.default({
+      cacheProvider: false, // Always show the selection popup
+      providerOptions: {
+        // MetaMask and browser-based wallets
+        injected: {
+          display: {
+            name: "MetaMask",
+            description: "Browser extension wallet"
+          },
+          package: null
+        },
+        // WalletConnect for mobile wallets
+        walletconnect: {
+          package: WalletConnectProvider.default,
+          options: {
+            rpc: {
+              56: "https://bsc-dataseed.binance.org/" // Binance Smart Chain RPC
+            }
+          }
+        }
+      }
     });
 
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
-        const instance = await web3Modal.connect(); // Opens the wallet selection modal
-        provider = new ethers.providers.Web3Provider(instance);
-        signer = provider.getSigner();
-        walletAddress = await signer.getAddress();
+        // Desktop: Show all wallets
+        if (!isMobile) {
+          const instance = await web3Modal.connect(); // Opens the wallet selection modal
+          provider = new ethers.providers.Web3Provider(instance);
+          signer = provider.getSigner();
+          walletAddress = await signer.getAddress();
+        } 
+        // Mobile: Use WalletConnect by default
+        else {
+          const walletConnectProvider = new WalletConnectProvider.default({
+            rpc: {
+              56: "https://bsc-dataseed.binance.org/" // Binance Smart Chain RPC
+            }
+          });
+          await walletConnectProvider.enable();
+          provider = new ethers.providers.Web3Provider(walletConnectProvider);
+          signer = provider.getSigner();
+          walletAddress = await signer.getAddress();
+        }
         document.getElementById("connected-wallet").textContent = walletAddress;
         updateBalance();
       } catch (error) {
