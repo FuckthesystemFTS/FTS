@@ -86,10 +86,7 @@
     ];
     let provider, signer, walletAddress;
 
-    // Rileva se l'utente è su mobile o desktop
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-    // Configura Web3Modal
+    // Initialize Web3Modal
     const web3Modal = new Web3Modal.default({
       cacheProvider: false,
       providerOptions: {
@@ -103,7 +100,6 @@
         walletconnect: {
           package: WalletConnectProvider.default,
           options: {
-            projectId: "fb2d04ac82034fda8cfe538428902d1d", // WalletConnect Project ID
             rpc: {
               56: "https://bsc-dataseed.binance.org/"
             }
@@ -114,23 +110,12 @@
 
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
-        if (!isMobile) {
-          // Su desktop, usa Web3Modal per mostrare la scelta dei wallet
-          const instance = await web3Modal.connect();
-          provider = new ethers.providers.Web3Provider(instance);
-        } else {
-          // Su mobile, usa WalletConnect di default
-          const walletConnectProvider = new WalletConnectProvider.default({
-            projectId: "fb2d04ac82034fda8cfe538428902d1d",
-            rpc: {
-              56: "https://bsc-dataseed.binance.org/"
-            }
-          });
-          await walletConnectProvider.enable();
-          provider = new ethers.providers.Web3Provider(walletConnectProvider);
-        }
+        console.log("Opening wallet selection...");
+        const instance = await web3Modal.connect();
+        provider = new ethers.providers.Web3Provider(instance);
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
+        console.log("Connected wallet:", walletAddress);
         document.getElementById("connected-wallet").textContent = walletAddress;
         updateBalance();
       } catch (error) {
