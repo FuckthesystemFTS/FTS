@@ -6,6 +6,8 @@
   <title>FTS Wallet Bot</title>
   <!-- Include ethers.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+  <!-- Include web3modal -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3modal/1.9.5/web3modal.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -66,11 +68,6 @@
       <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
       <p>Token Balance: <span id="balance-value">0</span> FTS</p>
     </div>
-    <div id="task-section">
-      <h2>Complete Tasks</h2>
-      <button onclick="completeTask('Follow on Twitter', 1000)">Follow on Twitter</button>
-      <button onclick="completeTask('Join Telegram', 2000)">Join Telegram</button>
-    </div>
     <div id="transfer-section">
       <h2>Transfer Tokens</h2>
       <input type="text" id="recipient-wallet" placeholder="Recipient Wallet Address">
@@ -87,21 +84,31 @@
     ];
     let provider, signer, walletAddress;
 
-    document.getElementById("connect-wallet-button").addEventListener("click", async () => {
-      if (typeof window.ethereum !== "undefined") {
-        try {
-          await window.ethereum.request({ method: "eth_requestAccounts" });
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          signer = provider.getSigner();
-          walletAddress = await signer.getAddress();
-          document.getElementById("connected-wallet").textContent = walletAddress;
-          updateBalance();
-        } catch (error) {
-          console.error("Error connecting wallet:", error);
-          showNotification("Failed to connect wallet.");
+    const web3Modal = new Web3Modal({
+      cacheProvider: false, // Disabilita il caching per chiedere sempre una scelta
+      providerOptions: {
+        walletconnect: {
+          package: window.WalletConnectProvider.default,
+          options: {
+            rpc: {
+              56: "https://bsc-dataseed.binance.org/"
+            }
+          }
         }
-      } else {
-        alert("MetaMask is not installed!");
+      }
+    });
+
+    document.getElementById("connect-wallet-button").addEventListener("click", async () => {
+      try {
+        const instance = await web3Modal.connect();
+        provider = new ethers.providers.Web3Provider(instance);
+        signer = provider.getSigner();
+        walletAddress = await signer.getAddress();
+        document.getElementById("connected-wallet").textContent = walletAddress;
+        updateBalance();
+      } catch (error) {
+        console.error("Error connecting wallet:", error);
+        showNotification("Failed to connect wallet.");
       }
     });
 
@@ -118,12 +125,6 @@
         console.error("Error fetching balance:", error);
         showNotification("Failed to fetch balance.");
       }
-    }
-
-    function completeTask(taskName, reward) {
-      showNotification(`${taskName} completed! Earned ${reward} FTS.`);
-      const currentBalance = parseFloat(document.getElementById("balance-value").textContent);
-      document.getElementById("balance-value").textContent = (currentBalance + reward).toFixed(2);
     }
 
     async function transferTokens() {
