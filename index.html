@@ -86,16 +86,26 @@
     ];
     let provider, signer, walletAddress;
 
-    // Initialize Web3Modal
+    // Initialize Web3Modal with multiple wallet options
     const web3Modal = new Web3Modal.default({
       cacheProvider: false, // Always show the selection popup
       providerOptions: {
+        // MetaMask and browser-based wallets
+        injected: {
+          display: {
+            name: "MetaMask",
+            description: "Browser extension wallet"
+          },
+          package: null
+        },
+        // WalletConnect (e.g., Trust Wallet, Binance Wallet)
         walletconnect: {
-          package: WalletConnectProvider.default, // Use the WalletConnect library
+          package: WalletConnectProvider.default,
           options: {
             rpc: {
               56: "https://bsc-dataseed.binance.org/" // Binance Smart Chain RPC
-            }
+            },
+            network: "binance"
           }
         }
       }
@@ -103,7 +113,7 @@
 
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
-        const instance = await web3Modal.connect();
+        const instance = await web3Modal.connect(); // Opens the wallet selection modal
         provider = new ethers.providers.Web3Provider(instance);
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
