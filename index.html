@@ -86,11 +86,13 @@
     ];
     let provider, signer, walletAddress;
 
-    // Initialize Web3Modal
+    // Rileva se l'utente è su mobile o desktop
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    // Configura Web3Modal
     const web3Modal = new Web3Modal.default({
-      cacheProvider: false, // Always show the selection popup
+      cacheProvider: false,
       providerOptions: {
-        // MetaMask and browser-based wallets
         injected: {
           display: {
             name: "MetaMask",
@@ -98,12 +100,12 @@
           },
           package: null
         },
-        // WalletConnect for mobile wallets
         walletconnect: {
           package: WalletConnectProvider.default,
           options: {
+            projectId: "fb2d04ac82034fda8cfe538428902d1d", // WalletConnect Project ID
             rpc: {
-              56: "https://bsc-dataseed.binance.org/" // Binance Smart Chain RPC
+              56: "https://bsc-dataseed.binance.org/"
             }
           }
         }
@@ -112,8 +114,21 @@
 
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
-        const instance = await web3Modal.connect(); // Opens the wallet selection modal
-        provider = new ethers.providers.Web3Provider(instance);
+        if (!isMobile) {
+          // Su desktop, usa Web3Modal per mostrare la scelta dei wallet
+          const instance = await web3Modal.connect();
+          provider = new ethers.providers.Web3Provider(instance);
+        } else {
+          // Su mobile, usa WalletConnect di default
+          const walletConnectProvider = new WalletConnectProvider.default({
+            projectId: "fb2d04ac82034fda8cfe538428902d1d",
+            rpc: {
+              56: "https://bsc-dataseed.binance.org/"
+            }
+          });
+          await walletConnectProvider.enable();
+          provider = new ethers.providers.Web3Provider(walletConnectProvider);
+        }
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("connected-wallet").textContent = walletAddress;
