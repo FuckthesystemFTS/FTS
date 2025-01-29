@@ -93,6 +93,13 @@
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
+          if (isMobile) {
+            window.location.href = "https://link.trustwallet.com";
+            setTimeout(() => {
+              window.location.href = "trust://wc";
+            }, 2000);
+          }
+          
           const walletConnectProvider = await EthereumProvider.init({
             projectId: "fb2d04ac82034fda8cfe538428902d1d",
             chains: [56],
@@ -110,12 +117,6 @@
           
           await walletConnectProvider.enable();
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
-          
-          if (isMobile) {
-            setTimeout(() => {
-              window.open("trust://wc", "_self");
-            }, 1000);
-          }
         }
         
         signer = provider.getSigner();
