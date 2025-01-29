@@ -6,6 +6,8 @@
   <title>FTS Wallet Bot - Trust Wallet</title>
   <!-- Include ethers.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+  <!-- Include WalletConnect -->
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -63,7 +65,7 @@
   <div id="app">
     <h1>FTS Wallet Bot</h1>
     <div id="wallet-section">
-      <button id="connect-wallet-button">Connect Trust Wallet</button>
+      <button id="connect-wallet-button">Connect Wallet</button>
       <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
       <p>Token Balance: <span id="balance-value">0</span> FTS</p>
     </div>
@@ -83,37 +85,34 @@
     ];
     let provider, signer, walletAddress;
 
-    function isMobile() {
-      return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    }
-
-    async function connectTrustWallet() {
+    document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
         if (window.ethereum) {
-          // Se Trust Wallet è disponibile, usa direttamente window.ethereum
-          console.log("Requesting Trust Wallet connection...");
-          await window.ethereum.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
+          // Usa direttamente window.ethereum se disponibile
+          console.log("Requesting Wallet connection...");
           await window.ethereum.request({ method: "eth_requestAccounts" });
-
           provider = new ethers.providers.Web3Provider(window.ethereum);
-          signer = provider.getSigner();
-          walletAddress = await signer.getAddress();
-          console.log("Connected wallet:", walletAddress);
-          document.getElementById("connected-wallet").textContent = walletAddress;
-          updateBalance();
-        } else if (isMobile()) {
-          // Su Mobile, apri l'App Trust Wallet con il deep link
-          window.location.href = "trust://link/dapp/your-website-url.com";
         } else {
-          showNotification("Trust Wallet not detected. Please install Trust Wallet.");
+          // Usa WalletConnect come fallback su mobile
+          const walletConnectProvider = new WalletConnectProvider.default({
+            rpc: {
+              56: "https://bsc-dataseed.binance.org/" // Binance Smart Chain RPC
+            }
+          });
+          await walletConnectProvider.enable();
+          provider = new ethers.providers.Web3Provider(walletConnectProvider);
         }
-      } catch (error) {
-        console.error("Error connecting to Trust Wallet:", error);
-        showNotification("Failed to connect to Trust Wallet.");
-      }
-    }
 
-    document.getElementById("connect-wallet-button").addEventListener("click", connectTrustWallet);
+        signer = provider.getSigner();
+        walletAddress = await signer.getAddress();
+        console.log("Connected wallet:", walletAddress);
+        document.getElementById("connected-wallet").textContent = walletAddress;
+        updateBalance();
+      } catch (error) {
+        console.error("Error connecting to wallet:", error);
+        showNotification("Failed to connect to wallet.");
+      }
+    });
 
     async function updateBalance() {
       if (!signer) {
