@@ -87,14 +87,12 @@
     
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
-        if (!window.WalletConnectProvider) {
+        if (typeof WalletConnectProvider === "undefined") {
           throw new Error("WalletConnectProvider non caricato correttamente.");
         }
         
-        const WalletConnectProvider = window.WalletConnectProvider.default;
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        
-        const walletConnectProvider = new WalletConnectProvider({
+        const walletConnectProvider = new WalletConnectProvider.default({
           projectId: "fb2d04ac82034fda8cfe538428902d1d",
           rpc: {
             56: "https://bsc-dataseed.binance.org/"
@@ -111,6 +109,7 @@
         });
         
         if (isMobile) {
+          await walletConnectProvider.enable();
           window.location.href = "trust://wc";
         } else {
           await walletConnectProvider.enable();
