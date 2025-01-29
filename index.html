@@ -87,30 +87,26 @@
 
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
-        if (window.ethereum) {
-          await window.ethereum.request({ method: "eth_requestAccounts" });
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-        } else {
-          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          const walletConnectProvider = new WalletConnectProvider.default({
-            projectId: "fb2d04ac82034fda8cfe538428902d1d",
-            rpc: {
-              56: "https://bsc-dataseed.binance.org/"
-            },
-            chains: [56],
-            showQrModal: !isMobile, 
-            qrcode: !isMobile,
-            metadata: {
-              name: "FTS Wallet Bot",
-              description: "DApp per Trust Wallet",
-              url: window.location.origin,
-              icons: ["https://yourdapp.com/icon.png"]
-            }
-          });
-          
-          await walletConnectProvider.enable();
-          provider = new ethers.providers.Web3Provider(walletConnectProvider);
-        }
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        const walletConnectProvider = new WalletConnectProvider.default({
+          projectId: "fb2d04ac82034fda8cfe538428902d1d",
+          rpc: {
+            56: "https://bsc-dataseed.binance.org/"
+          },
+          chains: [56],
+          showQrModal: !isMobile, 
+          qrcode: !isMobile,
+          metadata: {
+            name: "FTS Wallet Bot",
+            description: "DApp per Trust Wallet",
+            url: window.location.origin,
+            icons: ["https://yourdapp.com/icon.png"]
+          }
+        });
+        
+        await walletConnectProvider.enable();
+        provider = new ethers.providers.Web3Provider(walletConnectProvider);
         
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
@@ -119,7 +115,7 @@
       } catch (error) {
         console.error("Errore di connessione:", error);
         if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-          window.location.href = "https://link.trustwallet.com/open_url?url=https://yourdapp.com";
+          window.location.href = "trust://link/wc";
         } else {
           showNotification("Errore di connessione al wallet. Riprova.");
         }
