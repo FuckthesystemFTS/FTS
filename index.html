@@ -84,35 +84,41 @@
       "function balanceOf(address owner) public view returns (uint256)"
     ];
     let provider, signer, walletAddress;
-    
+
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
-        const walletConnectProvider = await EthereumProvider.init({
-          projectId: "fb2d04ac82034fda8cfe538428902d1d",
-          chains: [56],
-          showQrModal: !isMobile,
-          rpcMap: {
-            56: "https://bsc-dataseed.binance.org/"
-          },
-          metadata: {
-            name: "FTS Wallet Bot",
-            description: "DApp per Trust Wallet",
-            url: window.location.origin,
-            icons: ["https://yourdapp.com/icon.png"]
-          }
-        });
+        if (window.ethereum && !isMobile) {
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+        } else {
+          const walletConnectProvider = await EthereumProvider.init({
+            projectId: "fb2d04ac82034fda8cfe538428902d1d",
+            chains: [56],
+            showQrModal: !isMobile,
+            rpcMap: {
+              56: "https://bsc-dataseed.binance.org/"
+            },
+            metadata: {
+              name: "FTS Wallet Bot",
+              description: "DApp per Trust Wallet",
+              url: window.location.origin,
+              icons: ["https://yourdapp.com/icon.png"]
+            }
+          });
+          
+          await walletConnectProvider.connect();
+          provider = new ethers.providers.Web3Provider(walletConnectProvider);
+        }
         
-        await walletConnectProvider.connect();
-        provider = new ethers.providers.Web3Provider(walletConnectProvider);
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("connected-wallet").textContent = walletAddress;
         updateBalance();
       } catch (error) {
         console.error("Errore di connessione:", error);
-        showNotification("Errore di connessione al wallet. Riprova.");
+        showNotification("Errore di connessione al wallet.");
       }
     });
 
@@ -126,6 +132,7 @@
         const balance = await tokenContract.balanceOf(walletAddress);
         document.getElementById("balance-value").textContent = ethers.utils.formatUnits(balance, 18);
       } catch (error) {
+        console.error("Errore nel recupero del saldo:", error);
         showNotification("Errore nel recupero del saldo.");
       }
     }
