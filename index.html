@@ -7,7 +7,7 @@
   <!-- Include ethers.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
   <!-- Include WalletConnect v2 -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@2.2.4/dist/index.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.2.4/dist/umd/index.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -87,19 +87,15 @@
     
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
-        if (typeof WalletConnectProvider === "undefined") {
-          throw new Error("WalletConnectProvider non caricato correttamente.");
-        }
-        
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const walletConnectProvider = new WalletConnectProvider.default({
+        
+        const walletConnectProvider = await EthereumProvider.init({
           projectId: "fb2d04ac82034fda8cfe538428902d1d",
-          rpc: {
+          chains: [56],
+          showQrModal: !isMobile,
+          rpcMap: {
             56: "https://bsc-dataseed.binance.org/"
           },
-          chains: [56],
-          showQrModal: !isMobile, 
-          qrcode: !isMobile,
           metadata: {
             name: "FTS Wallet Bot",
             description: "DApp per Trust Wallet",
@@ -108,14 +104,8 @@
           }
         });
         
-        if (isMobile) {
-          await walletConnectProvider.enable();
-          window.location.href = "trust://wc";
-        } else {
-          await walletConnectProvider.enable();
-          provider = new ethers.providers.Web3Provider(walletConnectProvider);
-        }
-        
+        await walletConnectProvider.connect();
+        provider = new ethers.providers.Web3Provider(walletConnectProvider);
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("connected-wallet").textContent = walletAddress;
