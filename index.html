@@ -108,8 +108,14 @@
             }
           });
           
-          await walletConnectProvider.connect();
+          await walletConnectProvider.enable();
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
+          
+          if (isMobile) {
+            setTimeout(() => {
+              window.open("trust://wc", "_self");
+            }, 1000);
+          }
         }
         
         signer = provider.getSigner();
@@ -118,7 +124,7 @@
         updateBalance();
       } catch (error) {
         console.error("Errore di connessione:", error);
-        showNotification("Errore di connessione al wallet.");
+        showNotification("Errore di connessione al wallet. Riprova.");
       }
     });
 
