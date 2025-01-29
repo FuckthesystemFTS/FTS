@@ -91,14 +91,15 @@
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
           const walletConnectProvider = new WalletConnectProvider.default({
             projectId: "fb2d04ac82034fda8cfe538428902d1d",
             rpc: {
               56: "https://bsc-dataseed.binance.org/"
             },
             chains: [56],
-            showQrModal: true,
-            qrcode: true,
+            showQrModal: !isMobile, 
+            qrcode: !isMobile,
             metadata: {
               name: "FTS Wallet Bot",
               description: "DApp per Trust Wallet",
@@ -117,7 +118,11 @@
         updateBalance();
       } catch (error) {
         console.error("Errore di connessione:", error);
-        showNotification("Errore di connessione al wallet. Riprova.");
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+          window.location.href = "https://link.trustwallet.com/open_url?url=https://yourdapp.com";
+        } else {
+          showNotification("Errore di connessione al wallet. Riprova.");
+        }
       }
     });
 
