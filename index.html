@@ -6,8 +6,8 @@
   <title>FTS Wallet Bot - Trust Wallet</title>
   <!-- Include ethers.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-  <!-- Include WalletConnect -->
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <!-- Include WalletConnect v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@2.2.4/dist/index.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -88,17 +88,23 @@
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
         if (window.ethereum) {
-          // Usa direttamente window.ethereum se disponibile
           console.log("Requesting Wallet connection...");
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
-          // Usa WalletConnect come fallback su mobile
+          console.log("Using WalletConnect v2 for mobile...");
           const walletConnectProvider = new WalletConnectProvider.default({
+            projectId: "fb2d04ac82034fda8cfe538428902d1d",
             rpc: {
               56: "https://bsc-dataseed.binance.org/" // Binance Smart Chain RPC
+            },
+            metadata: {
+              name: "FTS Wallet Bot",
+              description: "Connect to your FTS Wallet",
+              icons: [] // Icona vuota, per evitare errori
             }
           });
+
           await walletConnectProvider.enable();
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
         }
