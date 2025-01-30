@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Trust Wallet</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.2.4/dist/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@1.7.1/dist/umd/index.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -61,19 +61,20 @@
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
-          const walletConnectProvider = new WalletConnectProvider({
-            rpc: { 56: "https://bsc-dataseed.binance.org/" },
-            chainId: 56,
-            projectId: "fb2d04ac82034fda8cfe538428902d1d",
-            metadata: {
-              name: "FTS Wallet Bot",
-              description: "DApp per Trust Wallet",
-              url: window.location.origin,
-              icons: ["https://yourdapp.com/icon.png"]
-            }
+          const walletConnectProvider = new WalletConnect.default({
+            bridge: "https://bridge.walletconnect.org",
+            qrcode: !isMobile,
           });
           
-          await walletConnectProvider.enable();
+          await walletConnectProvider.createSession();
+          
+          if (isMobile) {
+            setTimeout(() => {
+              const uri = walletConnectProvider.uri;
+              window.location.href = `https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`;
+            }, 1000);
+          }
+          
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
         }
         
@@ -85,7 +86,7 @@
         updateBalance();
       } catch (error) {
         console.error("Errore di connessione:", error);
-        alert("Errore di connessione al wallet. Assicurati che Trust Wallet sia installato e aggiornato.");
+        alert("Errore di connessione al wallet. Assicurati che Trust Wallet sia installato e aggiornato. Se il problema persiste, chiudi e riapri l'app Trust Wallet e riprova.");
       }
     });
 
