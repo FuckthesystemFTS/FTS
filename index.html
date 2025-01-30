@@ -77,7 +77,7 @@
           rpc: { 56: "https://bsc-dataseed.binance.org/" },
           chainId: 56,
           bridge: "https://bridge.walletconnect.org",
-          qrcode: false
+          qrcode: true  // Mostra il QR Code per mobile
         });
         await walletConnectProvider.enable();
         provider = new ethers.providers.Web3Provider(walletConnectProvider);
