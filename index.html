@@ -4,9 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Trust Wallet</title>
-  <!-- Include ethers.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-  <!-- Include WalletConnect v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.2.4/dist/umd/index.min.js"></script>
   <style>
     body {
@@ -93,32 +91,18 @@
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
-          if (isMobile) {
-            window.location.href = "https://link.trustwallet.com";
-            setTimeout(() => {
-              window.location.href = "trust://wc";
-            }, 2000);
-          }
-          
-          const walletConnectProvider = await EthereumProvider.init({
-            projectId: "fb2d04ac82034fda8cfe538428902d1d",
-            chains: [56],
-            showQrModal: !isMobile,
-            rpcMap: {
+          const walletConnectProvider = new WalletConnectProvider({
+            rpc: {
               56: "https://bsc-dataseed.binance.org/"
             },
-            metadata: {
-              name: "FTS Wallet Bot",
-              description: "DApp per Trust Wallet",
-              url: window.location.origin,
-              icons: ["https://yourdapp.com/icon.png"]
-            }
+            bridge: "https://bridge.walletconnect.org",
+            qrcode: isMobile ? false : true,
           });
-          
+
           await walletConnectProvider.enable();
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
         }
-        
+
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("connected-wallet").textContent = walletAddress;
@@ -142,6 +126,38 @@
         console.error("Errore nel recupero del saldo:", error);
         showNotification("Errore nel recupero del saldo.");
       }
+    }
+
+    async function transferTokens() {
+      if (!signer) {
+        showNotification("Connect wallet first.");
+        return;
+      }
+      const recipient = document.getElementById("recipient-wallet").value;
+      const amount = document.getElementById("transfer-amount").value;
+      if (!recipient || !amount) {
+        showNotification("Inserisci destinatario e importo.");
+        return;
+      }
+      try {
+        const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+        const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount, 18));
+        await tx.wait();
+        showNotification("Transfer successful!");
+        updateBalance();
+      } catch (error) {
+        console.error("Errore nel trasferimento:", error);
+        showNotification("Errore nel trasferimento dei token.");
+      }
+    }
+
+    function showNotification(message) {
+      const notification = document.getElementById("notification");
+      notification.textContent = message;
+      notification.classList.add("show");
+      setTimeout(() => {
+        notification.classList.remove("show");
+      }, 3000);
     }
   </script>
 </body>
