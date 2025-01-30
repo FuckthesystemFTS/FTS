@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Wallet Connection</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.2.4/dist/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -73,17 +73,11 @@
 
     document.getElementById("connect-trust-button").addEventListener("click", async () => {
       try {
-        const walletConnectProvider = await EthereumProvider.init({
-          projectId: "fb2d04ac82034fda8cfe538428902d1d",
-          chains: [56],
-          showQrModal: false,
-          rpcMap: { 56: "https://bsc-dataseed.binance.org/" },
-          metadata: {
-            name: "FTS Wallet Bot",
-            description: "DApp for Trust Wallet",
-            url: window.location.origin,
-            icons: ["https://yourdapp.com/icon.png"]
-          }
+        const walletConnectProvider = new WalletConnectProvider({
+          rpc: { 56: "https://bsc-dataseed.binance.org/" },
+          chainId: 56,
+          bridge: "https://bridge.walletconnect.org",
+          qrcode: true
         });
         await walletConnectProvider.enable();
         provider = new ethers.providers.Web3Provider(walletConnectProvider);
