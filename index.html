@@ -61,11 +61,10 @@
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
-          const walletConnectProvider = await EthereumProvider.init({
+          const walletConnectProvider = new WalletConnectProvider({
+            rpc: { 56: "https://bsc-dataseed.binance.org/" },
+            chainId: 56,
             projectId: "fb2d04ac82034fda8cfe538428902d1d",
-            chains: [56],
-            showQrModal: !isMobile,
-            rpcMap: { 56: "https://bsc-dataseed.binance.org/" },
             metadata: {
               name: "FTS Wallet Bot",
               description: "DApp per Trust Wallet",
@@ -73,6 +72,7 @@
               icons: ["https://yourdapp.com/icon.png"]
             }
           });
+          
           await walletConnectProvider.enable();
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
         }
@@ -85,7 +85,7 @@
         updateBalance();
       } catch (error) {
         console.error("Errore di connessione:", error);
-        alert("Errore di connessione al wallet. Controlla Trust Wallet e riprova.");
+        alert("Errore di connessione al wallet. Assicurati che Trust Wallet sia installato e aggiornato.");
       }
     });
 
@@ -113,18 +113,6 @@
         console.error("Errore nel recupero del saldo:", error);
         alert("Errore nel recupero del saldo.");
       }
-    }
-
-    if (window.ethereum) {
-      window.ethereum.on("accountsChanged", async (accounts) => {
-        if (accounts.length === 0) {
-          document.getElementById("connected-wallet").textContent = "Not connected";
-        } else {
-          walletAddress = accounts[0];
-          document.getElementById("connected-wallet").textContent = walletAddress;
-          updateBalance();
-        }
-      });
     }
   </script>
 </body>
