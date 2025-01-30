@@ -75,6 +75,7 @@
     </div>
     <div id="notification" class="notification"></div>
   </div>
+  
   <script>
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
     const TOKEN_ABI = [
@@ -86,30 +87,39 @@
     document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        
+
         if (window.ethereum && !isMobile) {
+          // Collegamento per PC (Metamask, Brave, ecc.)
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
-          const walletConnectProvider = new WalletConnectProvider({
-            rpc: {
+          // Configurazione WalletConnect v2 per dispositivi mobili
+          const walletConnectProvider = await EthereumProvider.init({
+            projectId: "fb2d04ac82034fda8cfe538428902d1d",
+            chains: [56],
+            showQrModal: !isMobile,
+            rpcMap: {
               56: "https://bsc-dataseed.binance.org/"
             },
-            bridge: "https://bridge.walletconnect.org",
-            qrcode: isMobile ? false : true,
+            metadata: {
+              name: "FTS Wallet Bot",
+              description: "DApp per Trust Wallet",
+              url: window.location.origin,
+              icons: ["https://yourdapp.com/icon.png"]
+            }
           });
 
           await walletConnectProvider.enable();
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
         }
-
+        
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("connected-wallet").textContent = walletAddress;
         updateBalance();
       } catch (error) {
         console.error("Errore di connessione:", error);
-        showNotification("Errore di connessione al wallet. Riprova.");
+        showNotification("Errore di connessione al wallet. Controlla l'app Trust Wallet e riprova.");
       }
     });
 
@@ -128,36 +138,11 @@
       }
     }
 
-    async function transferTokens() {
-      if (!signer) {
-        showNotification("Connect wallet first.");
-        return;
-      }
-      const recipient = document.getElementById("recipient-wallet").value;
-      const amount = document.getElementById("transfer-amount").value;
-      if (!recipient || !amount) {
-        showNotification("Inserisci destinatario e importo.");
-        return;
-      }
-      try {
-        const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-        const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount, 18));
-        await tx.wait();
-        showNotification("Transfer successful!");
-        updateBalance();
-      } catch (error) {
-        console.error("Errore nel trasferimento:", error);
-        showNotification("Errore nel trasferimento dei token.");
-      }
-    }
-
     function showNotification(message) {
       const notification = document.getElementById("notification");
       notification.textContent = message;
       notification.classList.add("show");
-      setTimeout(() => {
-        notification.classList.remove("show");
-      }, 3000);
+      setTimeout(() => notification.classList.remove("show"), 3000);
     }
   </script>
 </body>
