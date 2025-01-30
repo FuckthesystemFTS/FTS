@@ -78,7 +78,11 @@
         });
         await walletConnectProvider.createSession();
         const uri = walletConnectProvider.uri;
-        window.location.href = `https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`;
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+          window.location.href = `trust://wc?uri=${encodeURIComponent(uri)}`;
+        } else {
+          window.open(`https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`, "_blank");
+        }
         provider = new ethers.providers.Web3Provider(walletConnectProvider);
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
