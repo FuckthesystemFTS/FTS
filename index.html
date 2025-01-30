@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FTS Wallet Bot - Trust Wallet</title>
+  <title>FTS Wallet Bot - Wallet Connection</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@1.7.1/dist/umd/index.min.js"></script>
   <style>
@@ -39,7 +39,8 @@
 <body>
   <div id="app">
     <h1>FTS Wallet Bot</h1>
-    <button id="connect-wallet-button">Connect Wallet</button>
+    <button id="connect-metamask-button">Connect with MetaMask</button>
+    <button id="connect-trust-button">Connect with Trust Wallet</button>
     <button id="disconnect-wallet-button" style="display:none;">Disconnect Wallet</button>
     <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
     <p>Token Balance: <span id="balance-value">0</span> FTS</p>
@@ -53,40 +54,39 @@
     ];
     let provider, signer, walletAddress;
 
-    document.getElementById("connect-wallet-button").addEventListener("click", async () => {
+    document.getElementById("connect-metamask-button").addEventListener("click", async () => {
       try {
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-        if (window.ethereum && !isMobile) {
+        if (window.ethereum) {
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          walletAddress = await signer.getAddress();
+          updateUI();
         } else {
-          const walletConnectProvider = new WalletConnect.default({
-            bridge: "https://bridge.walletconnect.org",
-            qrcode: !isMobile,
-          });
-          
-          await walletConnectProvider.createSession();
-          
-          if (isMobile) {
-            setTimeout(() => {
-              const uri = walletConnectProvider.uri;
-              window.location.href = `https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`;
-            }, 1000);
-          }
-          
-          provider = new ethers.providers.Web3Provider(walletConnectProvider);
+          alert("MetaMask not detected. Please install it to continue.");
         }
-        
+      } catch (error) {
+        console.error("Error connecting to MetaMask:", error);
+        alert("Error connecting to MetaMask.");
+      }
+    });
+
+    document.getElementById("connect-trust-button").addEventListener("click", async () => {
+      try {
+        const walletConnectProvider = new WalletConnect.default({
+          bridge: "https://bridge.walletconnect.org",
+          qrcode: true,
+        });
+        await walletConnectProvider.createSession();
+        const uri = walletConnectProvider.uri;
+        window.location.href = `https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`;
+        provider = new ethers.providers.Web3Provider(walletConnectProvider);
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
-        document.getElementById("connected-wallet").textContent = walletAddress;
-        document.getElementById("connect-wallet-button").style.display = "none";
-        document.getElementById("disconnect-wallet-button").style.display = "inline-block";
-        updateBalance();
+        updateUI();
       } catch (error) {
-        console.error("Errore di connessione:", error);
-        alert("Errore di connessione al wallet. Assicurati che Trust Wallet sia installato e aggiornato. Se il problema persiste, chiudi e riapri l'app Trust Wallet e riprova.");
+        console.error("Error connecting to Trust Wallet:", error);
+        alert("Error connecting to Trust Wallet. Ensure Trust Wallet is installed and try again.");
       }
     });
 
@@ -94,25 +94,35 @@
       provider = null;
       signer = null;
       walletAddress = "";
-      document.getElementById("connected-wallet").textContent = "Not connected";
-      document.getElementById("balance-value").textContent = "0";
-      document.getElementById("connect-wallet-button").style.display = "inline-block";
-      document.getElementById("disconnect-wallet-button").style.display = "none";
-      alert("Wallet disconnesso con successo.");
+      updateUI();
+      alert("Wallet disconnected successfully.");
     });
 
     async function updateBalance() {
-      if (!signer) {
-        alert("Connetti il wallet prima di controllare il saldo.");
-        return;
-      }
+      if (!signer) return;
       try {
         const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
         const balance = await tokenContract.balanceOf(walletAddress);
         document.getElementById("balance-value").textContent = ethers.utils.formatUnits(balance, 18);
       } catch (error) {
-        console.error("Errore nel recupero del saldo:", error);
-        alert("Errore nel recupero del saldo.");
+        console.error("Error fetching balance:", error);
+        alert("Error retrieving balance.");
+      }
+    }
+
+    function updateUI() {
+      if (walletAddress) {
+        document.getElementById("connected-wallet").textContent = walletAddress;
+        document.getElementById("connect-metamask-button").style.display = "none";
+        document.getElementById("connect-trust-button").style.display = "none";
+        document.getElementById("disconnect-wallet-button").style.display = "inline-block";
+        updateBalance();
+      } else {
+        document.getElementById("connected-wallet").textContent = "Not connected";
+        document.getElementById("balance-value").textContent = "0";
+        document.getElementById("connect-metamask-button").style.display = "inline-block";
+        document.getElementById("connect-trust-button").style.display = "inline-block";
+        document.getElementById("disconnect-wallet-button").style.display = "none";
       }
     }
   </script>
