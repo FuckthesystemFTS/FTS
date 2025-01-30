@@ -73,9 +73,8 @@
 
     document.getElementById("connect-trust-button").addEventListener("click", async () => {
       try {
-        const walletConnectProvider = new WalletConnect.default({
+        const walletConnectProvider = new WalletConnect.Client({
           bridge: "https://bridge.walletconnect.org",
-          qrcode: true,
         });
         await walletConnectProvider.createSession();
         const uri = walletConnectProvider.uri;
