@@ -9,73 +9,42 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background: url('image7.png') no-repeat center center fixed;
-      background-size: cover;
+      background: #f4f4f4;
     }
     #app {
       text-align: center;
       padding: 20px;
-      background: rgba(255, 255, 255, 0.9);
+      background: white;
       border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      width: 400px;
     }
     button {
-      margin: 10px;
       padding: 10px;
+      margin: 10px;
       border: none;
       border-radius: 5px;
       background: #007bff;
       color: white;
       cursor: pointer;
-      transition: 0.3s;
     }
     button:hover {
       background: #0056b3;
-    }
-    input {
-      margin: 10px 0;
-      padding: 10px;
-      width: 90%;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
-    .notification {
-      background: #28a745;
-      color: white;
-      padding: 10px;
-      border-radius: 5px;
-      margin-top: 20px;
-      display: none;
-    }
-    .notification.show {
-      display: block;
     }
   </style>
 </head>
 <body>
   <div id="app">
     <h1>FTS Wallet Bot</h1>
-    <div id="wallet-section">
-      <button id="connect-wallet-button">Connect Wallet</button>
-      <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
-      <p>Token Balance: <span id="balance-value">0</span> FTS</p>
-    </div>
-    <div id="transfer-section">
-      <h2>Transfer Tokens</h2>
-      <input type="text" id="recipient-wallet" placeholder="Recipient Wallet Address">
-      <input type="number" id="transfer-amount" placeholder="Amount to Transfer">
-      <button onclick="transferTokens()">Transfer</button>
-    </div>
-    <div id="notification" class="notification"></div>
+    <button id="connect-wallet-button">Connect Wallet</button>
+    <button id="disconnect-wallet-button" style="display:none;">Disconnect Wallet</button>
+    <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
+    <p>Token Balance: <span id="balance-value">0</span> FTS</p>
   </div>
-  
+
   <script>
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
     const TOKEN_ABI = [
@@ -89,18 +58,14 @@
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
         if (window.ethereum && !isMobile) {
-          // Collegamento per PC (Metamask, Brave, ecc.)
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
-          // Configurazione WalletConnect v2 per dispositivi mobili
           const walletConnectProvider = await EthereumProvider.init({
             projectId: "fb2d04ac82034fda8cfe538428902d1d",
             chains: [56],
             showQrModal: !isMobile,
-            rpcMap: {
-              56: "https://bsc-dataseed.binance.org/"
-            },
+            rpcMap: { 56: "https://bsc-dataseed.binance.org/" },
             metadata: {
               name: "FTS Wallet Bot",
               description: "DApp per Trust Wallet",
@@ -108,7 +73,6 @@
               icons: ["https://yourdapp.com/icon.png"]
             }
           });
-
           await walletConnectProvider.enable();
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
         }
@@ -116,16 +80,29 @@
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("connected-wallet").textContent = walletAddress;
+        document.getElementById("connect-wallet-button").style.display = "none";
+        document.getElementById("disconnect-wallet-button").style.display = "inline-block";
         updateBalance();
       } catch (error) {
         console.error("Errore di connessione:", error);
-        showNotification("Errore di connessione al wallet. Controlla l'app Trust Wallet e riprova.");
+        alert("Errore di connessione al wallet. Controlla Trust Wallet e riprova.");
       }
+    });
+
+    document.getElementById("disconnect-wallet-button").addEventListener("click", () => {
+      provider = null;
+      signer = null;
+      walletAddress = "";
+      document.getElementById("connected-wallet").textContent = "Not connected";
+      document.getElementById("balance-value").textContent = "0";
+      document.getElementById("connect-wallet-button").style.display = "inline-block";
+      document.getElementById("disconnect-wallet-button").style.display = "none";
+      alert("Wallet disconnesso con successo.");
     });
 
     async function updateBalance() {
       if (!signer) {
-        showNotification("Connect wallet first.");
+        alert("Connetti il wallet prima di controllare il saldo.");
         return;
       }
       try {
@@ -134,15 +111,20 @@
         document.getElementById("balance-value").textContent = ethers.utils.formatUnits(balance, 18);
       } catch (error) {
         console.error("Errore nel recupero del saldo:", error);
-        showNotification("Errore nel recupero del saldo.");
+        alert("Errore nel recupero del saldo.");
       }
     }
 
-    function showNotification(message) {
-      const notification = document.getElementById("notification");
-      notification.textContent = message;
-      notification.classList.add("show");
-      setTimeout(() => notification.classList.remove("show"), 3000);
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", async (accounts) => {
+        if (accounts.length === 0) {
+          document.getElementById("connected-wallet").textContent = "Not connected";
+        } else {
+          walletAddress = accounts[0];
+          document.getElementById("connected-wallet").textContent = walletAddress;
+          updateBalance();
+        }
+      });
     }
   </script>
 </body>
