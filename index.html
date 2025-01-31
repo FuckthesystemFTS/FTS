@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Wallet Connection</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@2.0.0/dist/index.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -59,13 +59,23 @@
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
-          const walletConnectProvider = new WalletConnectProvider({
-            rpc: { 56: "https://bsc-dataseed1.binance.org/" },
-            chainId: 56,
-            bridge: "https://bridge.walletconnect.org",
-            qrcodeModal: true,
+          const walletConnectProvider = new WalletConnectClient({
+            projectId: "YOUR_PROJECT_ID", // Sostituisci con un ID valido da WalletConnect
+            relayUrl: "wss://relay.walletconnect.com",
+            metadata: {
+              name: "FTS Wallet Bot",
+              description: "Connect to Trust Wallet",
+              url: window.location.href,
+              icons: ["https://example.com/icon.png"]
+            }
           });
-          await walletConnectProvider.enable();
+          
+          await walletConnectProvider.connect();
+          
+          // Forza Trust Wallet se l'utente è su mobile
+          const deepLink = `trust://wc?uri=${encodeURIComponent(walletConnectProvider.uri)}`;
+          window.location.href = deepLink;
+          
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
         }
         signer = provider.getSigner();
@@ -73,7 +83,7 @@
         updateUI();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
-        alert("Error connecting to wallet. Make sure you have a wallet app installed and try again.");
+        alert("Error connecting to wallet. Try again or scan the QR code with Trust Wallet.");
       }
     }
 
