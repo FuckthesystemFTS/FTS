@@ -63,7 +63,9 @@
             rpc: { 56: "https://bsc-dataseed.binance.org/" },
             chainId: 56,
             bridge: "https://bridge.walletconnect.org",
-            qrcode: true
+            qrcodeModalOptions: {
+              mobileLinks: ["trust", "metamask", "rainbow", "argent", "imtoken", "pillar"]
+            }
           });
           await walletConnectProvider.enable();
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
@@ -73,7 +75,7 @@
         updateUI();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
-        alert("Error connecting to wallet.");
+        alert("Error connecting to wallet. Ensure you have a supported wallet app installed.");
       }
     });
 
