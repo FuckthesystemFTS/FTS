@@ -57,38 +57,22 @@
       return /Mobi|Android|iPhone/i.test(navigator.userAgent);
     }
 
-    function isTrustWallet() {
-      return navigator.userAgent.includes("Trust") ||
-             (typeof window.ethereum !== "undefined" && window.ethereum.isTrust);
-    }
-
-    function openInTrustWallet() {
-      const trustWalletURL = `https://link.trustwallet.com/open_url?url=${encodeURIComponent(window.location.href)}`;
-      window.location.replace(trustWalletURL);
-    }
-
-    async function waitForEthereum(timeout = 2000) {
-      const start = Date.now();
-      while (Date.now() - start < timeout) {
-        if (typeof window.ethereum !== "undefined") {
-          return window.ethereum;
-        }
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      return null;
-    }
-
     async function connectWallet() {
       try {
-        const ethProvider = await waitForEthereum();
-        if (ethProvider) {
-          console.log("Ethereum provider found, connecting...");
-          provider = new ethers.providers.Web3Provider(ethProvider, "any");
+        if (isMobile()) {
+          console.log("Using WalletConnect for Trust Wallet...");
+          provider = new WalletConnectProvider({
+            rpc: { 56: "https://bsc-dataseed.binance.org/" },
+            chainId: 56,
+            bridge: "https://bridge.walletconnect.org",
+            qrcode: true
+          });
+          await provider.enable();
+          provider = new ethers.providers.Web3Provider(provider);
+        } else if (window.ethereum) {
+          console.log("Using Ethereum provider for desktop...");
+          provider = new ethers.providers.Web3Provider(window.ethereum, "any");
           await provider.send("eth_requestAccounts", []);
-        } else if (isMobile()) {
-          console.log("No Ethereum provider, redirecting to Trust Wallet...");
-          openInTrustWallet();
-          return;
         } else {
           alert("No compatible wallet found. Please use Trust Wallet or MetaMask.");
           return;
