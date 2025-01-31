@@ -57,6 +57,10 @@
       return /Mobi|Android|iPhone/i.test(navigator.userAgent);
     }
 
+    function isTrustWallet() {
+      return navigator.userAgent.includes("Trust") || navigator.userAgent.includes("trustwallet");
+    }
+
     function openInTrustWallet() {
       const trustWalletURL = `https://link.trustwallet.com/open_url?url=${encodeURIComponent(window.location.href)}`;
       window.location.replace(trustWalletURL);
@@ -64,10 +68,8 @@
 
     async function connectWallet() {
       try {
-        if (window.ethereum) {
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          await provider.send("eth_requestAccounts", []);
-        } else {
+        if (isTrustWallet()) {
+          // Se siamo già in Trust Wallet, avviamo direttamente la connessione
           provider = new WalletConnectProvider({
             rpc: { 56: "https://bsc-dataseed.binance.org/" },
             chainId: 56,
@@ -75,6 +77,16 @@
           });
           await provider.enable();
           provider = new ethers.providers.Web3Provider(provider);
+        } else if (window.ethereum) {
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          await provider.send("eth_requestAccounts", []);
+        } else {
+          if (isMobile()) {
+            openInTrustWallet();
+            return;
+          }
+          alert("No Ethereum provider found. Please use Trust Wallet or MetaMask.");
+          return;
         }
         
         signer = provider.getSigner();
@@ -82,11 +94,7 @@
         updateUI();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
-        if (isMobile()) {
-          openInTrustWallet();
-        } else {
-          alert("Error connecting to wallet. Try again.");
-        }
+        alert("Error connecting to wallet. Try again.");
       }
     }
 
