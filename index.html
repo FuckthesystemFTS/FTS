@@ -64,11 +64,6 @@
 
     async function connectWallet() {
       try {
-        if (isMobile()) {
-          openInTrustWallet();
-          return;
-        }
-        
         if (window.ethereum) {
           provider = new ethers.providers.Web3Provider(window.ethereum);
           await provider.send("eth_requestAccounts", []);
@@ -76,7 +71,7 @@
           provider = new WalletConnectProvider({
             rpc: { 56: "https://bsc-dataseed.binance.org/" },
             chainId: 56,
-            qrcode: true
+            qrcode: false
           });
           await provider.enable();
           provider = new ethers.providers.Web3Provider(provider);
@@ -87,7 +82,11 @@
         updateUI();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
-        alert("Error connecting to wallet. Try again.");
+        if (isMobile()) {
+          openInTrustWallet();
+        } else {
+          alert("Error connecting to wallet. Try again.");
+        }
       }
     }
 
