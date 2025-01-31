@@ -63,9 +63,7 @@
             rpc: { 56: "https://bsc-dataseed1.binance.org/" },
             chainId: 56,
             bridge: "https://bridge.walletconnect.org",
-            qrcodeModalOptions: {
-              mobileLinks: ["trust", "metamask", "rainbow", "argent", "imtoken", "pillar"]
-            }
+            qrcodeModal: true,
           });
           await walletConnectProvider.enable();
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
@@ -75,17 +73,12 @@
         updateUI();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
-        alert("Error connecting to wallet. If you are using Telegram, open this link in an external browser.");
+        alert("Error connecting to wallet. Make sure you have a wallet app installed and try again.");
       }
     }
 
     document.getElementById("connect-wallet-button").addEventListener("click", () => {
-      if (navigator.userAgent.includes("Telegram")) {
-        alert("Telegram's in-app browser may not support Web3 connections. Open this page in an external browser.");
-        window.open(window.location.href, "_blank");
-      } else {
-        connectWallet();
-      }
+      connectWallet();
     });
 
     document.getElementById("disconnect-wallet-button").addEventListener("click", () => {
