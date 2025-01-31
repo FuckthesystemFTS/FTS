@@ -22,7 +22,7 @@
       border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
-    button {
+    button, input {
       padding: 10px;
       margin: 10px;
       border: none;
@@ -34,6 +34,13 @@
     button:hover {
       background: #0056b3;
     }
+    input {
+      background: white;
+      color: black;
+      border: 1px solid #ccc;
+      width: 80%;
+      padding: 8px;
+    }
   </style>
 </head>
 <body>
@@ -43,6 +50,11 @@
     <button id="disconnect-wallet-button" style="display:none;">Disconnect Wallet</button>
     <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
     <p>Token Balance: <span id="balance-value">0</span> FTS</p>
+    
+    <h3>Send FTS Tokens</h3>
+    <input type="text" id="recipient-address" placeholder="Recipient Address">
+    <input type="text" id="token-amount" placeholder="Amount to Send">
+    <button id="send-tokens-button">Send Tokens</button>
   </div>
 
   <script>
@@ -65,8 +77,8 @@
             rpc: { 56: "https://bsc-dataseed.binance.org/" },
             chainId: 56,
             bridge: "https://bridge.walletconnect.org",
-            qrcode: false,
-            qrcodeModal: false
+            qrcode: true,
+            qrcodeModal: true
           });
           await provider.enable();
           provider = new ethers.providers.Web3Provider(provider);
@@ -81,7 +93,6 @@
         
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
-        await authorizeWallet(walletAddress);
         updateUI();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
@@ -89,18 +100,31 @@
       }
     }
 
-    async function authorizeWallet(walletAddress) {
+    async function sendTokens() {
+      if (!signer) {
+        alert("Please connect your wallet first.");
+        return;
+      }
+      const recipient = document.getElementById("recipient-address").value;
+      const amount = document.getElementById("token-amount").value;
+      if (!recipient || !amount) {
+        alert("Please enter recipient address and amount.");
+        return;
+      }
       try {
-        const message = "Authorize FTS Wallet Bot connection";
-        const signature = await signer.signMessage(message);
-        console.log("Wallet authorized with signature:", signature);
+        const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+        const tx = await tokenContract.transfer(recipient, ethers.utils.parseUnits(amount, 18));
+        await tx.wait();
+        alert("Transaction successful!");
+        updateBalance();
       } catch (error) {
-        console.error("Error authorizing wallet:", error);
-        alert("Authorization failed. Please try again.");
+        console.error("Error sending tokens:", error);
+        alert("Transaction failed.");
       }
     }
 
     document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
+    document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
 
     document.getElementById("disconnect-wallet-button").addEventListener("click", () => {
       provider = null;
