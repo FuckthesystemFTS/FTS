@@ -39,8 +39,7 @@
 <body>
   <div id="app">
     <h1>FTS Wallet Bot</h1>
-    <button id="connect-metamask-button">Connect with MetaMask</button>
-    <button id="connect-trust-button">Connect with Trust Wallet</button>
+    <button id="connect-wallet-button">Connect Wallet</button>
     <button id="disconnect-wallet-button" style="display:none;">Disconnect Wallet</button>
     <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
     <p>Token Balance: <span id="balance-value">0</span> FTS</p>
@@ -54,39 +53,27 @@
     ];
     let provider, signer, walletAddress;
 
-    document.getElementById("connect-metamask-button").addEventListener("click", async () => {
+    document.getElementById("connect-wallet-button").addEventListener("click", async () => {
       try {
         if (window.ethereum) {
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
-          signer = provider.getSigner();
-          walletAddress = await signer.getAddress();
-          updateUI();
         } else {
-          alert("MetaMask not detected. Please install it to continue.");
+          const walletConnectProvider = new WalletConnectProvider({
+            rpc: { 56: "https://bsc-dataseed.binance.org/" },
+            chainId: 56,
+            bridge: "https://bridge.walletconnect.org",
+            qrcode: true
+          });
+          await walletConnectProvider.enable();
+          provider = new ethers.providers.Web3Provider(walletConnectProvider);
         }
-      } catch (error) {
-        console.error("Error connecting to MetaMask:", error);
-        alert("Error connecting to MetaMask.");
-      }
-    });
-
-    document.getElementById("connect-trust-button").addEventListener("click", async () => {
-      try {
-        const walletConnectProvider = new WalletConnectProvider({
-          rpc: { 56: "https://bsc-dataseed.binance.org/" },
-          chainId: 56,
-          bridge: "https://bridge.walletconnect.org",
-          qrcode: true  // Mostra il QR Code per mobile
-        });
-        await walletConnectProvider.enable();
-        provider = new ethers.providers.Web3Provider(walletConnectProvider);
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         updateUI();
       } catch (error) {
-        console.error("Error connecting to Trust Wallet:", error);
-        alert("Error connecting to Trust Wallet. Ensure Trust Wallet is installed and try again.");
+        console.error("Error connecting to wallet:", error);
+        alert("Error connecting to wallet.");
       }
     });
 
@@ -113,15 +100,13 @@
     function updateUI() {
       if (walletAddress) {
         document.getElementById("connected-wallet").textContent = walletAddress;
-        document.getElementById("connect-metamask-button").style.display = "none";
-        document.getElementById("connect-trust-button").style.display = "none";
+        document.getElementById("connect-wallet-button").style.display = "none";
         document.getElementById("disconnect-wallet-button").style.display = "inline-block";
         updateBalance();
       } else {
         document.getElementById("connected-wallet").textContent = "Not connected";
         document.getElementById("balance-value").textContent = "0";
-        document.getElementById("connect-metamask-button").style.display = "inline-block";
-        document.getElementById("connect-trust-button").style.display = "inline-block";
+        document.getElementById("connect-wallet-button").style.display = "inline-block";
         document.getElementById("disconnect-wallet-button").style.display = "none";
       }
     }
