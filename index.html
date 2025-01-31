@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Wallet Connection</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -60,7 +60,7 @@
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
           const walletConnectProvider = new WalletConnectProvider({
-            rpc: { 56: "https://bsc-dataseed.binance.org/" },
+            rpc: { 56: "https://bsc-dataseed1.binance.org/" },
             chainId: 56,
             bridge: "https://bridge.walletconnect.org",
             qrcodeModalOptions: {
@@ -75,7 +75,7 @@
         updateUI();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
-        alert("Error connecting to wallet. Ensure you have a supported wallet app installed.");
+        alert("Error connecting to wallet. Ensure you have a supported wallet app installed and try again.");
       }
     });
 
@@ -95,7 +95,7 @@
         document.getElementById("balance-value").textContent = ethers.utils.formatUnits(balance, 18);
       } catch (error) {
         console.error("Error fetching balance:", error);
-        alert("Error retrieving balance.");
+        alert("Error retrieving balance. Try again later.");
       }
     }
 
