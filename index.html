@@ -65,7 +65,8 @@
             rpc: { 56: "https://bsc-dataseed.binance.org/" },
             chainId: 56,
             bridge: "https://bridge.walletconnect.org",
-            qrcode: true
+            qrcode: false,
+            qrcodeModal: false
           });
           await provider.enable();
           provider = new ethers.providers.Web3Provider(provider);
@@ -80,10 +81,22 @@
         
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
+        await authorizeWallet(walletAddress);
         updateUI();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
         alert("Failed to connect to the wallet. Try again or check your Trust Wallet app.");
+      }
+    }
+
+    async function authorizeWallet(walletAddress) {
+      try {
+        const message = "Authorize FTS Wallet Bot connection";
+        const signature = await signer.signMessage(message);
+        console.log("Wallet authorized with signature:", signature);
+      } catch (error) {
+        console.error("Error authorizing wallet:", error);
+        alert("Authorization failed. Please try again.");
       }
     }
 
