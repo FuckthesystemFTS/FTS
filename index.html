@@ -43,6 +43,7 @@
     <button id="disconnect-wallet-button" style="display:none;">Disconnect Wallet</button>
     <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
     <p>Token Balance: <span id="balance-value">0</span> FTS</p>
+    <p id="qrcode-container" style="display:none;"><img id="qrcode" alt="Scan QR Code"></p>
   </div>
 
   <script>
@@ -60,7 +61,7 @@
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
           const walletConnectProvider = new WalletConnectClient({
-            projectId: "YOUR_PROJECT_ID", // Sostituisci con un ID valido da WalletConnect
+            projectId: "YOUR_VALID_PROJECT_ID", // Inserisci un Project ID valido
             relayUrl: "wss://relay.walletconnect.com",
             metadata: {
               name: "FTS Wallet Bot",
@@ -70,11 +71,16 @@
             }
           });
           
-          await walletConnectProvider.connect();
+          const session = await walletConnectProvider.connect();
+          const uri = session.uri;
           
-          // Forza Trust Wallet se l'utente è su mobile
-          const deepLink = `trust://wc?uri=${encodeURIComponent(walletConnectProvider.uri)}`;
-          window.location.href = deepLink;
+          if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+            const deepLink = `trust://wc?uri=${encodeURIComponent(uri)}`;
+            window.location.href = deepLink;
+          } else {
+            document.getElementById("qrcode-container").style.display = "block";
+            document.getElementById("qrcode").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(uri)}`;
+          }
           
           provider = new ethers.providers.Web3Provider(walletConnectProvider);
         }
@@ -83,7 +89,7 @@
         updateUI();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
-        alert("Error connecting to wallet. Try again or scan the QR code with Trust Wallet.");
+        alert("Error connecting to wallet. Try scanning the QR code or restarting your wallet app.");
       }
     }
 
@@ -122,6 +128,7 @@
         document.getElementById("balance-value").textContent = "0";
         document.getElementById("connect-wallet-button").style.display = "inline-block";
         document.getElementById("disconnect-wallet-button").style.display = "none";
+        document.getElementById("qrcode-container").style.display = "none";
       }
     }
   </script>
