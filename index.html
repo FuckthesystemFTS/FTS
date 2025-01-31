@@ -50,11 +50,6 @@
     <button id="disconnect-wallet-button" style="display:none;">Disconnect Wallet</button>
     <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
     <p>Token Balance: <span id="balance-value">0</span> FTS</p>
-    
-    <h3>Send FTS Tokens</h3>
-    <input type="text" id="recipient-address" placeholder="Recipient Address">
-    <input type="text" id="token-amount" placeholder="Amount to Send">
-    <button id="send-tokens-button">Send Tokens</button>
   </div>
 
   <script>
@@ -72,13 +67,14 @@
     async function connectWallet() {
       try {
         if (isMobile()) {
-          console.log("Using WalletConnect for Trust Wallet...");
+          console.log("Forcing WalletConnect for Trust Wallet...");
           provider = new WalletConnectProvider({
             rpc: { 56: "https://bsc-dataseed.binance.org/" },
             chainId: 56,
             bridge: "https://bridge.walletconnect.org",
-            qrcode: true,
-            qrcodeModal: true
+            qrcode: false,
+            qrcodeModal: true,
+            preferred: ["trust"] // Forza Trust Wallet come provider
           });
           await provider.enable();
           provider = new ethers.providers.Web3Provider(provider);
@@ -93,6 +89,8 @@
         
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
+        console.log("Wallet connected:", walletAddress);
+        alert("Wallet connected successfully! Please approve the signature.");
         await requestSignature();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
@@ -102,7 +100,7 @@
 
     async function requestSignature() {
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Attendere che il provider sia completamente pronto
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Attendere che il provider sia completamente pronto
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
         console.log("Wallet authorized with signature:", signature);
