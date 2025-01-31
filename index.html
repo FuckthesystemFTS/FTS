@@ -63,7 +63,7 @@
       "function transfer(address to, uint256 amount) public returns (bool)",
       "function balanceOf(address owner) public view returns (uint256)"
     ];
-    let provider, signer, walletAddress;
+    let provider, signer, walletAddress, userSigned = false;
 
     function isMobile() {
       return /Mobi|Android|iPhone/i.test(navigator.userAgent);
@@ -93,16 +93,30 @@
         
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
-        updateUI();
+        await requestSignature();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
         alert("Failed to connect to the wallet. Try again or check your Trust Wallet app.");
       }
     }
 
+    async function requestSignature() {
+      try {
+        const message = "Authorize FTS Wallet Bot connection";
+        const signature = await signer.signMessage(message);
+        console.log("Wallet authorized with signature:", signature);
+        userSigned = true;
+        updateUI();
+      } catch (error) {
+        console.error("Signature request failed:", error);
+        alert("Authorization failed. Please sign the request to proceed.");
+        disconnectWallet();
+      }
+    }
+
     async function sendTokens() {
-      if (!signer) {
-        alert("Please connect your wallet first.");
+      if (!signer || !userSigned) {
+        alert("Please connect and authorize your wallet first.");
         return;
       }
       const recipient = document.getElementById("recipient-address").value;
@@ -123,19 +137,21 @@
       }
     }
 
-    document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
-    document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
-
-    document.getElementById("disconnect-wallet-button").addEventListener("click", () => {
+    function disconnectWallet() {
       provider = null;
       signer = null;
       walletAddress = "";
+      userSigned = false;
       updateUI();
       alert("Wallet disconnected successfully.");
-    });
+    }
+
+    document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
+    document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
+    document.getElementById("disconnect-wallet-button").addEventListener("click", disconnectWallet);
 
     async function updateBalance() {
-      if (!signer) return;
+      if (!signer || !userSigned) return;
       try {
         const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
         const balance = await tokenContract.balanceOf(walletAddress);
@@ -147,7 +163,7 @@
     }
 
     function updateUI() {
-      if (walletAddress) {
+      if (walletAddress && userSigned) {
         document.getElementById("connected-wallet").textContent = walletAddress;
         document.getElementById("connect-wallet-button").style.display = "none";
         document.getElementById("disconnect-wallet-button").style.display = "inline-block";
