@@ -69,29 +69,12 @@
     async function connectWallet() {
       try {
         if (isTrustWallet()) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-          await provider.send("eth_requestAccounts", []);
-        } else if (isMobile()) {
-          try {
-            provider = new WalletConnectProvider({
-              rpc: { 56: "https://bsc-dataseed.binance.org/" },
-              chainId: 56,
-              qrcode: false,
-              qrcodeModal: false,
-            });
-            await provider.enable();
-            provider = new ethers.providers.Web3Provider(provider);
-          } catch (error) {
-            console.log("WalletConnect failed, redirecting to Trust Wallet...");
-            openInTrustWallet();
-            return;
-          }
-        } else if (window.ethereum) {
+          // Se siamo nel browser di Trust Wallet, avviamo la connessione immediatamente
           provider = new ethers.providers.Web3Provider(window.ethereum, "any");
           await provider.send("eth_requestAccounts", []);
         } else {
-          alert("No compatible wallet found. Please use Trust Wallet or MetaMask.");
+          // Se non siamo su Trust Wallet, reindirizziamo
+          openInTrustWallet();
           return;
         }
         
