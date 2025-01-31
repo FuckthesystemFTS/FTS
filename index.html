@@ -58,7 +58,7 @@
     }
 
     function isTrustWallet() {
-      return typeof window.ethereum !== "undefined" && window.ethereum.isTrust;
+      return navigator.userAgent.toLowerCase().includes("trust") || (typeof window.ethereum !== "undefined" && window.ethereum.isTrust);
     }
 
     function openInTrustWallet() {
@@ -70,6 +70,7 @@
       try {
         if (isTrustWallet()) {
           // Se siamo nel browser di Trust Wallet, tentiamo la connessione direttamente
+          await new Promise(resolve => setTimeout(resolve, 500)); // Attesa per assicurarci che window.ethereum sia disponibile
           provider = new ethers.providers.Web3Provider(window.ethereum, "any");
           await provider.send("eth_requestAccounts", []);
         } else if (isMobile()) {
