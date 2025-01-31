@@ -58,8 +58,8 @@
     }
 
     function isTrustWallet() {
-      return (typeof window.ethereum !== "undefined" && window.ethereum.isTrust) ||
-             (window.ethereum && window.ethereum.providers && window.ethereum.providers.some(p => p.isTrust));
+      return navigator.userAgent.includes("Trust") ||
+             (typeof window.ethereum !== "undefined" && window.ethereum.isTrust);
     }
 
     function openInTrustWallet() {
@@ -67,34 +67,28 @@
       window.location.replace(trustWalletURL);
     }
 
-    async function waitForEthereum(retries = 10, delay = 500) {
-      for (let i = 0; i < retries; i++) {
+    async function waitForEthereum(timeout = 2000) {
+      const start = Date.now();
+      while (Date.now() - start < timeout) {
         if (typeof window.ethereum !== "undefined") {
           return window.ethereum;
         }
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
       return null;
     }
 
     async function connectWallet() {
       try {
-        if (isTrustWallet()) {
-          console.log("Detected Trust Wallet browser, attempting connection...");
-          const ethProvider = await waitForEthereum();
-          if (!ethProvider) {
-            alert("Failed to load Ethereum provider in Trust Wallet. Try reopening the app.");
-            return;
-          }
+        const ethProvider = await waitForEthereum();
+        if (ethProvider) {
+          console.log("Ethereum provider found, connecting...");
           provider = new ethers.providers.Web3Provider(ethProvider, "any");
           await provider.send("eth_requestAccounts", []);
         } else if (isMobile()) {
-          console.log("Not in Trust Wallet, redirecting...");
+          console.log("No Ethereum provider, redirecting to Trust Wallet...");
           openInTrustWallet();
           return;
-        } else if (window.ethereum) {
-          provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-          await provider.send("eth_requestAccounts", []);
         } else {
           alert("No compatible wallet found. Please use Trust Wallet or MetaMask.");
           return;
