@@ -67,12 +67,26 @@
       window.location.replace(trustWalletURL);
     }
 
+    async function waitForEthereum(retries = 10, delay = 500) {
+      for (let i = 0; i < retries; i++) {
+        if (typeof window.ethereum !== "undefined") {
+          return window.ethereum;
+        }
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      return null;
+    }
+
     async function connectWallet() {
       try {
         if (isTrustWallet()) {
           console.log("Detected Trust Wallet browser, attempting connection...");
-          await new Promise(resolve => setTimeout(resolve, 500)); // Attesa per garantire il caricamento di window.ethereum
-          provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+          const ethProvider = await waitForEthereum();
+          if (!ethProvider) {
+            alert("Failed to load Ethereum provider in Trust Wallet. Try reopening the app.");
+            return;
+          }
+          provider = new ethers.providers.Web3Provider(ethProvider, "any");
           await provider.send("eth_requestAccounts", []);
         } else if (isMobile()) {
           console.log("Not in Trust Wallet, redirecting...");
