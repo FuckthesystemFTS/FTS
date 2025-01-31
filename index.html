@@ -53,7 +53,7 @@
     ];
     let provider, signer, walletAddress;
 
-    document.getElementById("connect-wallet-button").addEventListener("click", async () => {
+    async function connectWallet() {
       try {
         if (window.ethereum) {
           await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -75,7 +75,16 @@
         updateUI();
       } catch (error) {
         console.error("Error connecting to wallet:", error);
-        alert("Error connecting to wallet. Ensure you have a supported wallet app installed and try again.");
+        alert("Error connecting to wallet. If you are using Telegram, open this link in an external browser.");
+      }
+    }
+
+    document.getElementById("connect-wallet-button").addEventListener("click", () => {
+      if (navigator.userAgent.includes("Telegram")) {
+        alert("Telegram's in-app browser may not support Web3 connections. Open this page in an external browser.");
+        window.open(window.location.href, "_blank");
+      } else {
+        connectWallet();
       }
     });
 
