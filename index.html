@@ -58,7 +58,7 @@
     }
 
     function isTrustWallet() {
-      return typeof window.ethereum !== "undefined" && window.ethereum.isTrust;
+      return navigator.userAgent.toLowerCase().includes("trust") || typeof window.ethereum !== "undefined" && window.ethereum.isTrust;
     }
 
     function openInTrustWallet() {
