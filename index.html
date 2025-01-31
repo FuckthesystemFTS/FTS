@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Wallet Connection</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@2.0.0/dist/index.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -73,8 +73,13 @@
           provider = new ethers.providers.Web3Provider(window.ethereum);
           await provider.send("eth_requestAccounts", []);
         } else {
-          alert("No Ethereum provider found. Please use Trust Wallet or MetaMask.");
-          return;
+          provider = new WalletConnectProvider({
+            rpc: { 56: "https://bsc-dataseed.binance.org/" },
+            chainId: 56,
+            qrcode: true
+          });
+          await provider.enable();
+          provider = new ethers.providers.Web3Provider(provider);
         }
         
         signer = provider.getSigner();
