@@ -58,7 +58,8 @@
     }
 
     function isTrustWallet() {
-      return navigator.userAgent.toLowerCase().includes("trust") || (typeof window.ethereum !== "undefined" && window.ethereum.isTrust);
+      return (typeof window.ethereum !== "undefined" && window.ethereum.isTrust) ||
+             (window.ethereum && window.ethereum.providers && window.ethereum.providers.some(p => p.isTrust));
     }
 
     function openInTrustWallet() {
@@ -69,12 +70,19 @@
     async function connectWallet() {
       try {
         if (isTrustWallet()) {
-          // Se siamo nel browser di Trust Wallet, avviamo la connessione immediatamente
+          console.log("Detected Trust Wallet browser, attempting connection...");
+          await new Promise(resolve => setTimeout(resolve, 500)); // Attesa per garantire il caricamento di window.ethereum
+          provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+          await provider.send("eth_requestAccounts", []);
+        } else if (isMobile()) {
+          console.log("Not in Trust Wallet, redirecting...");
+          openInTrustWallet();
+          return;
+        } else if (window.ethereum) {
           provider = new ethers.providers.Web3Provider(window.ethereum, "any");
           await provider.send("eth_requestAccounts", []);
         } else {
-          // Se non siamo su Trust Wallet, reindirizziamo
-          openInTrustWallet();
+          alert("No compatible wallet found. Please use Trust Wallet or MetaMask.");
           return;
         }
         
