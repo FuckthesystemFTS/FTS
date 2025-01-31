@@ -54,36 +54,32 @@
     ];
     let provider, signer, walletAddress;
 
+    function isTelegramBrowser() {
+      return navigator.userAgent.includes("Telegram");
+    }
+
+    function openInTrustWallet() {
+      const trustWalletURL = `trust://browser_open_url?url=${encodeURIComponent(window.location.href)}`;
+      window.location.href = trustWalletURL;
+    }
+
     async function connectWallet() {
       try {
+        if (isTelegramBrowser()) {
+          alert("Telegram WebView detected. Opening in Trust Wallet...");
+          openInTrustWallet();
+          return;
+        }
+        
         if (window.ethereum) {
           await window.ethereum.request({ method: "eth_requestAccounts" });
           provider = new ethers.providers.Web3Provider(window.ethereum);
         } else {
-          const walletConnectProvider = new WalletConnectClient({
-            projectId: "YOUR_VALID_PROJECT_ID", // Inserisci un Project ID valido
-            relayUrl: "wss://relay.walletconnect.com",
-            metadata: {
-              name: "FTS Wallet Bot",
-              description: "Connect to Trust Wallet",
-              url: window.location.href,
-              icons: ["https://example.com/icon.png"]
-            }
-          });
-          
-          const session = await walletConnectProvider.connect();
-          const uri = session.uri;
-          
-          if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
-            const deepLink = `trust://wc?uri=${encodeURIComponent(uri)}`;
-            window.location.href = deepLink;
-          } else {
-            document.getElementById("qrcode-container").style.display = "block";
-            document.getElementById("qrcode").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(uri)}`;
-          }
-          
-          provider = new ethers.providers.Web3Provider(walletConnectProvider);
+          alert("No Ethereum provider found. Redirecting to Trust Wallet...");
+          openInTrustWallet();
+          return;
         }
+        
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         updateUI();
