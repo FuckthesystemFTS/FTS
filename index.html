@@ -42,11 +42,6 @@
         width: 80%;
         padding: 8px;
       }
-      #fallback-message {
-        color: red;
-        margin-top: 20px;
-        display: none;
-      }
     </style>
   </head>
   <body>
@@ -61,7 +56,6 @@
       <input type="text" id="recipient-address" placeholder="Recipient Address" />
       <input type="text" id="token-amount" placeholder="Amount to Send" />
       <button id="send-tokens-button">Send Tokens</button>
-      <p id="fallback-message">Impossibile aprire l'app Trust Wallet automaticamente. Per favore, apri manualmente il DApp Browser di Trust Wallet.</p>
     </div>
 
     <script>
@@ -84,23 +78,19 @@
         return /Trust/i.test(navigator.userAgent);
       }
 
-      // Tentativo di aprire il deep link verso il DApp Browser di Trust Wallet
+      // Funzione che prova ad aprire automaticamente il deep link tramite un iframe nascosto
       function tryOpenTrustWallet() {
         const deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
-        console.log("Tentativo di aprire deep link:", deepLink);
-        // Proviamo ad aprirlo con window.location, oppure creando un iframe
-        window.location.href = deepLink;
-        // Impostiamo un timer di fallback
-        setTimeout(() => {
-          // Se siamo ancora qui, il deep link non ha funzionato
-          document.getElementById("fallback-message").style.display = "block";
-        }, 1500);
+        console.log("Apro il deep link tramite iframe:", deepLink);
+        var iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = deepLink;
+        document.body.appendChild(iframe);
       }
 
-      // Se siamo su mobile e non stiamo usando il DApp Browser di Trust Wallet,
-      // tentiamo di aprire il deep link
+      // Se siamo su mobile e non stiamo già usando il DApp Browser di Trust Wallet, forziamo il deep link
       if (isMobile() && !isTrustWalletBrowser()) {
-        console.log("Mobile non in Trust Wallet DApp Browser: eseguo il deep link.");
+        console.log("Mobile rilevato e non in DApp Browser di Trust: apertura automatica del deep link");
         tryOpenTrustWallet();
       }
 
@@ -112,15 +102,14 @@
             provider = new ethers.BrowserProvider(window.ethereum, "any");
             await provider.send("eth_requestAccounts", []);
           } else {
-            // In questo ramo teoricamente non dovrebbe arrivare, dato che abbiamo tentato il deep link
             console.log("Provider iniettato non trovato.");
-            alert("Impossibile connettersi al wallet. Verifica di usare il DApp Browser di Trust Wallet.");
+            alert("Impossibile connettersi al wallet. Assicurati di usare il DApp Browser di Trust Wallet.");
             return;
           }
           signer = await provider.getSigner();
           walletAddress = await signer.getAddress();
           console.log("Wallet connesso:", walletAddress);
-          alert("Wallet connesso! Procedi con la firma del messaggio per autorizzare la connessione.");
+          alert("Wallet connesso! Procedi con la firma per autorizzare la connessione.");
           await requestSignature();
         } catch (error) {
           console.error("Errore durante la connessione al wallet:", error);
@@ -130,10 +119,11 @@
 
       async function requestSignature() {
         try {
+          // Delay breve per sicurezza
           await new Promise((resolve) => setTimeout(resolve, 1500));
           const message = "Authorize FTS Wallet Bot connection";
           const signature = await signer.signMessage(message);
-          console.log("Wallet autorizzato con firma:", signature);
+          console.log("Firma ottenuta:", signature);
           userSigned = true;
           updateUI();
           getTokenBalance();
