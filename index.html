@@ -61,7 +61,7 @@
     </div>
 
     <script>
-      // Impostazioni del token
+      // CONFIGURAZIONE DEL TOKEN
       const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
       const TOKEN_ABI = [
         "function transfer(address to, uint256 amount) public returns (bool)",
@@ -75,18 +75,28 @@
         return /Mobi|Android|iPhone/i.test(navigator.userAgent);
       }
 
+      // Funzione per rilevare se l'utente sta utilizzando il DApp Browser di Trust Wallet
+      function isTrustWalletBrowser() {
+        return /Trust/i.test(navigator.userAgent);
+      }
+
       async function connectWallet() {
         try {
-          // Se esiste un provider iniettato (es. MetaMask o DApp Browser di Trust Wallet), lo utilizziamo
-          if (window.ethereum) {
+          // Se siamo su desktop oppure (su mobile) l'utente sta utilizzando il DApp Browser di Trust Wallet (quindi window.ethereum è presente)
+          if (window.ethereum && (!isMobile() || isTrustWalletBrowser())) {
             console.log("Utilizzo provider iniettato...");
             provider = new ethers.BrowserProvider(window.ethereum, "any");
             await provider.send("eth_requestAccounts", []);
           }
-          // Altrimenti, se siamo su mobile (e non disponiamo di window.ethereum) usiamo WalletConnect v2
-          else if (isMobile()) {
-            console.log("Utilizzo WalletConnect v2 su mobile...");
-            provider = new WalletConnectProvider({
+          // Altrimenti (su mobile e non nel DApp Browser) forziamo l'utilizzo di WalletConnect v2
+          else {
+            console.log("Utilizzo WalletConnect v2 su mobile (o ambiente senza window.ethereum)...");
+            // Nel contesto UMD WalletConnectProvider è disponibile come proprietà globale
+            const wcProvider = window.WalletConnectProvider;
+            if (!wcProvider) {
+              throw new Error("WalletConnectProvider non disponibile");
+            }
+            provider = new wcProvider({
               projectId: "d2dbf72ab740e1656b27eefd66a94298", // Il tuo project id
               chains: [56],
               rpcMap: {
@@ -94,13 +104,10 @@
               },
               showQrModal: true
             });
-            // Con WalletConnect v2 il metodo corretto è connect()
+            // In v2 il metodo corretto è connect() (non enable())
             await provider.connect();
             // Wrappiamo il provider per renderlo compatibile con Ethers.js v6
             provider = new ethers.BrowserProvider(provider, "any");
-          } else {
-            alert("Nessun wallet compatibile trovato. Utilizza Trust Wallet o MetaMask.");
-            return;
           }
 
           signer = await provider.getSigner();
@@ -123,7 +130,7 @@
           console.log("Wallet autorizzato con firma:", signature);
           userSigned = true;
           updateUI();
-          getTokenBalance(); // Aggiorna il saldo subito dopo il collegamento
+          getTokenBalance();
         } catch (error) {
           console.error("Richiesta di firma fallita:", error);
           alert("Autorizzazione fallita. Firma la richiesta per procedere.");
@@ -136,7 +143,6 @@
         try {
           const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
           const balance = await tokenContract.balanceOf(walletAddress);
-          // Formatta il saldo in unità decimali (18)
           document.getElementById("balance-value").textContent = ethers.formatUnits(balance, 18);
         } catch (error) {
           console.error("Errore nel recupero del saldo token:", error);
@@ -159,7 +165,7 @@
           const tx = await tokenContract.transfer(recipient, ethers.parseUnits(amount, 18));
           await tx.wait();
           alert("Transazione completata con successo!");
-          getTokenBalance(); // Aggiorna il saldo dopo il trasferimento
+          getTokenBalance();
         } catch (error) {
           console.error("Errore durante l'invio dei token:", error);
           alert("Transazione fallita.");
@@ -167,7 +173,6 @@
       }
 
       function disconnectWallet() {
-        // Semplice reset delle variabili
         walletAddress = null;
         userSigned = false;
         provider = null;
