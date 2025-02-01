@@ -6,8 +6,6 @@
     <title>FTS Wallet Bot - Wallet Connection</title>
     <!-- Ethers.js v6 -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-    <!-- WalletConnect Provider v2 (UMD) -->
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@2.0.0/dist/umd/index.min.js"></script>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -70,44 +68,38 @@
 
       let provider, signer, walletAddress, userSigned = false;
 
-      // Funzione per rilevare se il dispositivo è mobile
+      // Rileva se il dispositivo è mobile
       function isMobile() {
         return /Mobi|Android|iPhone/i.test(navigator.userAgent);
       }
 
-      // Funzione per rilevare se l'utente sta utilizzando il DApp Browser di Trust Wallet
+      // Rileva se l'utente sta utilizzando il DApp Browser di Trust Wallet
+      // (di solito l'user agent contiene "Trust")
       function isTrustWalletBrowser() {
         return /Trust/i.test(navigator.userAgent);
       }
 
+      // Se siamo su mobile e non siamo già nel DApp Browser di Trust Wallet, 
+      // forziamo il reindirizzamento al deep link del DApp Browser di Trust Wallet.
+      // Il deep link "trust://browser_open?url=..." aprirà la pagina nell'app, se installata.
+      if (isMobile() && !isTrustWalletBrowser()) {
+        console.log("Non siamo nel DApp Browser di Trust Wallet; reindirizzo tramite deep link...");
+        window.location.href = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
+      }
+
       async function connectWallet() {
         try {
-          // Se siamo su desktop oppure (su mobile) l'utente sta utilizzando il DApp Browser di Trust Wallet (quindi window.ethereum è presente)
-          if (window.ethereum && (!isMobile() || isTrustWalletBrowser())) {
+          // Se esiste un provider iniettato (ad es. MetaMask o Trust Wallet DApp Browser), lo usiamo
+          if (window.ethereum) {
             console.log("Utilizzo provider iniettato...");
             provider = new ethers.BrowserProvider(window.ethereum, "any");
             await provider.send("eth_requestAccounts", []);
-          }
-          // Altrimenti (su mobile e non nel DApp Browser) forziamo l'utilizzo di WalletConnect v2
-          else {
-            console.log("Utilizzo WalletConnect v2 su mobile (o ambiente senza window.ethereum)...");
-            // Nel contesto UMD WalletConnectProvider è disponibile come proprietà globale
-            const wcProvider = window.WalletConnectProvider;
-            if (!wcProvider) {
-              throw new Error("WalletConnectProvider non disponibile");
-            }
-            provider = new wcProvider({
-              projectId: "d2dbf72ab740e1656b27eefd66a94298", // Il tuo project id
-              chains: [56],
-              rpcMap: {
-                56: "https://bsc-dataseed.binance.org/"
-              },
-              showQrModal: true
-            });
-            // In v2 il metodo corretto è connect() (non enable())
-            await provider.connect();
-            // Wrappiamo il provider per renderlo compatibile con Ethers.js v6
-            provider = new ethers.BrowserProvider(provider, "any");
+          } else {
+            // Questo ramo teoricamente non dovrebbe essere raggiunto su mobile,
+            // perché abbiamo già reindirizzato all'apertura tramite Trust Wallet.
+            console.log("Provider iniettato non trovato; impossibile connettersi.");
+            alert("Impossibile connettersi al wallet. Verifica di usare il DApp Browser di Trust Wallet.");
+            return;
           }
 
           signer = await provider.getSigner();
