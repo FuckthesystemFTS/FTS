@@ -10,10 +10,12 @@
       body {
         font-family: Arial, sans-serif;
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
         background: #f4f4f4;
+        margin: 0;
       }
       #app {
         text-align: center;
@@ -21,6 +23,8 @@
         background: white;
         border-radius: 10px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        width: 90%;
       }
       button,
       input {
@@ -31,6 +35,7 @@
         background: #007bff;
         color: white;
         cursor: pointer;
+        font-size: 16px;
       }
       button:hover {
         background: #0056b3;
@@ -40,7 +45,14 @@
         color: black;
         border: 1px solid #ccc;
         width: 80%;
-        padding: 8px;
+      }
+      #fallback-container {
+        margin-top: 20px;
+        display: none;
+      }
+      #fallback-container p {
+        color: red;
+        margin-bottom: 10px;
       }
     </style>
   </head>
@@ -51,11 +63,17 @@
       <button id="disconnect-wallet-button" style="display:none;">Disconnect Wallet</button>
       <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
       <p>Token Balance: <span id="balance-value">0</span> FTS</p>
-
+      
       <h3>Send FTS Tokens</h3>
       <input type="text" id="recipient-address" placeholder="Recipient Address" />
       <input type="text" id="token-amount" placeholder="Amount to Send" />
       <button id="send-tokens-button">Send Tokens</button>
+
+      <!-- Fallback per l'apertura del DApp Browser di Trust Wallet -->
+      <div id="fallback-container">
+        <p>Non sono riuscito ad aprire automaticamente Trust Wallet.</p>
+        <button id="open-trustwallet-button">Apri Trust Wallet</button>
+      </div>
     </div>
 
     <script>
@@ -68,32 +86,46 @@
 
       let provider, signer, walletAddress, userSigned = false;
 
-      // Funzione per rilevare se il dispositivo è mobile
+      // Rileva se il dispositivo è mobile
       function isMobile() {
         return /Mobi|Android|iPhone/i.test(navigator.userAgent);
       }
 
-      // Funzione per rilevare se l'utente sta utilizzando il DApp Browser di Trust Wallet
+      // Rileva se l'utente sta utilizzando il DApp Browser di Trust Wallet
       function isTrustWalletBrowser() {
         return /Trust/i.test(navigator.userAgent);
       }
 
-      // Funzione che prova ad aprire automaticamente il deep link tramite un iframe nascosto
-      function tryOpenTrustWallet() {
+      // Funzione per aprire il deep link verso Trust Wallet
+      function openTrustWallet() {
         const deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
-        console.log("Apro il deep link tramite iframe:", deepLink);
-        var iframe = document.createElement("iframe");
+        console.log("Apro Trust Wallet tramite deep link:", deepLink);
+        window.location.href = deepLink;
+      }
+
+      // Tenta l'apertura automatica tramite un iframe nascosto
+      function tryAutoOpenTrustWallet() {
+        const deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
+        console.log("Tentativo automatico con iframe:", deepLink);
+        const iframe = document.createElement("iframe");
         iframe.style.display = "none";
         iframe.src = deepLink;
         document.body.appendChild(iframe);
       }
 
-      // Se siamo su mobile e non stiamo già usando il DApp Browser di Trust Wallet, forziamo il deep link
+      // Se siamo su mobile e non nel DApp Browser di Trust Wallet, tenta l'apertura automatica.
       if (isMobile() && !isTrustWalletBrowser()) {
-        console.log("Mobile rilevato e non in DApp Browser di Trust: apertura automatica del deep link");
-        tryOpenTrustWallet();
+        tryAutoOpenTrustWallet();
+        // Dopo 1.5 secondi, se l'utente non è stato portato via, mostra il fallback con il pulsante.
+        setTimeout(() => {
+          document.getElementById("fallback-container").style.display = "block";
+        }, 1500);
       }
 
+      // Aggiungiamo il listener per il pulsante di fallback
+      document.getElementById("open-trustwallet-button").addEventListener("click", openTrustWallet);
+
+      // Funzione per connettere il wallet
       async function connectWallet() {
         try {
           // Se esiste un provider iniettato (es. MetaMask o Trust Wallet DApp Browser), lo usiamo
@@ -119,7 +151,6 @@
 
       async function requestSignature() {
         try {
-          // Delay breve per sicurezza
           await new Promise((resolve) => setTimeout(resolve, 1500));
           const message = "Authorize FTS Wallet Bot connection";
           const signature = await signer.signMessage(message);
