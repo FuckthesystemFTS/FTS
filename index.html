@@ -91,12 +91,11 @@
               chains: [56],
               rpcMap: {
                 56: "https://bsc-dataseed.binance.org/"
-                // Se in futuro volessi supportare Ethereum, potresti aggiungere:
-                // 1: `https://mainnet.infura.io/v3/fb2d04ac82034fda8cfe538428902d1d`
               },
               showQrModal: true
             });
-            await provider.enable();
+            // Con WalletConnect v2 si usa connect() anziché enable()
+            await provider.connect();
             provider = new ethers.BrowserProvider(provider, "any");
           } else {
             alert("Nessun wallet compatibile trovato. Utilizza Trust Wallet o MetaMask.");
