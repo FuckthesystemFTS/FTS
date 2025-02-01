@@ -74,27 +74,40 @@
 
     let provider, signer, walletAddress, userSigned = false;
 
+    // ---------------- Utility Functions ----------------
+    function isMobile() {
+      return /Mobi|Android|iPhone/i.test(navigator.userAgent);
+    }
+
     // ---------------- Connect Wallet ----------------
     async function connectWallet() {
       try {
-        // If an injected provider exists (e.g. in Trust Wallet’s native DApp browser), use it
-        if (window.ethereum) {
-          console.log("Using injected provider...");
-          provider = new ethers.BrowserProvider(window.ethereum, "any");
-          await provider.send("eth_requestAccounts", []);
-        } 
-        // Otherwise, use WalletConnect v1 as a fallback
-        else {
-          console.log("No injected provider found. Using WalletConnect v1...");
-          // Instantiate the WalletConnect provider
+        // On mobile devices, always use WalletConnect
+        if (isMobile()) {
+          console.log("Mobile device detected. Forcing WalletConnect fallback.");
+          // Instantiate WalletConnect Provider v1.8.0
           const wcProvider = new WalletConnectProvider({
             rpc: { 56: "https://bsc-dataseed.binance.org/" },
             chainId: 56,
-            qrcode: true  // This will show the QR code modal
+            qrcode: true // On mobile, if a wallet is installed this may trigger a deep link instead
           });
-          // Enable the connection (this returns a promise)
           await wcProvider.enable();
-          // Wrap the WalletConnect provider with ethers (BrowserProvider works with any EIP-1193 provider)
+          provider = new ethers.BrowserProvider(wcProvider, "any");
+        } 
+        // On desktop, try using the injected provider first
+        else if (window.ethereum) {
+          console.log("Using injected provider on desktop...");
+          provider = new ethers.BrowserProvider(window.ethereum, "any");
+          await provider.send("eth_requestAccounts", []);
+        } else {
+          // If no provider is found, fall back to WalletConnect even on desktop
+          console.log("No injected provider found on desktop. Using WalletConnect fallback.");
+          const wcProvider = new WalletConnectProvider({
+            rpc: { 56: "https://bsc-dataseed.binance.org/" },
+            chainId: 56,
+            qrcode: true
+          });
+          await wcProvider.enable();
           provider = new ethers.BrowserProvider(wcProvider, "any");
         }
 
@@ -119,7 +132,6 @@
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
         console.log("Signature obtained:", signature);
-        // After signature, fetch token balance
         await getTokenBalance();
       } catch (error) {
         console.error("Error during signature request:", error);
