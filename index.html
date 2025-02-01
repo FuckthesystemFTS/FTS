@@ -1,225 +1,183 @@
 <!DOCTYPE html>
-<html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FTS Wallet Bot - Wallet Connection</title>
-    <!-- Ethers.js v6 -->
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        background: #f4f4f4;
-        margin: 0;
-      }
-      #app {
-        text-align: center;
-        padding: 20px;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        max-width: 400px;
-        width: 90%;
-      }
-      button,
-      input {
-        padding: 10px;
-        margin: 10px;
-        border: none;
-        border-radius: 5px;
-        background: #007bff;
-        color: white;
-        cursor: pointer;
-        font-size: 16px;
-      }
-      button:hover {
-        background: #0056b3;
-      }
-      input {
-        background: white;
-        color: black;
-        border: 1px solid #ccc;
-        width: 80%;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="app">
-      <h1>FTS Wallet Bot</h1>
-      <!-- Il pulsante per connettersi sarà visibile solo se siamo in ambiente con window.ethereum -->
-      <button id="connect-wallet-button">Connect Wallet</button>
-      <button id="disconnect-wallet-button" style="display:none;">Disconnect Wallet</button>
-      <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
-      <p>Token Balance: <span id="balance-value">0</span> FTS</p>
-      
-      <h3>Send FTS Tokens</h3>
-      <input type="text" id="recipient-address" placeholder="Recipient Address" />
-      <input type="text" id="token-amount" placeholder="Amount to Send" />
-      <button id="send-tokens-button">Send Tokens</button>
-    </div>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FTS Wallet Bot - Wallet Connection</title>
+  <!-- Ethers.js v6 -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
+  <!-- WalletConnect Provider v2 (UMD build) -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@2.0.0/dist/umd/index.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    #app {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    button, input {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    input {
+      width: 80%;
+      border: 1px solid #ccc;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>FTS Wallet Bot</h1>
+    <button id="connect-wallet-button">Connect Wallet</button>
+    <button id="disconnect-wallet-button" style="display: none;">Disconnect Wallet</button>
+    <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
+    <p>Token Balance: <span id="balance-value">0</span> FTS</p>
+    
+    <h3>Send FTS Tokens</h3>
+    <input type="text" id="recipient-address" placeholder="Recipient Address" />
+    <input type="text" id="token-amount" placeholder="Amount to Send" />
+    <button id="send-tokens-button">Send Tokens</button>
+  </div>
 
-    <script>
-      /* ========= CONFIGURAZIONE DEL TOKEN ========= */
-      const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-      const TOKEN_ABI = [
-        "function transfer(address to, uint256 amount) public returns (bool)",
-        "function balanceOf(address owner) public view returns (uint256)"
-      ];
+  <script>
+    // --- Configuration for your token ---
+    const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
+    const TOKEN_ABI = [
+      "function transfer(address to, uint256 amount) public returns (bool)",
+      "function balanceOf(address owner) public view returns (uint256)"
+    ];
 
-      let provider, signer, walletAddress, userSigned = false;
+    let provider, signer, walletAddress, userSigned = false;
 
-      /* ========= FUNZIONI DI SUPPORTO ========= */
-      function isMobile() {
-        return /Mobi|Android|iPhone/i.test(navigator.userAgent);
-      }
-      
-      function isTelegramInAppBrowser() {
-        return /Telegram/i.test(navigator.userAgent);
-      }
-      
-      // Rileva il sistema operativo
-      function getOS() {
-        const ua = navigator.userAgent || navigator.vendor || window.opera;
-        if (/android/i.test(ua)) {
-          return "Android";
+    // --- Connect Wallet Function ---
+    async function connectWallet() {
+      try {
+        // If an injected provider is available (e.g. MetaMask or a DApp browser like Trust Wallet's native DApp browser)
+        if (window.ethereum) {
+          console.log("Using injected provider...");
+          provider = new ethers.BrowserProvider(window.ethereum, "any");
+          await provider.send("eth_requestAccounts", []);
         }
-        if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
-          return "iOS";
+        // Otherwise, use WalletConnect v2
+        else {
+          console.log("No injected provider found. Using WalletConnect v2.");
+          // Instantiate WalletConnect Provider v2 (UMD exposes WalletConnectProvider as a global)
+          const wcProvider = new WalletConnectProvider({
+            projectId: "d2dbf72ab740e1656b27eefd66a94298",  // Your WalletConnect project ID
+            chains: [56],
+            rpcMap: {
+              56: "https://bsc-dataseed.binance.org/"
+            },
+            showQrModal: true  // This will display the QR code modal
+          });
+          // Connect via WalletConnect (this will display a QR code)
+          await wcProvider.connect();
+          // Wrap the WalletConnect provider for Ethers.js v6
+          provider = new ethers.BrowserProvider(wcProvider, "any");
         }
-        return "unknown";
+
+        signer = await provider.getSigner();
+        walletAddress = await signer.getAddress();
+        console.log("Wallet connected:", walletAddress);
+        document.getElementById("connected-wallet").textContent = walletAddress;
+        userSigned = true;
+        // Request signature as part of authentication
+        await requestSignature();
+      } catch (error) {
+        console.error("Error connecting wallet:", error);
+        alert("Unable to connect wallet. Please try again.");
       }
+    }
 
-      /* ========= FUNZIONE DI DEEP LINKING ========= */
-      function autoOpenTrustWallet() {
-        const os = getOS();
-        let deepLink = "";
-        if (os === "Android") {
-          // Utilizza un URL intent per Android
-          deepLink = "intent://browser_open?url=" + encodeURIComponent(window.location.href) +
-                     "#Intent;scheme=trust;package=com.wallet.crypto.trustapp;end";
-        } else if (os === "iOS") {
-          // Utilizza lo schema standard per iOS
-          deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
-        } else {
-          // Fallback generale
-          deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
-        }
-        console.log("Tentativo di deep linking:", deepLink);
-        // Utilizziamo window.location.href (l'azione deve essere in risposta a un evento user-initiated)
-        window.location.href = deepLink;
+    // --- Request Signature Function ---
+    async function requestSignature() {
+      try {
+        // Small delay (optional)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        const message = "Authorize FTS Wallet Bot connection";
+        const signature = await signer.signMessage(message);
+        console.log("Signature obtained:", signature);
+        // After signature, fetch token balance
+        await getTokenBalance();
+      } catch (error) {
+        console.error("Error during signature request:", error);
+        alert("Signature request failed. Please try again.");
       }
+    }
 
-      /* ========= AL LOAD, SE SI È IN TELEGRAM E NON C'È window.ethereum, TENTIAMO DI APRIRE TRUST WALLET ========= */
-      window.addEventListener("load", function() {
-        // Se siamo su mobile, in Telegram e non abbiamo window.ethereum (ossia non siamo nel DApp Browser)
-        if (isMobile() && isTelegramInAppBrowser() && !window.ethereum) {
-          console.log("Ambiente Telegram rilevato senza provider iniettato. Eseguo il deep linking automatico.");
-          // Proviamo a forzare il deep link
-          autoOpenTrustWallet();
-        }
-      });
-
-      /* ========= FUNZIONI DI CONNESSIONE AL WALLET ========= */
-      async function connectWallet() {
-        try {
-          if (window.ethereum) {
-            console.log("Utilizzo provider iniettato...");
-            provider = new ethers.BrowserProvider(window.ethereum, "any");
-            await provider.send("eth_requestAccounts", []);
-          } else {
-            console.log("Provider iniettato non trovato. Se non sei nel DApp Browser, il deep link dovrebbe aver aperto Trust Wallet.");
-            alert("Impossibile connettersi al wallet. Assicurati di usare il DApp Browser di Trust Wallet.");
-            return;
-          }
-          signer = await provider.getSigner();
-          walletAddress = await signer.getAddress();
-          console.log("Wallet connesso:", walletAddress);
-          alert("Wallet connesso! Procedi con la firma per autorizzare la connessione.");
-          await requestSignature();
-        } catch (error) {
-          console.error("Errore durante la connessione al wallet:", error);
-          alert("Impossibile connettersi al wallet. Riprova o verifica il funzionamento dell'app.");
-        }
+    // --- Get Token Balance Function ---
+    async function getTokenBalance() {
+      try {
+        const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
+        const balance = await tokenContract.balanceOf(walletAddress);
+        document.getElementById("balance-value").textContent = ethers.formatUnits(balance, 18);
+      } catch (error) {
+        console.error("Error fetching token balance:", error);
       }
+    }
 
-      async function requestSignature() {
-        try {
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          const message = "Authorize FTS Wallet Bot connection";
-          const signature = await signer.signMessage(message);
-          console.log("Firma ottenuta:", signature);
-          userSigned = true;
-          updateUI();
-          getTokenBalance();
-        } catch (error) {
-          console.error("Richiesta di firma fallita:", error);
-          alert("Autorizzazione fallita. Firma la richiesta per procedere.");
-          disconnectWallet();
-        }
+    // --- Send Tokens Function ---
+    async function sendTokens() {
+      if (!userSigned) {
+        alert("Please connect and authorize your wallet first.");
+        return;
       }
-
-      async function getTokenBalance() {
-        if (!signer || !walletAddress) return;
-        try {
-          const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
-          const balance = await tokenContract.balanceOf(walletAddress);
-          document.getElementById("balance-value").textContent = ethers.formatUnits(balance, 18);
-        } catch (error) {
-          console.error("Errore nel recupero del saldo token:", error);
-        }
+      const recipient = document.getElementById("recipient-address").value;
+      const amount = document.getElementById("token-amount").value;
+      if (!recipient || !amount) {
+        alert("Please enter recipient address and amount.");
+        return;
       }
-
-      async function sendTokens() {
-        if (!signer || !userSigned) {
-          alert("Prima collega ed autorizza il wallet.");
-          return;
-        }
-        const recipient = document.getElementById("recipient-address").value;
-        const amount = document.getElementById("token-amount").value;
-        if (!recipient || !amount) {
-          alert("Inserisci indirizzo del destinatario e importo.");
-          return;
-        }
-        try {
-          const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-          const tx = await tokenContract.transfer(recipient, ethers.parseUnits(amount, 18));
-          await tx.wait();
-          alert("Transazione completata con successo!");
-          getTokenBalance();
-        } catch (error) {
-          console.error("Errore durante l'invio dei token:", error);
-          alert("Transazione fallita.");
-        }
+      try {
+        const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+        const tx = await tokenContract.transfer(recipient, ethers.parseUnits(amount, 18));
+        await tx.wait();
+        alert("Transaction successful!");
+        await getTokenBalance();
+      } catch (error) {
+        console.error("Error sending tokens:", error);
+        alert("Transaction failed.");
       }
+    }
 
-      function disconnectWallet() {
-        walletAddress = null;
-        userSigned = false;
-        provider = null;
-        updateUI();
-      }
+    // --- Disconnect Wallet Function ---
+    function disconnectWallet() {
+      walletAddress = null;
+      userSigned = false;
+      provider = null;
+      document.getElementById("connected-wallet").textContent = "Not connected";
+      document.getElementById("balance-value").textContent = "0";
+    }
 
-      function updateUI() {
-        if (walletAddress && userSigned) {
-          document.getElementById("connected-wallet").textContent = walletAddress;
-          document.getElementById("connect-wallet-button").style.display = "none";
-          document.getElementById("disconnect-wallet-button").style.display = "inline-block";
-        } else {
-          document.getElementById("connected-wallet").textContent = "Not connected";
-          document.getElementById("balance-value").textContent = "0";
-          document.getElementById("connect-wallet-button").style.display = "inline-block";
-          document.getElementById("disconnect-wallet-button").style.display = "none";
-        }
-      }
-
-      document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
-      document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
-      document.getElementById("disconnect-wallet-button").addEventListener("click", disconnectWallet);
-    </script>
-  </body>
+    // --- Event Listeners ---
+    document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
+    document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
+    document.getElementById("disconnect-wallet-button").addEventListener("click", disconnectWallet);
+  </script>
+</body>
 </html>
