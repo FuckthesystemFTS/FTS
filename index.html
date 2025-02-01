@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -63,7 +63,7 @@
   </div>
   
   <script>
-    // ---------------- Configuration ----------------
+    // ---------- Configuration ----------
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
     const TOKEN_ABI = [
       "function transfer(address to, uint256 amount) public returns (bool)",
@@ -72,107 +72,97 @@
     
     let provider, signer, walletAddress, userSigned = false;
     
-    // ---------------- Helper Functions ----------------
-    function isInjectedProviderAvailable() {
+    // ---------- Helper: Check for Injected Provider ----------
+    function hasInjectedProvider() {
       return Boolean(window.ethereum);
     }
     
-    // Funzione per aprire il deep link e, se necessario, fare fallback
+    // ---------- Deep Link Function ----------
     function openTrustWalletDeepLink() {
-      // Costruiamo il deep link; qui usiamo lo schema trust://
-      const deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
-      console.log("Tentativo di aprire Trust Wallet con deep link:", deepLink);
-      // Proviamo ad aprirlo con window.location.href in risposta a un'azione utente
+      // Use the alternative deep link scheme "trust://open_url?url="
+      const deepLink = "trust://open_url?url=" + encodeURIComponent(window.location.href);
+      console.log("Attempting to open Trust Wallet via deep link:", deepLink);
+      // Set window.location.href to trigger the deep link
       window.location.href = deepLink;
-      
-      // Impostiamo un fallback: se dopo 2 secondi la pagina è ancora nera (cioè l'app non si è aperta),
-      // reindirizziamo verso il sito di Trust Wallet (questo dà all'utente un punto di partenza)
-      setTimeout(() => {
-        // Qui potresti eventualmente controllare se l'utente ha lasciato la pagina;
-        // se non è successo, reindirizza verso il sito di Trust Wallet.
-        console.log("Fallback: redirecting to Trust Wallet website");
-        window.location.href = "https://trustwallet.com";
-      }, 2000);
     }
     
-    // ---------------- Connect Wallet Function ----------------
+    // ---------- Connect Wallet Function ----------
     async function connectWallet() {
       try {
-        if (!isInjectedProviderAvailable()) {
-          console.log("Nessun provider iniettato trovato (probabile in-app browser di Telegram).");
-          // Forza l'apertura di Trust Wallet tramite deep linking
-          // Questa azione è legata al click del pulsante, quindi è user-initiated
+        if (!hasInjectedProvider()) {
+          // No injected provider: assume we are in Telegram's in‑app browser.
+          // Force the user into Trust Wallet's DApp browser.
+          console.log("No injected provider found. Forcing Trust Wallet deep link.");
           openTrustWalletDeepLink();
-          return; // Dopo aver lanciato il deep link, terminiamo la funzione
+          return; // Exit the function after triggering deep link.
         }
-        
-        console.log("Provider iniettato trovato. Procedo con la connessione.");
+        // If we have an injected provider, proceed with normal connection.
+        console.log("Injected provider found. Connecting normally.");
         provider = new ethers.BrowserProvider(window.ethereum, "any");
         await provider.send("eth_requestAccounts", []);
         signer = await provider.getSigner();
         walletAddress = await signer.getAddress();
-        console.log("Wallet connesso:", walletAddress);
+        console.log("Wallet connected:", walletAddress);
         document.getElementById("connected-wallet").textContent = walletAddress;
         userSigned = true;
-        // Richiedi la firma per autenticare la connessione
         await requestSignature();
       } catch (error) {
-        console.error("Errore durante la connessione al wallet:", error);
-        alert("Impossibile connettersi al wallet. Riprova o verifica il funzionamento dell'app.");
+        console.error("Error connecting wallet:", error);
+        alert("Unable to connect wallet. Please try again.");
       }
     }
     
-    // ---------------- Request Signature Function ----------------
+    // ---------- Request Signature Function ----------
     async function requestSignature() {
       try {
-        // Breve delay
+        // Small delay for stability.
         await new Promise(resolve => setTimeout(resolve, 1500));
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
-        console.log("Firma ottenuta:", signature);
+        console.log("Signature obtained:", signature);
         await getTokenBalance();
       } catch (error) {
-        console.error("Errore durante la richiesta di firma:", error);
-        alert("Richiesta di firma fallita. Riprova.");
+        console.error("Error during signature request:", error);
+        alert("Signature request failed. Please try again.");
       }
     }
     
-    // ---------------- Get Token Balance Function ----------------
+    // ---------- Get Token Balance Function ----------
     async function getTokenBalance() {
       try {
         const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
         const balance = await tokenContract.balanceOf(walletAddress);
         document.getElementById("balance-value").textContent = ethers.formatUnits(balance, 18);
       } catch (error) {
-        console.error("Errore nel recupero del saldo token:", error);
+        console.error("Error fetching token balance:", error);
       }
     }
     
-    // ---------------- Send Tokens Function ----------------
+    // ---------- Send Tokens Function ----------
     async function sendTokens() {
       if (!userSigned) {
-        alert("Collega e autorizza prima il wallet.");
+        alert("Please connect and authorize your wallet first.");
         return;
       }
       const recipient = document.getElementById("recipient-address").value;
       const amount = document.getElementById("token-amount").value;
       if (!recipient || !amount) {
-        alert("Inserisci l'indirizzo del destinatario e l'importo.");
+        alert("Please enter recipient address and amount.");
         return;
       }
       try {
         const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
         const tx = await tokenContract.transfer(recipient, ethers.parseUnits(amount, 18));
         await tx.wait();
-        alert("Transazione completata con successo!");
+        alert("Transaction successful!");
         await getTokenBalance();
       } catch (error) {
-        console.error("Errore durante l'invio dei token:", error);
-        alert("Transazione fallita.");
+        console.error("Error sending tokens:", error);
+        alert("Transaction failed.");
       }
     }
     
-    // ---------------- Disconnect Wallet Function ----------------
+    // ---------- Disconnect Wallet Function ----------
     function disconnectWallet() {
       walletAddress = null;
       userSigned = false;
@@ -181,7 +171,7 @@
       document.getElementById("balance-value").textContent = "0";
     }
     
-    // ---------------- Event Listeners ----------------
+    // ---------- Event Listeners ----------
     document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
     document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
     document.getElementById("disconnect-wallet-button").addEventListener("click", disconnectWallet);
