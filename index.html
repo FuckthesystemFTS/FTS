@@ -46,19 +46,12 @@
         border: 1px solid #ccc;
         width: 80%;
       }
-      #open-trustwallet-container {
-        margin-top: 20px;
-        display: none;
-      }
-      #open-trustwallet-container p {
-        color: red;
-        margin-bottom: 10px;
-      }
     </style>
   </head>
   <body>
     <div id="app">
       <h1>FTS Wallet Bot</h1>
+      <!-- Il pulsante per connettersi sarà visibile solo se siamo in ambiente con window.ethereum -->
       <button id="connect-wallet-button">Connect Wallet</button>
       <button id="disconnect-wallet-button" style="display:none;">Disconnect Wallet</button>
       <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
@@ -68,16 +61,10 @@
       <input type="text" id="recipient-address" placeholder="Recipient Address" />
       <input type="text" id="token-amount" placeholder="Amount to Send" />
       <button id="send-tokens-button">Send Tokens</button>
-      
-      <!-- Pulsante esplicito per aprire Trust Wallet -->
-      <div id="open-trustwallet-container">
-        <p>Per continuare, apri il DApp Browser di Trust Wallet:</p>
-        <button id="open-trustwallet-button">Apri Trust Wallet</button>
-      </div>
     </div>
 
     <script>
-      // CONFIGURAZIONE DEL TOKEN
+      /* ========= CONFIGURAZIONE DEL TOKEN ========= */
       const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
       const TOKEN_ABI = [
         "function transfer(address to, uint256 amount) public returns (bool)",
@@ -86,45 +73,58 @@
 
       let provider, signer, walletAddress, userSigned = false;
 
-      // Funzione per rilevare se il dispositivo è mobile
+      /* ========= FUNZIONI DI SUPPORTO ========= */
       function isMobile() {
         return /Mobi|Android|iPhone/i.test(navigator.userAgent);
       }
-
-      // Funzione per rilevare se l'utente sta usando il DApp Browser di Trust Wallet
-      function isTrustWalletBrowser() {
-        return /Trust/i.test(navigator.userAgent);
+      
+      function isTelegramInAppBrowser() {
+        return /Telegram/i.test(navigator.userAgent);
+      }
+      
+      // Rileva il sistema operativo
+      function getOS() {
+        const ua = navigator.userAgent || navigator.vendor || window.opera;
+        if (/android/i.test(ua)) {
+          return "Android";
+        }
+        if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
+          return "iOS";
+        }
+        return "unknown";
       }
 
-      // Funzione per aprire il deep link di Trust Wallet
-      function openTrustWallet() {
-        const deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
-        console.log("Apro Trust Wallet tramite deep link:", deepLink);
+      /* ========= FUNZIONE DI DEEP LINKING ========= */
+      function autoOpenTrustWallet() {
+        const os = getOS();
+        let deepLink = "";
+        if (os === "Android") {
+          // Utilizza un URL intent per Android
+          deepLink = "intent://browser_open?url=" + encodeURIComponent(window.location.href) +
+                     "#Intent;scheme=trust;package=com.wallet.crypto.trustapp;end";
+        } else if (os === "iOS") {
+          // Utilizza lo schema standard per iOS
+          deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
+        } else {
+          // Fallback generale
+          deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
+        }
+        console.log("Tentativo di deep linking:", deepLink);
+        // Utilizziamo window.location.href (l'azione deve essere in risposta a un evento user-initiated)
         window.location.href = deepLink;
       }
 
-      // Tenta di aprire automaticamente Trust Wallet (questo potrebbe fallire nelle restrizioni di Telegram)
-      function tryAutoOpenTrustWallet() {
-        const deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
-        console.log("Tentativo automatico di apertura (window.location):", deepLink);
-        window.location.href = deepLink;
-      }
+      /* ========= AL LOAD, SE SI È IN TELEGRAM E NON C'È window.ethereum, TENTIAMO DI APRIRE TRUST WALLET ========= */
+      window.addEventListener("load", function() {
+        // Se siamo su mobile, in Telegram e non abbiamo window.ethereum (ossia non siamo nel DApp Browser)
+        if (isMobile() && isTelegramInAppBrowser() && !window.ethereum) {
+          console.log("Ambiente Telegram rilevato senza provider iniettato. Eseguo il deep linking automatico.");
+          // Proviamo a forzare il deep link
+          autoOpenTrustWallet();
+        }
+      });
 
-      // Se siamo su mobile e non nel DApp Browser di Trust Wallet, attiva il fallback esplicito
-      if (isMobile() && !isTrustWalletBrowser()) {
-        // Tentiamo prima l'apertura automatica
-        tryAutoOpenTrustWallet();
-        // Dopo 1.5 secondi, se l'utente non è stato reindirizzato, mostriamo il pulsante esplicito
-        setTimeout(() => {
-          // Verifichiamo se siamo ancora sulla stessa pagina (lo script continua l'esecuzione)
-          document.getElementById("open-trustwallet-container").style.display = "block";
-        }, 1500);
-      }
-
-      // Listener per il pulsante esplicito
-      document.getElementById("open-trustwallet-button").addEventListener("click", openTrustWallet);
-
-      // Funzione per connettere il wallet
+      /* ========= FUNZIONI DI CONNESSIONE AL WALLET ========= */
       async function connectWallet() {
         try {
           if (window.ethereum) {
@@ -132,7 +132,7 @@
             provider = new ethers.BrowserProvider(window.ethereum, "any");
             await provider.send("eth_requestAccounts", []);
           } else {
-            console.log("Provider iniettato non trovato.");
+            console.log("Provider iniettato non trovato. Se non sei nel DApp Browser, il deep link dovrebbe aver aperto Trust Wallet.");
             alert("Impossibile connettersi al wallet. Assicurati di usare il DApp Browser di Trust Wallet.");
             return;
           }
@@ -149,7 +149,7 @@
 
       async function requestSignature() {
         try {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 1500));
           const message = "Authorize FTS Wallet Bot connection";
           const signature = await signer.signMessage(message);
           console.log("Firma ottenuta:", signature);
