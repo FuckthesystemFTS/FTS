@@ -46,11 +46,11 @@
         border: 1px solid #ccc;
         width: 80%;
       }
-      #fallback-container {
+      #open-trustwallet-container {
         margin-top: 20px;
         display: none;
       }
-      #fallback-container p {
+      #open-trustwallet-container p {
         color: red;
         margin-bottom: 10px;
       }
@@ -68,10 +68,10 @@
       <input type="text" id="recipient-address" placeholder="Recipient Address" />
       <input type="text" id="token-amount" placeholder="Amount to Send" />
       <button id="send-tokens-button">Send Tokens</button>
-
-      <!-- Fallback per l'apertura del DApp Browser di Trust Wallet -->
-      <div id="fallback-container">
-        <p>Non sono riuscito ad aprire automaticamente Trust Wallet.</p>
+      
+      <!-- Pulsante esplicito per aprire Trust Wallet -->
+      <div id="open-trustwallet-container">
+        <p>Per continuare, apri il DApp Browser di Trust Wallet:</p>
         <button id="open-trustwallet-button">Apri Trust Wallet</button>
       </div>
     </div>
@@ -86,49 +86,47 @@
 
       let provider, signer, walletAddress, userSigned = false;
 
-      // Rileva se il dispositivo è mobile
+      // Funzione per rilevare se il dispositivo è mobile
       function isMobile() {
         return /Mobi|Android|iPhone/i.test(navigator.userAgent);
       }
 
-      // Rileva se l'utente sta utilizzando il DApp Browser di Trust Wallet
+      // Funzione per rilevare se l'utente sta usando il DApp Browser di Trust Wallet
       function isTrustWalletBrowser() {
         return /Trust/i.test(navigator.userAgent);
       }
 
-      // Funzione per aprire il deep link verso Trust Wallet
+      // Funzione per aprire il deep link di Trust Wallet
       function openTrustWallet() {
         const deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
         console.log("Apro Trust Wallet tramite deep link:", deepLink);
         window.location.href = deepLink;
       }
 
-      // Tenta l'apertura automatica tramite un iframe nascosto
+      // Tenta di aprire automaticamente Trust Wallet (questo potrebbe fallire nelle restrizioni di Telegram)
       function tryAutoOpenTrustWallet() {
         const deepLink = "trust://browser_open?url=" + encodeURIComponent(window.location.href);
-        console.log("Tentativo automatico con iframe:", deepLink);
-        const iframe = document.createElement("iframe");
-        iframe.style.display = "none";
-        iframe.src = deepLink;
-        document.body.appendChild(iframe);
+        console.log("Tentativo automatico di apertura (window.location):", deepLink);
+        window.location.href = deepLink;
       }
 
-      // Se siamo su mobile e non nel DApp Browser di Trust Wallet, tenta l'apertura automatica.
+      // Se siamo su mobile e non nel DApp Browser di Trust Wallet, attiva il fallback esplicito
       if (isMobile() && !isTrustWalletBrowser()) {
+        // Tentiamo prima l'apertura automatica
         tryAutoOpenTrustWallet();
-        // Dopo 1.5 secondi, se l'utente non è stato portato via, mostra il fallback con il pulsante.
+        // Dopo 1.5 secondi, se l'utente non è stato reindirizzato, mostriamo il pulsante esplicito
         setTimeout(() => {
-          document.getElementById("fallback-container").style.display = "block";
+          // Verifichiamo se siamo ancora sulla stessa pagina (lo script continua l'esecuzione)
+          document.getElementById("open-trustwallet-container").style.display = "block";
         }, 1500);
       }
 
-      // Aggiungiamo il listener per il pulsante di fallback
+      // Listener per il pulsante esplicito
       document.getElementById("open-trustwallet-button").addEventListener("click", openTrustWallet);
 
       // Funzione per connettere il wallet
       async function connectWallet() {
         try {
-          // Se esiste un provider iniettato (es. MetaMask o Trust Wallet DApp Browser), lo usiamo
           if (window.ethereum) {
             console.log("Utilizzo provider iniettato...");
             provider = new ethers.BrowserProvider(window.ethereum, "any");
