@@ -4,15 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Connessione Wallet</title>
-  <!-- Ethers.js v6 (aggiornato al 2025) -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  <!-- Web3Modal v1 (opzionale come fallback) -->
-  <script src="https://unpkg.com/web3modal/dist/index.js"></script<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FTS Wallet Bot - Connessione Wallet</title>
   <!-- Ethers.js v6 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
   <!-- Web3Modal v1 (opzionale come fallback) -->
@@ -100,7 +91,7 @@
     let userSigned = false;
     
     /***************** UTILITY FUNCTIONS *****************/
-    // Ritorna true se esiste un provider iniettato (ad es. Trust Wallet DApp Browser)
+    // Ritorna true se esiste un provider iniettato (ad es. nel Trust Wallet DApp Browser)
     function hasInjectedProvider() {
       return Boolean(window.ethereum);
     }
@@ -146,7 +137,7 @@
     async function connectWallet() {
       try {
         console.log("Inizio procedura di connessione...");
-        // Assumiamo che, cliccando "Sign In", siamo all'interno del DApp Browser
+        // Assumiamo che, cliccando "Sign In", siamo nel DApp Browser
         ethersProvider = new ethers.BrowserProvider(window.ethereum, "any");
         await ethersProvider.send("eth_requestAccounts", []);
         signer = await ethersProvider.getSigner();
@@ -160,7 +151,7 @@
         // Nasconde il pulsante "Sign In" dopo la connessione
         document.getElementById("sign-in-button").classList.add("hidden");
         
-        // Imposta listener per cambi di account o rete
+        // Listener per eventuali cambi di account o rete
         if (window.ethereum) {
           window.ethereum.on("accountsChanged", (accounts) => {
             if (accounts.length === 0) {
@@ -188,7 +179,6 @@
       }
     }
     
-    // Richiede la firma del messaggio per l'autorizzazione
     async function requestSignature() {
       try {
         // Attende un breve intervallo per la stabilità della connessione
@@ -202,7 +192,6 @@
       }
     }
     
-    /***************** GET TOKEN BALANCE FUNCTION *****************/
     async function getTokenBalance() {
       try {
         const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
@@ -213,7 +202,6 @@
       }
     }
     
-    /***************** SEND TOKENS FUNCTION *****************/
     async function sendTokens() {
       if (!userSigned) {
         alert("Collega e autorizza il wallet prima di inviare token.");
@@ -238,8 +226,7 @@
       }
     }
     
-    /***************** INTERFACCIA: GESTIONE DEI PULSANTI *****************/
-    // Questa funzione controlla se è presente il provider e aggiorna l'interfaccia di conseguenza
+    // Questa funzione controlla se il provider è iniettato e aggiorna l'interfaccia
     function checkForProvider() {
       if (hasInjectedProvider()) {
         console.log("Provider iniettato rilevato.");
@@ -252,13 +239,12 @@
       }
     }
     
-    // Event listener per il pulsante "Connect Wallet"
+    // Event listener per "Connect Wallet": forza il deep link se non siamo in un DApp Browser
     document.getElementById("connect-wallet-button").addEventListener("click", function() {
-      // Se non siamo in un DApp Browser, forziamo il deep link verso Trust Wallet
       forceDeepLink();
     });
     
-    // Event listener per il pulsante "Sign In"
+    // Event listener per "Sign In": avvia la procedura di connessione (che include richiesta account e firma)
     document.getElementById("sign-in-button").addEventListener("click", connectWallet);
     
     document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
@@ -266,274 +252,16 @@
     /***************** INITIALIZATION ON LOAD *****************/
     window.addEventListener("load", function() {
       init();
-      // Controlla subito se il provider è disponibile
+      // Esegui subito il check e poi avvia un polling per attendere il provider per un tempo maggiore
       checkForProvider();
-      // In alcuni DApp Browser il provider potrebbe essere iniettato con un leggero ritardo.
-      // Eseguiamo un polling per alcuni secondi per aggiornare l'interfaccia.
       let attempts = 0;
       const intervalId = setInterval(() => {
         attempts++;
-        if (hasInjectedProvider() || attempts >= 5) {
+        if (hasInjectedProvider() || attempts >= 10) {  // Proviamo fino a 10 volte
           clearInterval(intervalId);
           checkForProvider();
         }
       }, 1000);
-    });
-  </script>
-</body>
-</html>
-
-  <!-- WalletConnect Provider v1.8.0 -->
-  <script src="https://unpkg.com/@walletconnect/web3-provider/dist/umd/index.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-    #app {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      max-width: 400px;
-      width: 90%;
-      text-align: center;
-    }
-    button, input {
-      padding: 10px;
-      margin: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button {
-      background: #007bff;
-      color: #fff;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    input {
-      width: 80%;
-      border: 1px solid #ccc;
-      color: #000;
-    }
-    /* Classe per nascondere elementi */
-    .hidden {
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <div id="app">
-    <h1>FTS Wallet Bot</h1>
-    <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
-    
-    <!-- Pulsante per forzare il deep link (visibile se non siamo in un DApp Browser) -->
-    <button id="connect-wallet-button">Connect Wallet</button>
-    
-    <!-- Pulsante per la richiesta di firma e connessione (visibile solo se siamo nel DApp Browser) -->
-    <button id="sign-in-button" class="hidden">Sign In</button>
-    
-    <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
-    
-    <h3>Invia Token FTS</h3>
-    <input type="text" id="recipient-address" placeholder="Indirizzo Destinatario">
-    <input type="text" id="token-amount" placeholder="Importo da Inviare">
-    <button id="send-tokens-button">Invia Token</button>
-  </div>
-  
-  <script>
-    /***************** CONFIGURATION *****************/
-    // Indirizzo e ABI del token FTS sulla rete BNB (BSC)
-    const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-    const TOKEN_ABI = [
-      "function transfer(address to, uint256 amount) public returns (bool)",
-      "function balanceOf(address owner) public view returns (uint256)"
-    ];
-    
-    /***************** VARIABLES *****************/
-    let web3Modal;
-    let ethersProvider;      // Provider Ethers.js wrappato
-    let signer;
-    let walletAddress;
-    let userSigned = false;
-    
-    /***************** UTILITY FUNCTIONS *****************/
-    // Verifica se esiste un provider iniettato (es. Trust Wallet, MetaMask mobile, ecc.)
-    function hasInjectedProvider() {
-      return Boolean(window.ethereum);
-    }
-    
-    // Funzione per forzare il deep link verso il DApp Browser di Trust Wallet
-    function forceDeepLink() {
-      const deepLink = "trust://open_url?url=" + encodeURIComponent(window.location.href);
-      console.log("Redirecting via deep link:", deepLink);
-      window.location.href = deepLink;
-    }
-    
-    // Verifica che l’utente sia connesso a Binance Smart Chain (chainId 56)
-    async function checkNetwork() {
-      try {
-        const network = await ethersProvider.getNetwork();
-        console.log("Rete connessa:", network);
-        if (network.chainId !== 56) {
-          alert("Sei connesso a una rete errata. Per favore, connettiti a Binance Smart Chain (chainId 56).");
-          // Qui puoi aggiungere ulteriore logica per il cambio rete se necessario.
-        }
-      } catch (error) {
-        console.error("Errore nel controllo della rete:", error);
-      }
-    }
-    
-    /***************** INITIALIZATION *****************/
-    function init() {
-      // Configurazione di Web3Modal (utile come fallback)
-      const providerOptions = {
-        walletconnect: {
-          package: WalletConnectProvider,
-          options: {
-            rpc: { 56: "https://bsc-dataseed.binance.org/" },
-            chainId: 56
-          }
-        }
-      };
-      web3Modal = new window.Web3Modal({
-        cacheProvider: false,
-        providerOptions
-      });
-    }
-    
-    /***************** CONNECT WALLET / SIGN IN FUNCTION *****************/
-    // Questa funzione viene richiamata quando si clicca il pulsante "Sign In"
-    async function connectWallet() {
-      try {
-        // Assumiamo che, cliccando "Sign In", siamo già all'interno di un DApp Browser (window.ethereum esiste)
-        console.log("Provider iniettato rilevato. Procedo con la connessione.");
-        ethersProvider = new ethers.BrowserProvider(window.ethereum, "any");
-        await ethersProvider.send("eth_requestAccounts", []);
-        
-        // Ottieni il signer e l'indirizzo del wallet
-        signer = await ethersProvider.getSigner();
-        walletAddress = await signer.getAddress();
-        document.getElementById("connected-wallet").textContent = walletAddress;
-        console.log("Wallet connesso:", walletAddress);
-        
-        // Verifica la rete
-        await checkNetwork();
-        
-        // Nascondi il pulsante "Sign In" una volta effettuata la connessione
-        document.getElementById("sign-in-button").classList.add("hidden");
-        
-        // Imposta gli event listener per eventuali cambi di account o rete
-        if (window.ethereum) {
-          window.ethereum.on("accountsChanged", (accounts) => {
-            if (accounts.length === 0) {
-              console.log("Wallet disconnesso");
-              document.getElementById("connected-wallet").textContent = "Non connesso";
-              // Puoi decidere di mostrare di nuovo il pulsante "Sign In" se necessario
-              document.getElementById("sign-in-button").classList.remove("hidden");
-            } else {
-              walletAddress = accounts[0];
-              document.getElementById("connected-wallet").textContent = walletAddress;
-              getTokenBalance();
-            }
-          });
-          
-          window.ethereum.on("chainChanged", (chainId) => {
-            console.log("Chain changed to:", chainId);
-            window.location.reload();
-          });
-        }
-        
-        // Richiedi la firma per autorizzare l'accesso
-        await requestSignature();
-        userSigned = true;
-      } catch (error) {
-        console.error("Errore durante la connessione al wallet:", error);
-      }
-    }
-    
-    // Richiesta di firma (chiamata dopo la connessione)
-    async function requestSignature() {
-      try {
-        // Ritardo breve per stabilità
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const message = "Authorize FTS Wallet Bot connection";
-        const signature = await signer.signMessage(message);
-        console.log("Firma ottenuta:", signature);
-        // Dopo la firma, aggiorna il saldo FTS
-        await getTokenBalance();
-      } catch (error) {
-        console.error("Errore durante la richiesta di firma:", error);
-      }
-    }
-    
-    /***************** GET TOKEN BALANCE FUNCTION *****************/
-    async function getTokenBalance() {
-      try {
-        const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-        const balance = await tokenContract.balanceOf(walletAddress);
-        document.getElementById("balance-value").textContent = ethers.formatUnits(balance, 18);
-      } catch (error) {
-        console.error("Errore nel recupero del saldo token:", error);
-      }
-    }
-    
-    /***************** SEND TOKENS FUNCTION *****************/
-    async function sendTokens() {
-      if (!userSigned) {
-        alert("Collega e autorizza il wallet prima di inviare token.");
-        return;
-      }
-      const recipient = document.getElementById("recipient-address").value;
-      const amount = document.getElementById("token-amount").value;
-      if (!recipient || !amount) {
-        alert("Inserisci indirizzo del destinatario e importo.");
-        return;
-      }
-      try {
-        const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-        const tx = await tokenContract.transfer(recipient, ethers.parseUnits(amount, 18));
-        console.log("Transazione inviata:", tx);
-        await tx.wait();
-        alert("Transazione completata con successo!");
-        await getTokenBalance();
-      } catch (error) {
-        console.error("Errore nell'invio dei token:", error);
-        alert("Transazione fallita.");
-      }
-    }
-    
-    /***************** EVENT LISTENERS *****************/
-    // Se non siamo in un DApp Browser, il pulsante "Connect Wallet" forza il deep link
-    document.getElementById("connect-wallet-button").addEventListener("click", function() {
-      forceDeepLink();
-    });
-    // Se siamo in un DApp Browser, il pulsante "Sign In" avvia la connessione e la richiesta di firma
-    document.getElementById("sign-in-button").addEventListener("click", connectWallet);
-    
-    document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
-    
-    /***************** INITIALIZATION ON LOAD *****************/
-    window.addEventListener("load", function() {
-      init();
-      // Se siamo già in un ambiente DApp (provider iniettato), mostra il pulsante "Sign In"
-      if (hasInjectedProvider()) {
-        document.getElementById("connect-wallet-button").classList.add("hidden");
-        document.getElementById("sign-in-button").classList.remove("hidden");
-      } else {
-        // Se non siamo in un DApp Browser, mostra il pulsante "Connect Wallet"
-        document.getElementById("connect-wallet-button").classList.remove("hidden");
-        document.getElementById("sign-in-button").classList.add("hidden");
-      }
     });
   </script>
 </body>
