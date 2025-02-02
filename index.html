@@ -116,7 +116,7 @@
     
     /***************** INITIALIZATION *****************/
     function init() {
-      // Configurazione di Web3Modal (utile come fallback, anche se qui la connessione è manuale/automatica)
+      // Configurazione di Web3Modal (utile come fallback, anche se qui la connessione è manuale)
       const providerOptions = {
         walletconnect: {
           package: WalletConnectProvider,
@@ -144,7 +144,7 @@
         } else {
           console.log("Nessun provider iniettato. Forzo il deep link per aprire il DApp Browser di Trust Wallet.");
           forceDeepLink();
-          return; // Lascio che il deep link ricarichi la pagina nel DApp Browser
+          return; // Il deep link ricaricherà la pagina nel DApp Browser
         }
         
         // Ottieni il signer e l'indirizzo del wallet
@@ -244,22 +244,11 @@
     document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
     document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
     
-    /***************** AUTO-CONNECTION LOGIC *****************/
-    window.addEventListener("load", async function() {
+    /***************** AUTO‑INITIALIZATION *****************/
+    window.addEventListener("load", function() {
       init();
-      // Se siamo in un ambiente Web3 (es. DApp Browser su mobile) proviamo ad avviare la connessione automaticamente
-      if (hasInjectedProvider()) {
-        console.log("Tentativo di connessione automatica...");
-        try {
-          await connectWallet();
-        } catch (error) {
-          console.warn("Auto connessione fallita, attendendo l'interazione dell'utente.");
-        }
-      } else {
-        // Se non c'è un provider iniettato, forziamo il deep link verso Trust Wallet
-        console.log("Nessun provider rilevato, forzo il deep link.");
-        forceDeepLink();
-      }
+      // NOTA: Abbiamo rimosso l'auto‑connessione qui per rispettare la policy dei DApp Browser (la richiesta di connessione
+      // e di firma deve essere avviata tramite un'interazione utente).
     });
   </script>
 </body>
