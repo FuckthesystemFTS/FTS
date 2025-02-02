@@ -61,10 +61,10 @@
     <h1>FTS Wallet Bot</h1>
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     
-    <!-- Se non siamo in un DApp Browser viene mostrato questo pulsante -->
+    <!-- Pulsante visibile se NON è stato iniettato il provider -->
     <button id="connect-wallet-button">Connect Wallet</button>
     
-    <!-- Se siamo già in un DApp Browser (provider iniettato) viene mostrato questo pulsante -->
+    <!-- Pulsante visibile se il provider è presente (dentro il DApp Browser) -->
     <button id="sign-in-button" class="hidden">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
@@ -91,7 +91,7 @@
     let userSigned = false;
     
     /***************** UTILITY FUNCTIONS *****************/
-    // Ritorna true se esiste un provider iniettato (ad es. nel Trust Wallet DApp Browser)
+    // Ritorna true se esiste un provider iniettato (ad es. nel DApp Browser di Trust Wallet)
     function hasInjectedProvider() {
       return Boolean(window.ethereum);
     }
@@ -116,6 +116,24 @@
       }
     }
     
+    // Funzione che attende il provider tramite polling (utilizza un approccio ricorsivo)
+    function waitForProvider(timeout = 10000, interval = 100) {
+      return new Promise((resolve, reject) => {
+        let waited = 0;
+        function check() {
+          if (window.ethereum) {
+            resolve(window.ethereum);
+          } else if (waited >= timeout) {
+            reject(new Error("Provider non iniettato dopo 10 secondi"));
+          } else {
+            waited += interval;
+            setTimeout(check, interval);
+          }
+        }
+        check();
+      });
+    }
+    
     /***************** INITIALIZATION *****************/
     function init() {
       const providerOptions = {
@@ -136,7 +154,7 @@
     /***************** CONNECT WALLET / SIGN IN FUNCTION *****************/
     async function connectWallet() {
       try {
-        console.log("Inizio procedura di connessione...");
+        console.log("Avvio della procedura di connessione...");
         // Assumiamo che, cliccando "Sign In", siamo nel DApp Browser
         ethersProvider = new ethers.BrowserProvider(window.ethereum, "any");
         await ethersProvider.send("eth_requestAccounts", []);
@@ -151,7 +169,7 @@
         // Nasconde il pulsante "Sign In" dopo la connessione
         document.getElementById("sign-in-button").classList.add("hidden");
         
-        // Listener per eventuali cambi di account o rete
+        // Imposta listener per eventuali cambi di account o rete
         if (window.ethereum) {
           window.ethereum.on("accountsChanged", (accounts) => {
             if (accounts.length === 0) {
@@ -181,7 +199,7 @@
     
     async function requestSignature() {
       try {
-        // Attende un breve intervallo per la stabilità della connessione
+        // Breve attesa per la stabilità della connessione
         await new Promise(resolve => setTimeout(resolve, 1500));
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
@@ -226,8 +244,9 @@
       }
     }
     
-    // Questa funzione controlla se il provider è iniettato e aggiorna l'interfaccia
-    function checkForProvider() {
+    /***************** INTERFACCIA: GESTIONE DEI PULSANTI *****************/
+    // Aggiorna l'interfaccia in base alla presenza del provider
+    function updateInterfaceBasedOnProvider() {
       if (hasInjectedProvider()) {
         console.log("Provider iniettato rilevato.");
         document.getElementById("connect-wallet-button").classList.add("hidden");
@@ -244,24 +263,22 @@
       forceDeepLink();
     });
     
-    // Event listener per "Sign In": avvia la procedura di connessione (che include richiesta account e firma)
+    // Event listener per "Sign In": avvia la procedura di connessione
     document.getElementById("sign-in-button").addEventListener("click", connectWallet);
     
     document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
     
     /***************** INITIALIZATION ON LOAD *****************/
-    window.addEventListener("load", function() {
+    window.addEventListener("load", async function() {
       init();
-      // Esegui subito il check e poi avvia un polling per attendere il provider per un tempo maggiore
-      checkForProvider();
-      let attempts = 0;
-      const intervalId = setInterval(() => {
-        attempts++;
-        if (hasInjectedProvider() || attempts >= 10) {  // Proviamo fino a 10 volte
-          clearInterval(intervalId);
-          checkForProvider();
-        }
-      }, 1000);
+      // Usa la funzione waitForProvider per attendere l'iniezione del provider
+      try {
+        await waitForProvider();
+        console.log("Provider trovato tramite waitForProvider.");
+      } catch (error) {
+        console.warn(error.message);
+      }
+      updateInterfaceBasedOnProvider();
     });
   </script>
 </body>
