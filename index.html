@@ -1,19 +1,8 @@
 <!DOCTYPE html>
 <html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FTS Wallet Bot - Wallet Connection</title>
-    <!-- Ethers.js v6 -->
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-    <!-- Web3Modal v1 -->
-    <script src="https://unpkg.com/web3modal"></script>
-    <!-- WalletConnect Provider v1.8.0 -->
-    <script src="https://unpkg.com/@walletconnect/<!DOCTYPE html>
-<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Wallet Connection</title>
   <!-- Ethers.js v6 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
@@ -61,11 +50,33 @@
       border: 1px solid #ccc;
       color: #000;
     }
+    /* Stili per il banner di avviso */
+    #warning {
+      background: #ffc107;
+      color: #000;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      display: none;
+      font-size: 14px;
+    }
+    #open-ext-btn {
+      display: none;
+      background: #28a745;
+      color: #fff;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
   <div id="app">
     <h1>FTS Wallet Bot</h1>
+    <!-- Banner di avviso per utenti in Telegram -->
+    <div id="warning">
+      Per connetterti correttamente al wallet, apri questo link in un browser esterno.
+    </div>
+    <button id="open-ext-btn">Apri in Browser Esterno</button>
+    
     <button id="connect-wallet-button">Connect Wallet</button>
     <button id="disconnect-wallet-button" style="display: none;">Disconnect Wallet</button>
     <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
@@ -78,6 +89,25 @@
   </div>
   
   <script>
+    /***************** UTILITY *****************/
+    // Rileva se l'user agent contiene "Telegram"
+    function isTelegramBrowser() {
+      return navigator.userAgent.includes("Telegram");
+    }
+    
+    // Se siamo in Telegram, mostra un messaggio e un pulsante per aprire in un browser esterno
+    if (isTelegramBrowser()) {
+      document.getElementById("warning").style.display = "block";
+      document.getElementById("open-ext-btn").style.display = "block";
+      // Nascondi il pulsante "Connect Wallet" finché l'utente non apre in un browser esterno
+      document.getElementById("connect-wallet-button").style.display = "none";
+    }
+    
+    // Azione per aprire la pagina in un browser esterno
+    document.getElementById("open-ext-btn").addEventListener("click", function() {
+      window.open(window.location.href, "_blank");
+    });
+    
     /***************** CONFIGURATION *****************/
     // Address and ABI of the FTS token on BSC
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
@@ -89,44 +119,46 @@
     /***************** VARIABLES *****************/
     let web3Modal;
     let connection;          // Raw provider from Web3Modal
-    let ethersProvider;      // Ethers.js wrapped provider
+    let ethersProvider;      // Wrapped Ethers.js provider
     let signer;
     let walletAddress;
     let userSigned = false;
     
     /***************** INITIALIZATION *****************/
     function init() {
-      // Configure provider options for Web3Modal
       const providerOptions = {
         walletconnect: {
           package: WalletConnectProvider, // WalletConnect provider package
           options: {
             rpc: {
-              56: "https://bsc-dataseed.binance.org/" // RPC URL for BSC
+              56: "https://bsc-dataseed.binance.org/" // RPC for BSC
             },
             chainId: 56
           }
         }
-        // Altri provider possono essere aggiunti qui
+        // Puoi aggiungere altri provider se necessario
       };
       
-      // Create Web3Modal instance
       web3Modal = new window.Web3Modal({
-        cacheProvider: false,  // Forza sempre la scelta del wallet
+        cacheProvider: false, // Forza sempre la scelta del wallet
         providerOptions
       });
+      
+      // Se l'utente non è in Telegram (o ha aperto in un browser esterno), mostra il pulsante "Connect Wallet"
+      if (!isTelegramBrowser()) {
+        document.getElementById("connect-wallet-button").style.display = "block";
+      }
     }
     
     /***************** CONNECT WALLET FUNCTION *****************/
     async function connectWallet() {
       try {
-        // Open wallet selection modal
+        // Apri la schermata di scelta dei wallet
         connection = await web3Modal.connect();
-        // Wrap the raw provider with Ethers.js BrowserProvider
+        // Wrappa il provider con Ethers.js BrowserProvider
         ethersProvider = new ethers.BrowserProvider(connection, "any");
         
-        // Forza lo switch alla Binance Smart Chain (chainId 56)
-        // Questo metodo funziona se il wallet supporta "wallet_switchEthereumChain"
+        // Forza lo switch alla Binance Smart Chain (chainId 56) se possibile
         if (connection.request) {
           try {
             await connection.request({
@@ -135,16 +167,16 @@
             });
           } catch (switchError) {
             console.error("Error switching network:", switchError);
-            // Qui puoi gestire errori specifici, ad es. se il wallet non supporta lo switch automatico
+            // Se il wallet non supporta lo switch automatico, l'utente dovrà farlo manualmente
           }
         }
         
-        // Get signer and wallet address
+        // Ottieni il signer e l'indirizzo del wallet
         signer = await ethersProvider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("connected-wallet").textContent = walletAddress;
         
-        // Request signature for authentication
+        // Richiedi la firma per l'autenticazione
         await requestSignature();
         userSigned = true;
         document.getElementById("disconnect-wallet-button").style.display = "inline-block";
@@ -157,7 +189,7 @@
     /***************** REQUEST SIGNATURE FUNCTION *****************/
     async function requestSignature() {
       try {
-        // Short delay for stability
+        // Breve ritardo per stabilità
         await new Promise(resolve => setTimeout(resolve, 1500));
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
@@ -212,7 +244,6 @@
       ethersProvider = null;
       document.getElementById("connected-wallet").textContent = "Not connected";
       document.getElementById("balance-value").textContent = "0";
-      // Clear cached provider in Web3Modal
       web3Modal.clearCachedProvider();
       document.getElementById("disconnect-wallet-button").style.display = "none";
     }
@@ -226,212 +257,4 @@
     window.addEventListener("load", init);
   </script>
 </body>
-</html>
-"></script>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background: #f4f4f4;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        margin: 0;
-      }
-      #app {
-        background: #fff;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        max-width: 400px;
-        width: 90%;
-        text-align: center;
-      }
-      button, input {
-        padding: 10px;
-        margin: 10px;
-        font-size: 16px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-      button {
-        background: #007bff;
-        color: #fff;
-      }
-      button:hover {
-        background: #0056b3;
-      }
-      input {
-        width: 80%;
-        border: 1px solid #ccc;
-        color: #000;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="app">
-      <h1>FTS Wallet Bot</h1>
-      <button id="connect-wallet-button">Connect Wallet</button>
-      <button id="disconnect-wallet-button" style="display: none;">Disconnect Wallet</button>
-      <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
-      <p>Token Balance: <span id="balance-value">0</span> FTS</p>
-      
-      <h3>Send FTS Tokens</h3>
-      <input type="text" id="recipient-address" placeholder="Recipient Address">
-      <input type="text" id="token-amount" placeholder="Amount to Send">
-      <button id="send-tokens-button">Send Tokens</button>
-    </div>
-    
-    <script>
-      /***************** CONFIGURATION *****************/
-      // Address and ABI of the FTS token
-      const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-      const TOKEN_ABI = [
-        "function transfer(address to, uint256 amount) public returns (bool)",
-        "function balanceOf(address owner) public view returns (uint256)"
-      ];
-      
-      /***************** VARIABLES *****************/
-      let web3Modal;
-      let connection;          // The raw provider from Web3Modal
-      let ethersProvider;      // Wrapped Ethers.js provider
-      let signer;
-      let walletAddress;
-      let userSigned = false;
-      
-      /***************** INITIALIZATION *****************/
-      function init() {
-        const providerOptions = {
-          walletconnect: {
-            package: WalletConnectProvider, // WalletConnect provider package
-            options: {
-              rpc: {
-                // Set RPC for BSC (chain id 56)
-                56: "https://bsc-dataseed.binance.org/"
-              },
-              chainId: 56
-            }
-          }
-          // Puoi aggiungere altri provider se necessario
-        };
-        
-        // Create Web3Modal instance
-        web3Modal = new window.Web3Modal({
-          cacheProvider: false, // Disabilita il caching del provider per sempre forzare la scelta
-          providerOptions
-        });
-      }
-      
-      /***************** CONNECT WALLET FUNCTION *****************/
-      async function connectWallet() {
-        try {
-          // Open the wallet selection modal
-          connection = await web3Modal.connect();
-          
-          // Wrap the connection with Ethers.js provider
-          ethersProvider = new ethers.BrowserProvider(connection, "any");
-          
-          // (Opzionale) Forza il cambio di rete alla BSC se il wallet supporta la funzione:
-          if (connection.request) {
-            try {
-              await connection.request({
-                method: "wallet_switchEthereumChain",
-                params: [{ chainId: "0x38" }]  // 0x38 = 56 in esadecimale
-              });
-            } catch (switchError) {
-              console.error("Error switching network:", switchError);
-              // Potresti gestire errori di switch qui (ad esempio, se il wallet non supporta il cambio automatico)
-            }
-          }
-          
-          // Ottieni il signer e l'indirizzo
-          signer = await ethersProvider.getSigner();
-          walletAddress = await signer.getAddress();
-          document.getElementById("connected-wallet").textContent = walletAddress;
-          
-          // Richiedi la firma per l'autenticazione
-          await requestSignature();
-          userSigned = true;
-          // (Facoltativo) Puoi mostrare il pulsante "Disconnect" se la connessione è avvenuta
-          document.getElementById("disconnect-wallet-button").style.display = "inline-block";
-        } catch (error) {
-          console.error("Error connecting wallet:", error);
-          alert("Unable to connect wallet. Please try again.");
-        }
-      }
-      
-      /***************** REQUEST SIGNATURE FUNCTION *****************/
-      async function requestSignature() {
-        try {
-          // Piccolo delay per stabilità
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          const message = "Authorize FTS Wallet Bot connection";
-          const signature = await signer.signMessage(message);
-          console.log("Signature obtained:", signature);
-          await getTokenBalance();
-        } catch (error) {
-          console.error("Error during signature request:", error);
-          alert("Signature request failed. Please try again.");
-        }
-      }
-      
-      /***************** GET TOKEN BALANCE FUNCTION *****************/
-      async function getTokenBalance() {
-        try {
-          const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-          const balance = await tokenContract.balanceOf(walletAddress);
-          document.getElementById("balance-value").textContent = ethers.formatUnits(balance, 18);
-        } catch (error) {
-          console.error("Error fetching token balance:", error);
-        }
-      }
-      
-      /***************** SEND TOKENS FUNCTION *****************/
-      async function sendTokens() {
-        if (!userSigned) {
-          alert("Please connect and authorize your wallet first.");
-          return;
-        }
-        const recipient = document.getElementById("recipient-address").value;
-        const amount = document.getElementById("token-amount").value;
-        if (!recipient || !amount) {
-          alert("Please enter recipient address and amount.");
-          return;
-        }
-        try {
-          const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-          const tx = await tokenContract.transfer(recipient, ethers.parseUnits(amount, 18));
-          await tx.wait();
-          alert("Transaction successful!");
-          await getTokenBalance();
-        } catch (error) {
-          console.error("Error sending tokens:", error);
-          alert("Transaction failed.");
-        }
-      }
-      
-      /***************** DISCONNECT WALLET FUNCTION *****************/
-      function disconnectWallet() {
-        walletAddress = null;
-        userSigned = false;
-        connection = null;
-        ethersProvider = null;
-        document.getElementById("connected-wallet").textContent = "Not connected";
-        document.getElementById("balance-value").textContent = "0";
-        // Pulisce il provider cache di Web3Modal
-        web3Modal.clearCachedProvider();
-        document.getElementById("disconnect-wallet-button").style.display = "none";
-      }
-      
-      /***************** EVENT LISTENERS *****************/
-      document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
-      document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
-      document.getElementById("disconnect-wallet-button").addEventListener("click", disconnectWallet);
-      
-      // Initialize Web3Modal when the page loads
-      window.addEventListener("load", init);
-    </script>
-  </body>
 </html>
