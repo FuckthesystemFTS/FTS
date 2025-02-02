@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FTS Wallet Bot - Connessione Wallet</title>
   <!-- Ethers.js v6 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
@@ -50,7 +50,7 @@
       border: 1px solid #ccc;
       color: #000;
     }
-    /* Banner di avviso per chi non usa il DApp Browser di Trust Wallet */
+    /* Banner di avviso per gli utenti che non hanno window.ethereum (es. Telegram in‑app browser) */
     #warning {
       background: #ffc107;
       color: #000;
@@ -60,16 +60,28 @@
       font-size: 14px;
       display: none;
     }
+    #open-ext-btn {
+      display: none;
+      background: #28a745;
+      color: #fff;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <div id="app">
     <h1>FTS Wallet Bot</h1>
-    <!-- Banner di avviso: viene mostrato se non viene rilevato window.ethereum -->
+    
+    <!-- Banner di avviso e pulsante per aprire in un browser esterno -->
     <div id="warning">
-      Per una corretta connessione, apri questa pagina nel DApp Browser di Trust Wallet.<br>
-      Se non lo possiedi, usa un browser esterno che supporta Web3.
+      Per collegare correttamente il wallet, apri questa pagina nel DApp Browser di Trust Wallet o in un browser esterno che supporta Web3.
     </div>
+    <button id="open-ext-btn">Apri in Browser Esterno</button>
+    
     <button id="connect-wallet-button">Connect Wallet</button>
     <button id="disconnect-wallet-button" style="display: none;">Disconnect Wallet</button>
     <p>Connected Wallet: <span id="connected-wallet">Not connected</span></p>
@@ -83,25 +95,32 @@
   
   <script>
     /***************** UTILITY *****************/
-    // Funzione per rilevare se siamo su dispositivo mobile
-    function isMobile() {
-      return /Mobi|Android|iPhone/i.test(navigator.userAgent);
+    // Rileva se l'utente sta utilizzando l'in‑app browser di Telegram
+    function isTelegramBrowser() {
+      return navigator.userAgent.includes("Telegram");
     }
     
-    // Verifica se è presente un provider iniettato (ad es. nel DApp Browser di Trust Wallet)
+    // Controlla se è presente il provider Web3 (window.ethereum)
     function hasInjectedProvider() {
       return Boolean(window.ethereum);
     }
     
-    // Se siamo su mobile e non è presente window.ethereum, mostriamo il banner di avviso
-    if (isMobile() && !hasInjectedProvider()) {
+    // Se siamo in un ambiente che non inietta window.ethereum (come il browser in-app di Telegram),
+    // mostriamo il banner e il pulsante per aprire la pagina in un browser esterno.
+    if (isTelegramBrowser() && !hasInjectedProvider()) {
       document.getElementById("warning").style.display = "block";
-      // Nascondi il pulsante di connessione, perché la connessione non potrà avvenire in questo ambiente
+      document.getElementById("open-ext-btn").style.display = "block";
+      // Nascondi il pulsante "Connect Wallet"
       document.getElementById("connect-wallet-button").style.display = "none";
     }
     
+    // Quando l'utente clicca "Apri in Browser Esterno", apri la pagina in una nuova finestra (o scheda)
+    document.getElementById("open-ext-btn").addEventListener("click", function() {
+      window.open(window.location.href, "_blank");
+    });
+    
     /***************** CONFIGURATION *****************/
-    // Address and ABI of the FTS token on BSC
+    // Indirizzo e ABI del token FTS sulla rete BNB (BSC)
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
     const TOKEN_ABI = [
       "function transfer(address to, uint256 amount) public returns (bool)",
@@ -110,50 +129,43 @@
     
     /***************** VARIABLES *****************/
     let web3Modal;
-    let connection;          // Raw provider from Web3Modal
-    let ethersProvider;      // Wrapped Ethers.js provider
+    let connection;          // Provider grezzo da Web3Modal
+    let ethersProvider;      // Provider avvolto con Ethers.js
     let signer;
     let walletAddress;
     let userSigned = false;
     
     /***************** INITIALIZATION *****************/
     function init() {
+      // Configura i provider per Web3Modal
       const providerOptions = {
         walletconnect: {
-          package: WalletConnectProvider, // WalletConnect provider package
+          package: WalletConnectProvider, // Package WalletConnect
           options: {
-            rpc: {
-              56: "https://bsc-dataseed.binance.org/" // RPC URL for BSC
-            },
+            rpc: { 56: "https://bsc-dataseed.binance.org/" }, // RPC per BSC
             chainId: 56
           }
         }
-        // Altri provider possono essere aggiunti qui se necessario
+        // Altri provider possono essere aggiunti qui
       };
       
       web3Modal = new window.Web3Modal({
-        cacheProvider: false, // Forza sempre la scelta del wallet
+        cacheProvider: false, // Forza la scelta del wallet ogni volta
         providerOptions
       });
       
-      // Se non siamo in un ambiente in cui è disponibile window.ethereum,
-      // si consiglia di aprire il link in un browser che supporta Web3 (ad es. Trust Wallet DApp Browser)
-      if (!hasInjectedProvider()) {
-        console.warn("Nessun provider Web3 rilevato. Per favore apri questa pagina nel DApp Browser di Trust Wallet o in un browser esterno.");
+      // Se l'utente NON è in Telegram (o ha aperto in un browser esterno), mostra il pulsante "Connect Wallet"
+      if (!isTelegramBrowser() || hasInjectedProvider()) {
+        document.getElementById("connect-wallet-button").style.display = "block";
       }
     }
     
     /***************** CONNECT WALLET FUNCTION *****************/
     async function connectWallet() {
       try {
-        // Se non esiste un provider iniettato, non procediamo (l'utente dovrebbe usare il DApp Browser)
-        if (!hasInjectedProvider()) {
-          alert("Impossibile connettersi: apri questa pagina nel DApp Browser di Trust Wallet o in un browser compatibile con Web3.");
-          return;
-        }
-        
-        // Se il provider è presente, utilizziamo Web3Modal per connettere il wallet
+        // Procede con la connessione tramite Web3Modal
         connection = await web3Modal.connect();
+        // Usa il provider iniettato se disponibile (es. nel DApp Browser di Trust Wallet)
         ethersProvider = new ethers.BrowserProvider(window.ethereum, "any");
         await ethersProvider.send("eth_requestAccounts", []);
         
@@ -162,13 +174,13 @@
         console.log("Wallet connesso:", walletAddress);
         document.getElementById("connected-wallet").textContent = walletAddress;
         
-        // Richiedi la firma per autenticare la connessione
+        // Richiedi la firma per autorizzare la connessione
         await requestSignature();
         userSigned = true;
         document.getElementById("disconnect-wallet-button").style.display = "inline-block";
       } catch (error) {
         console.error("Errore durante la connessione al wallet:", error);
-        alert("Impossibile connettersi al wallet. Verifica di essere in un ambiente compatibile.");
+        alert("Impossibile connettersi al wallet. Verifica di essere in un ambiente compatibile (es. DApp Browser di Trust Wallet o browser esterno).");
       }
     }
     
@@ -182,7 +194,7 @@
         console.log("Firma ottenuta:", signature);
         await getTokenBalance();
       } catch (error) {
-        console.error("Errore nella richiesta di firma:", error);
+        console.error("Errore durante la richiesta di firma:", error);
         alert("Richiesta di firma fallita. Riprova.");
       }
     }
