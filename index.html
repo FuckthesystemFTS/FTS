@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FTS Wallet Bot - Connessione Wallet</title>
   <!-- Ethers.js v6 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  <!-- Web3Modal v1 (opzionale come fallback) -->
+  <!-- Web3Modal (opzionale come fallback) -->
   <script src="https://unpkg.com/web3modal/dist/index.js"></script>
   <!-- WalletConnect Provider v1.8.0 -->
   <script src="https://unpkg.com/@walletconnect/web3-provider/dist/umd/index.min.js"></script>
@@ -25,7 +25,7 @@
       background: #fff;
       padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       max-width: 400px;
       width: 90%;
       text-align: center;
@@ -38,20 +38,21 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    button {
-      background: #007bff;
+    /* Stili per i pulsanti abilitati (blu) e disabilitati (grigio) */
+    .button-enabled {
+      background-color: #007bff;
       color: #fff;
+      pointer-events: auto;
     }
-    button:hover {
-      background: #0056b3;
+    .button-disabled {
+      background-color: #ccc;
+      color: #fff;
+      pointer-events: none;
     }
     input {
       width: 80%;
       border: 1px solid #ccc;
       color: #000;
-    }
-    .hidden {
-      display: none;
     }
   </style>
 </head>
@@ -60,18 +61,18 @@
     <h1>FTS Wallet Bot</h1>
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     
-    <!-- Questo pulsante viene mostrato se NON siamo in un DApp Browser -->
-    <button id="connect-wallet-button">Connect Wallet</button>
+    <!-- Pulsante per forzare il deep link: abilitato inizialmente -->
+    <button id="connect-wallet-button" class="button-enabled">Connect Wallet</button>
     
-    <!-- Questo pulsante viene mostrato se siamo in un DApp Browser (o se il nostro rilevamento UA lo indica) -->
-    <button id="sign-in-button" class="hidden">Sign In</button>
+    <!-- Pulsante per avviare la connessione (firma): disabilitato inizialmente -->
+    <button id="sign-in-button" class="button-disabled">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
     
     <h3>Invia Token FTS</h3>
-    <input type="text" id="recipient-address" placeholder="Indirizzo Destinatario">
-    <input type="text" id="token-amount" placeholder="Importo da Inviare">
-    <button id="send-tokens-button">Invia Token</button>
+    <input type="text" id="recipient-address" placeholder="Indirizzo Destinatario" />
+    <input type="text" id="token-amount" placeholder="Importo da Inviare" />
+    <button id="send-tokens-button" class="button-enabled">Invia Token</button>
   </div>
   
   <script>
@@ -84,20 +85,15 @@
     
     /***************** VARIABLES *****************/
     let web3Modal;
-    let ethersProvider;  // Provider Ethers.js wrappato
+    let ethersProvider; // Provider Ethers.js wrappato
     let signer;
     let walletAddress;
     let userSigned = false;
     
     /***************** UTILITY FUNCTIONS *****************/
-    // Ritorna true se esiste un provider iniettato (es. nel Trust Wallet DApp Browser)
+    // Restituisce true se esiste un provider iniettato (cioè se siamo nel DApp Browser di Trust Wallet)
     function hasInjectedProvider() {
       return Boolean(window.ethereum);
-    }
-    
-    // Rileva se l'utente sta utilizzando Trust Wallet tramite lo user agent
-    function isTrustWallet() {
-      return navigator.userAgent.toLowerCase().includes("trust");
     }
     
     // Forza il deep link verso il DApp Browser di Trust Wallet
@@ -120,22 +116,24 @@
       }
     }
     
-    // Funzione di polling: attende che il provider sia iniettato
-    function waitForProvider(timeout = 10000, interval = 100) {
-      return new Promise((resolve, reject) => {
-        let waited = 0;
-        function check() {
-          if (window.ethereum) {
-            resolve(window.ethereum);
-          } else if (waited >= timeout) {
-            reject(new Error("Provider non iniettato dopo 10 secondi"));
-          } else {
-            waited += interval;
-            setTimeout(check, interval);
-          }
-        }
-        check();
-      });
+    // Aggiorna lo stato dei pulsanti in base alla presenza del provider
+    function updateButtonStates() {
+      const connectBtn = document.getElementById("connect-wallet-button");
+      const signInBtn = document.getElementById("sign-in-button");
+      
+      if (hasInjectedProvider()) {
+        // Siamo nel Trust Wallet DApp Browser
+        connectBtn.classList.remove("button-enabled");
+        connectBtn.classList.add("button-disabled");
+        signInBtn.classList.remove("button-disabled");
+        signInBtn.classList.add("button-enabled");
+      } else {
+        // Non siamo nel Trust Wallet DApp Browser
+        connectBtn.classList.remove("button-disabled");
+        connectBtn.classList.add("button-enabled");
+        signInBtn.classList.remove("button-enabled");
+        signInBtn.classList.add("button-disabled");
+      }
     }
     
     /***************** INITIALIZATION *****************/
@@ -159,7 +157,7 @@
     async function connectWallet() {
       try {
         console.log("Avvio della procedura di connessione...");
-        // Assumiamo che, cliccando "Sign In", siamo nel DApp Browser
+        // Questa funzione viene richiamata cliccando "Sign In" nel Trust Wallet DApp Browser
         ethersProvider = new ethers.BrowserProvider(window.ethereum, "any");
         await ethersProvider.send("eth_requestAccounts", []);
         signer = await ethersProvider.getSigner();
@@ -170,8 +168,9 @@
         // Verifica la rete
         await checkNetwork();
         
-        // Nasconde il pulsante "Sign In" dopo la connessione
-        document.getElementById("sign-in-button").classList.add("hidden");
+        // Nascondi il pulsante "Sign In" (anche se rimane abilitato per la procedura, qui lo lasciamo abilitato per completare la procedura)
+        // Se desideri nasconderlo dopo la connessione, puoi decommentare la riga seguente:
+        // document.getElementById("sign-in-button").classList.add("button-disabled");
         
         // Imposta listener per cambi di account o rete
         if (window.ethereum) {
@@ -179,7 +178,7 @@
             if (accounts.length === 0) {
               console.log("Wallet disconnesso");
               document.getElementById("connected-wallet").textContent = "Non connesso";
-              document.getElementById("sign-in-button").classList.remove("hidden");
+              updateButtonStates();
             } else {
               walletAddress = accounts[0];
               document.getElementById("connected-wallet").textContent = walletAddress;
@@ -193,7 +192,7 @@
           });
         }
         
-        // Richiede la firma per autorizzare l'accesso
+        // Richiedi la firma per autorizzare l'accesso
         await requestSignature();
         userSigned = true;
       } catch (error) {
@@ -203,7 +202,7 @@
     
     async function requestSignature() {
       try {
-        // Breve attesa per la stabilità della connessione
+        // Attendi brevemente per la stabilità della connessione
         await new Promise(resolve => setTimeout(resolve, 1500));
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
@@ -248,41 +247,21 @@
       }
     }
     
-    /***************** INTERFACCIA: GESTIONE DEI PULSANTI *****************/
-    // Aggiorna l'interfaccia in base alla presenza del provider o al fatto che l'utente usi Trust Wallet
-    function updateInterfaceBasedOnProvider() {
-      if (hasInjectedProvider() || isTrustWallet()) {
-        console.log("Provider rilevato oppure ambiente Trust Wallet individuato.");
-        document.getElementById("connect-wallet-button").classList.add("hidden");
-        document.getElementById("sign-in-button").classList.remove("hidden");
-      } else {
-        console.log("Nessun provider iniettato e ambiente Trust Wallet non individuato.");
-        document.getElementById("connect-wallet-button").classList.remove("hidden");
-        document.getElementById("sign-in-button").classList.add("hidden");
-      }
-    }
-    
-    // Event listener per "Connect Wallet": forza il deep link se non siamo in un DApp Browser
+    /***************** EVENT LISTENERS *****************/
+    // Se non siamo in un DApp Browser, il pulsante "Connect Wallet" è abilitato e forza il deep link
     document.getElementById("connect-wallet-button").addEventListener("click", function() {
       forceDeepLink();
     });
     
-    // Event listener per "Sign In": avvia la procedura di connessione
+    // Se siamo nel Trust Wallet DApp Browser, il pulsante "Sign In" avvia la connessione
     document.getElementById("sign-in-button").addEventListener("click", connectWallet);
     
     document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
     
     /***************** INITIALIZATION ON LOAD *****************/
-    window.addEventListener("load", async function() {
+    window.addEventListener("load", function() {
       init();
-      // Proviamo ad attendere il provider, ma se non viene iniettato usiamo il fallback basato sull'user agent.
-      try {
-        await waitForProvider();
-        console.log("Provider trovato tramite waitForProvider.");
-      } catch (error) {
-        console.warn(error.message);
-      }
-      updateInterfaceBasedOnProvider();
+      updateButtonStates();
     });
   </script>
 </body>
