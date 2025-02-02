@@ -50,21 +50,25 @@
       border: 1px solid #ccc;
       color: #000;
     }
+    /* Nasconde il pulsante di connessione una volta che il wallet è connesso */
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div id="app">
     <h1>FTS Wallet Bot</h1>
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
+    <!-- Pulsante per connettere il wallet -->
+    <button id="connect-wallet-button">Connetti Wallet</button>
+    
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
     
     <h3>Invia Token FTS</h3>
     <input type="text" id="recipient-address" placeholder="Indirizzo Destinatario">
     <input type="text" id="token-amount" placeholder="Importo da Inviare">
     <button id="send-tokens-button">Invia Token</button>
-    
-    <!-- Se necessario, puoi abilitare un bottone per la connessione manuale -->
-    <!-- <button id="connect-wallet-button">Connetti Wallet</button> -->
   </div>
   
   <script>
@@ -112,7 +116,7 @@
     
     /***************** INITIALIZATION *****************/
     function init() {
-      // Configurazione di Web3Modal (utile come fallback, anche se qui la connessione è automatica)
+      // Configurazione di Web3Modal (utile come fallback, anche se qui la connessione è manuale/automatica)
       const providerOptions = {
         walletconnect: {
           package: WalletConnectProvider,
@@ -152,12 +156,17 @@
         // Verifica che la rete sia Binance Smart Chain
         await checkNetwork();
         
+        // Nascondi il pulsante di connessione dopo il successo
+        document.getElementById("connect-wallet-button").classList.add("hidden");
+        
         // Imposta gli event listener per eventuali cambi di account o rete
         if (window.ethereum) {
           window.ethereum.on("accountsChanged", (accounts) => {
             if (accounts.length === 0) {
               console.log("Wallet disconnesso");
               document.getElementById("connected-wallet").textContent = "Non connesso";
+              // Rendi nuovamente visibile il pulsante di connessione
+              document.getElementById("connect-wallet-button").classList.remove("hidden");
             } else {
               walletAddress = accounts[0];
               document.getElementById("connected-wallet").textContent = walletAddress;
@@ -233,8 +242,7 @@
     
     /***************** EVENT LISTENERS *****************/
     document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
-    // Se decidi di abilitare un bottone per la connessione manuale, decommenta la seguente riga:
-    // document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
+    document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
     
     /***************** AUTO-CONNECTION LOGIC *****************/
     window.addEventListener("load", async function() {
@@ -242,7 +250,11 @@
       // Se siamo in un ambiente Web3 (es. DApp Browser su mobile) proviamo ad avviare la connessione automaticamente
       if (hasInjectedProvider()) {
         console.log("Tentativo di connessione automatica...");
-        await connectWallet();
+        try {
+          await connectWallet();
+        } catch (error) {
+          console.warn("Auto connessione fallita, attendendo l'interazione dell'utente.");
+        }
       } else {
         // Se non c'è un provider iniettato, forziamo il deep link verso Trust Wallet
         console.log("Nessun provider rilevato, forzo il deep link.");
