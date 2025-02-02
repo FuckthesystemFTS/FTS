@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Connessione Wallet</title>
-  <!-- Ethers.js v6 -->
+  <!-- Ethers.js v6 (aggiornato al 2025) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  <!-- Web3Modal v1 -->
+  <!-- Web3Modal v1 (opzionale come fallback) -->
   <script src="https://unpkg.com/web3modal/dist/index.js"></script>
   <!-- WalletConnect Provider v1.8.0 -->
   <script src="https://unpkg.com/@walletconnect/web3-provider/dist/umd/index.min.js"></script>
@@ -63,7 +63,8 @@
     <input type="text" id="token-amount" placeholder="Importo da Inviare">
     <button id="send-tokens-button">Invia Token</button>
     
-    <!-- I pulsanti Connect/Disconnect non vengono mostrati perché la connessione verrà innescata automaticamente -->
+    <!-- Se necessario, puoi abilitare un bottone per la connessione manuale -->
+    <!-- <button id="connect-wallet-button">Connetti Wallet</button> -->
   </div>
   
   <script>
@@ -77,28 +78,41 @@
     
     /***************** VARIABLES *****************/
     let web3Modal;
-    let connection;          // Provider grezzo da Web3Modal
     let ethersProvider;      // Provider Ethers.js wrappato
     let signer;
     let walletAddress;
     let userSigned = false;
     
     /***************** UTILITY FUNCTIONS *****************/
-    // Verifica se il provider è iniettato (indicativo di un ambiente DApp, es. Trust Wallet DApp Browser)
+    // Verifica se esiste un provider iniettato (es. Trust Wallet, MetaMask mobile, ecc.)
     function hasInjectedProvider() {
       return Boolean(window.ethereum);
     }
     
-    // Funzione di deep link per forzare l'apertura nel DApp Browser di Trust Wallet
+    // Funzione per forzare il deep link verso il DApp Browser di Trust Wallet
     function forceDeepLink() {
       const deepLink = "trust://open_url?url=" + encodeURIComponent(window.location.href);
       console.log("Redirecting via deep link:", deepLink);
       window.location.href = deepLink;
     }
     
+    // Verifica che l’utente sia connesso a Binance Smart Chain (chainId 56)
+    async function checkNetwork() {
+      try {
+        const network = await ethersProvider.getNetwork();
+        console.log("Rete connessa:", network);
+        if (network.chainId !== 56) {
+          alert("Sei connesso a una rete errata. Per favore, connettiti a Binance Smart Chain (chainId 56).");
+          // Qui potresti aggiungere la logica per chiedere all'utente di cambiare rete.
+        }
+      } catch (error) {
+        console.error("Errore nel controllo della rete:", error);
+      }
+    }
+    
     /***************** INITIALIZATION *****************/
     function init() {
-      // Inizializza Web3Modal (viene usato solo se il provider è iniettato)
+      // Configurazione di Web3Modal (utile come fallback, anche se qui la connessione è automatica)
       const providerOptions = {
         walletconnect: {
           package: WalletConnectProvider,
@@ -119,17 +133,44 @@
       try {
         if (hasInjectedProvider()) {
           console.log("Provider iniettato rilevato. Procedo con la connessione.");
+          // Crea il provider Ethers.js basato su window.ethereum
           ethersProvider = new ethers.BrowserProvider(window.ethereum, "any");
+          // Richiedi l’accesso agli account
           await ethersProvider.send("eth_requestAccounts", []);
         } else {
           console.log("Nessun provider iniettato. Forzo il deep link per aprire il DApp Browser di Trust Wallet.");
           forceDeepLink();
-          return; // Interrompo la funzione, perché la pagina verrà ricaricata nell'ambiente corretto
+          return; // Lascio che il deep link ricarichi la pagina nel DApp Browser
         }
+        
+        // Ottieni il signer e l'indirizzo del wallet
         signer = await ethersProvider.getSigner();
         walletAddress = await signer.getAddress();
-        console.log("Wallet connesso:", walletAddress);
         document.getElementById("connected-wallet").textContent = walletAddress;
+        console.log("Wallet connesso:", walletAddress);
+        
+        // Verifica che la rete sia Binance Smart Chain
+        await checkNetwork();
+        
+        // Imposta gli event listener per eventuali cambi di account o rete
+        if (window.ethereum) {
+          window.ethereum.on("accountsChanged", (accounts) => {
+            if (accounts.length === 0) {
+              console.log("Wallet disconnesso");
+              document.getElementById("connected-wallet").textContent = "Non connesso";
+            } else {
+              walletAddress = accounts[0];
+              document.getElementById("connected-wallet").textContent = walletAddress;
+              getTokenBalance();
+            }
+          });
+          
+          window.ethereum.on("chainChanged", (chainId) => {
+            console.log("Chain changed to:", chainId);
+            // In caso di cambio rete, ricarica la pagina per evitare inconsistenze
+            window.location.reload();
+          });
+        }
         
         // Richiedi la firma per autenticare la connessione
         await requestSignature();
@@ -142,11 +183,12 @@
     /***************** REQUEST SIGNATURE FUNCTION *****************/
     async function requestSignature() {
       try {
-        // Ritardo breve per stabilità (eventuale necessità di attesa)
+        // Breve ritardo per garantire la stabilità della connessione
         await new Promise(resolve => setTimeout(resolve, 1500));
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
         console.log("Firma ottenuta:", signature);
+        // Dopo la firma, recupera il saldo dei token FTS
         await getTokenBalance();
       } catch (error) {
         console.error("Errore durante la richiesta di firma:", error);
@@ -179,6 +221,7 @@
       try {
         const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
         const tx = await tokenContract.transfer(recipient, ethers.parseUnits(amount, 18));
+        console.log("Transazione inviata:", tx);
         await tx.wait();
         alert("Transazione completata con successo!");
         await getTokenBalance();
@@ -190,16 +233,18 @@
     
     /***************** EVENT LISTENERS *****************/
     document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
+    // Se decidi di abilitare un bottone per la connessione manuale, decommenta la seguente riga:
+    // document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
     
     /***************** AUTO-CONNECTION LOGIC *****************/
     window.addEventListener("load", async function() {
       init();
-      // Se siamo in ambiente Web3 (es. DApp Browser di Trust Wallet) proviamo ad avviare automaticamente la connessione
+      // Se siamo in un ambiente Web3 (es. DApp Browser su mobile) proviamo ad avviare la connessione automaticamente
       if (hasInjectedProvider()) {
         console.log("Tentativo di connessione automatica...");
         await connectWallet();
       } else {
-        // Se non c'è provider, forziamo il deep link (questo ricaricherà la pagina nell'ambiente del DApp Browser)
+        // Se non c'è un provider iniettato, forziamo il deep link verso Trust Wallet
         console.log("Nessun provider rilevato, forzo il deep link.");
         forceDeepLink();
       }
