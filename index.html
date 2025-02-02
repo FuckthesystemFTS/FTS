@@ -50,7 +50,6 @@
       border: 1px solid #ccc;
       color: #000;
     }
-    /* La classe "hidden" nasconde gli elementi */
     .hidden {
       display: none;
     }
@@ -61,10 +60,10 @@
     <h1>FTS Wallet Bot</h1>
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     
-    <!-- Pulsante visibile se NON è stato iniettato il provider -->
+    <!-- Questo pulsante viene mostrato se NON siamo in un DApp Browser -->
     <button id="connect-wallet-button">Connect Wallet</button>
     
-    <!-- Pulsante visibile se il provider è presente (dentro il DApp Browser) -->
+    <!-- Questo pulsante viene mostrato se siamo in un DApp Browser (o se il nostro rilevamento UA lo indica) -->
     <button id="sign-in-button" class="hidden">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
@@ -85,15 +84,20 @@
     
     /***************** VARIABLES *****************/
     let web3Modal;
-    let ethersProvider;      // Provider Ethers.js wrappato
+    let ethersProvider;  // Provider Ethers.js wrappato
     let signer;
     let walletAddress;
     let userSigned = false;
     
     /***************** UTILITY FUNCTIONS *****************/
-    // Ritorna true se esiste un provider iniettato (ad es. nel DApp Browser di Trust Wallet)
+    // Ritorna true se esiste un provider iniettato (es. nel Trust Wallet DApp Browser)
     function hasInjectedProvider() {
       return Boolean(window.ethereum);
+    }
+    
+    // Rileva se l'utente sta utilizzando Trust Wallet tramite lo user agent
+    function isTrustWallet() {
+      return navigator.userAgent.toLowerCase().includes("trust");
     }
     
     // Forza il deep link verso il DApp Browser di Trust Wallet
@@ -116,7 +120,7 @@
       }
     }
     
-    // Funzione che attende il provider tramite polling (utilizza un approccio ricorsivo)
+    // Funzione di polling: attende che il provider sia iniettato
     function waitForProvider(timeout = 10000, interval = 100) {
       return new Promise((resolve, reject) => {
         let waited = 0;
@@ -169,7 +173,7 @@
         // Nasconde il pulsante "Sign In" dopo la connessione
         document.getElementById("sign-in-button").classList.add("hidden");
         
-        // Imposta listener per eventuali cambi di account o rete
+        // Imposta listener per cambi di account o rete
         if (window.ethereum) {
           window.ethereum.on("accountsChanged", (accounts) => {
             if (accounts.length === 0) {
@@ -245,14 +249,14 @@
     }
     
     /***************** INTERFACCIA: GESTIONE DEI PULSANTI *****************/
-    // Aggiorna l'interfaccia in base alla presenza del provider
+    // Aggiorna l'interfaccia in base alla presenza del provider o al fatto che l'utente usi Trust Wallet
     function updateInterfaceBasedOnProvider() {
-      if (hasInjectedProvider()) {
-        console.log("Provider iniettato rilevato.");
+      if (hasInjectedProvider() || isTrustWallet()) {
+        console.log("Provider rilevato oppure ambiente Trust Wallet individuato.");
         document.getElementById("connect-wallet-button").classList.add("hidden");
         document.getElementById("sign-in-button").classList.remove("hidden");
       } else {
-        console.log("Nessun provider iniettato.");
+        console.log("Nessun provider iniettato e ambiente Trust Wallet non individuato.");
         document.getElementById("connect-wallet-button").classList.remove("hidden");
         document.getElementById("sign-in-button").classList.add("hidden");
       }
@@ -271,7 +275,7 @@
     /***************** INITIALIZATION ON LOAD *****************/
     window.addEventListener("load", async function() {
       init();
-      // Usa la funzione waitForProvider per attendere l'iniezione del provider
+      // Proviamo ad attendere il provider, ma se non viene iniettato usiamo il fallback basato sull'user agent.
       try {
         await waitForProvider();
         console.log("Provider trovato tramite waitForProvider.");
