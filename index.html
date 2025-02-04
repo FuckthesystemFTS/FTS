@@ -53,7 +53,7 @@
       margin-top: 5px; 
       min-height: 20px; 
     }
-    /* Nascondiamo il pulsante Sign In per impostazione predefinita */
+    /* Nascondiamo per default il pulsante "Sign In" */
     #sign-in-button { display: none; }
   </style>
 </head>
@@ -63,12 +63,12 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <!-- I pulsanti sono sempre presenti; la loro visibilità viene gestita via JavaScript -->
+    <!-- I pulsanti sono sempre presenti; la loro visibilità verrà regolata in base all'ambiente -->
     <!-- Su mobile senza provider: "Apri Trust Wallet" -->
     <button id="deep-link-button" class="button-enabled">Apri Trust Wallet</button>
     <!-- Su desktop e mobile-dapp (inizialmente): "Connetti Wallet" -->
     <button id="connect-wallet-button" class="button-enabled">Connetti Wallet</button>
-    <!-- In ambiente mobile-dapp, dopo la connessione: "Sign In" -->
+    <!-- Su mobile-dapp, dopo la connessione: "Sign In" per richiedere manualmente la firma -->
     <button id="sign-in-button" class="button-enabled">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
@@ -95,21 +95,25 @@
     let walletConnected = false; // Stato di connessione del wallet
     
     /***************** ENVIRONMENT DETECTION *****************/
+    // La funzione viene modificata per riconoscere esplicitamente Trust Wallet (o stringhe correlate) nell'user agent
     function detectEnvironment() {
-      // Estende la regex per includere "Mobile" e "iPhone"
-      const isMobile = /Mobile|Mobi|Android|iPhone/i.test(navigator.userAgent);
+      const ua = navigator.userAgent.toLowerCase();
+      if (ua.includes("trust") || ua.includes("trustwallet")) {
+        console.log("Ambiente rilevato: mobile-dapp (Trust Wallet identificato nell'user agent)");
+        return "mobile-dapp";
+      }
+      const isMobile = /mobile|mobi|android|iphone/i.test(ua);
       if (isMobile) {
         if (window.ethereum) {
-          console.log("Ambiente rilevato: mobile-dapp");
+          console.log("Ambiente rilevato: mobile-dapp (dispositivo mobile con provider)");
           return "mobile-dapp";
         } else {
           console.log("Ambiente rilevato: mobile (senza provider)");
           return "mobile";
         }
-      } else {
-        console.log("Ambiente rilevato: desktop");
-        return "desktop";
       }
+      console.log("Ambiente rilevato: desktop");
+      return "desktop";
     }
     
     function updateButtonVisibility() {
@@ -124,7 +128,7 @@
         connectBtn.style.display = "none";
         signInBtn.style.display = "none";
       } else if (env === "desktop") {
-        // Desktop: mostra solo "Connetti Wallet"
+        // Desktop: mostra solo il pulsante per collegare il wallet (firma richiesta automaticamente)
         deepLinkBtn.style.display = "none";
         connectBtn.style.display = "inline-block";
         signInBtn.style.display = "none";
@@ -163,7 +167,7 @@
     }
     
     /***************** WALLET CONNECTION *****************/
-    // Collega il wallet tramite il provider iniettato
+    // Funzione per collegare il wallet tramite provider iniettato
     async function connectWallet() {
       const env = detectEnvironment();
       if (!window.ethereum) {
@@ -190,7 +194,7 @@
           userSigned = true;
           updateStatus("Wallet connesso e firma autorizzata.");
         }
-        // Su mobile-dapp, forziamo un aggiornamento (con breve delay) per mostrare il pulsante "Sign In"
+        // Su mobile-dapp, forziamo un aggiornamento rapido per mostrare il pulsante "Sign In"
         if (env === "mobile-dapp") {
           setTimeout(updateButtonVisibility, 500);
         }
@@ -200,7 +204,7 @@
       }
     }
     
-    // Funzione per richiedere manualmente la firma (attivata dal pulsante "Sign In" in mobile-dapp)
+    // Funzione per richiedere manualmente la firma (da attivare tramite il pulsante "Sign In" in mobile-dapp)
     async function signIn() {
       if (!walletConnected) {
         updateStatus("Collega il wallet prima.", true);
