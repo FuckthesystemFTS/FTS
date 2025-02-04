@@ -93,12 +93,12 @@
     let userSigned = false;
     
     /***************** UTILITY FUNCTIONS *****************/
-    // Restituisce true se esiste un provider iniettato (cioè se siamo nel Trust Wallet DApp Browser)
+    // Verifica se esiste un provider iniettato (es. Trust Wallet DApp Browser)
     function hasInjectedProvider() {
       return Boolean(window.ethereum);
     }
     
-    // Rileva se l'utente sta utilizzando il Trust Wallet DApp Browser tramite lo user agent
+    // Verifica se l'utente sta utilizzando il Trust Wallet DApp Browser tramite lo user agent
     function isTrustWallet() {
       return navigator.userAgent.toLowerCase().includes("trust");
     }
@@ -128,9 +128,8 @@
       const connectBtn = document.getElementById("connect-wallet-button");
       const signInBtn = document.getElementById("sign-in-button");
       
-      // Se il provider è iniettato o se il browser sembra essere Trust Wallet, abilita "Sign In"
       if (hasInjectedProvider() || isTrustWallet()) {
-        console.log("Ambiente Trust Wallet rilevato.");
+        console.log("Ambiente Trust Wallet o provider iniettato rilevato.");
         connectBtn.classList.remove("button-enabled");
         connectBtn.classList.add("button-disabled");
         signInBtn.classList.remove("button-disabled");
@@ -164,7 +163,7 @@
     async function connectWallet() {
       try {
         console.log("Avvio della procedura di connessione...");
-        // Questa funzione viene eseguita cliccando "Sign In" nel Trust Wallet DApp Browser
+        // Utilizzo di ethers.BrowserProvider per accedere al provider iniettato
         ethersProvider = new ethers.BrowserProvider(window.ethereum, "any");
         await ethersProvider.send("eth_requestAccounts", []);
         signer = await ethersProvider.getSigner();
@@ -172,7 +171,7 @@
         document.getElementById("connected-wallet").textContent = walletAddress;
         console.log("Wallet connesso:", walletAddress);
         
-        // Verifica la rete
+        // Verifica della rete corrente
         await checkNetwork();
         
         // Imposta listener per cambi di account o rete
@@ -204,7 +203,7 @@
     
     async function requestSignature() {
       try {
-        // Attende brevemente per la stabilità della connessione
+        // Breve attesa per la stabilità della connessione
         await new Promise(resolve => setTimeout(resolve, 1500));
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
@@ -250,14 +249,15 @@
     }
     
     /***************** EVENT LISTENERS *****************/
-    // Se non siamo nel DApp Browser, il pulsante "Connect Wallet" è abilitato e forza il deep link
+    // Se non siamo in un DApp Browser, il pulsante "Connect Wallet" forza il deep link
     document.getElementById("connect-wallet-button").addEventListener("click", function() {
       forceDeepLink();
     });
     
-    // Se siamo nel Trust Wallet DApp Browser, il pulsante "Sign In" avvia la procedura di connessione
+    // Se siamo in ambiente Trust Wallet (o con provider iniettato), il pulsante "Sign In" avvia la connessione
     document.getElementById("sign-in-button").addEventListener("click", connectWallet);
     
+    // Listener per inviare token
     document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
     
     /***************** INITIALIZATION ON LOAD *****************/
