@@ -53,7 +53,7 @@
       margin-top: 5px; 
       min-height: 20px; 
     }
-    /* Per impostazione predefinita, nascondiamo il pulsante Sign In */
+    /* Nascondiamo il pulsante Sign In per impostazione predefinita */
     #sign-in-button { display: none; }
   </style>
 </head>
@@ -63,12 +63,12 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <!-- I pulsanti sono sempre presenti nel DOM, ma la loro visibilità viene gestita via JavaScript -->
-    <!-- Su mobile senza provider verrà mostrato "Apri Trust Wallet" -->
+    <!-- I pulsanti sono sempre presenti; la loro visibilità viene gestita via JavaScript -->
+    <!-- Su mobile senza provider: "Apri Trust Wallet" -->
     <button id="deep-link-button" class="button-enabled">Apri Trust Wallet</button>
-    <!-- Su desktop e mobile con provider (inizialmente) viene mostrato "Connetti Wallet" -->
+    <!-- Su desktop e mobile-dapp (inizialmente): "Connetti Wallet" -->
     <button id="connect-wallet-button" class="button-enabled">Connetti Wallet</button>
-    <!-- Questo pulsante viene mostrato SOLO in ambiente mobile-dapp dopo che il wallet è collegato -->
+    <!-- In ambiente mobile-dapp, dopo la connessione: "Sign In" -->
     <button id="sign-in-button" class="button-enabled">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
@@ -96,17 +96,18 @@
     
     /***************** ENVIRONMENT DETECTION *****************/
     function detectEnvironment() {
-      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+      // Estende la regex per includere "Mobile" e "iPhone"
+      const isMobile = /Mobile|Mobi|Android|iPhone/i.test(navigator.userAgent);
       if (isMobile) {
         if (window.ethereum) {
-          console.log("Ambiente: mobile-dapp");
+          console.log("Ambiente rilevato: mobile-dapp");
           return "mobile-dapp";
         } else {
-          console.log("Ambiente: mobile (senza provider)");
+          console.log("Ambiente rilevato: mobile (senza provider)");
           return "mobile";
         }
       } else {
-        console.log("Ambiente: desktop");
+        console.log("Ambiente rilevato: desktop");
         return "desktop";
       }
     }
@@ -123,18 +124,18 @@
         connectBtn.style.display = "none";
         signInBtn.style.display = "none";
       } else if (env === "desktop") {
-        // Desktop: mostra solo il pulsante per collegare il wallet (firma richiesta automaticamente)
+        // Desktop: mostra solo "Connetti Wallet"
         deepLinkBtn.style.display = "none";
         connectBtn.style.display = "inline-block";
         signInBtn.style.display = "none";
       } else if (env === "mobile-dapp") {
         deepLinkBtn.style.display = "none";
-        // Se il wallet NON è ancora connesso, mostra "Connetti Wallet"
         if (!walletConnected) {
+          // Prima della connessione, mostra "Connetti Wallet"
           connectBtn.style.display = "inline-block";
           signInBtn.style.display = "none";
         } else {
-          // Se il wallet è collegato, mostra "Sign In" per richiedere la firma
+          // Dopo la connessione, mostra "Sign In"
           connectBtn.style.display = "none";
           signInBtn.style.display = "inline-block";
         }
@@ -162,7 +163,7 @@
     }
     
     /***************** WALLET CONNECTION *****************/
-    // Funzione per collegare il wallet tramite provider iniettato
+    // Collega il wallet tramite il provider iniettato
     async function connectWallet() {
       const env = detectEnvironment();
       if (!window.ethereum) {
@@ -189,15 +190,17 @@
           userSigned = true;
           updateStatus("Wallet connesso e firma autorizzata.");
         }
-        // Su mobile-dapp, aggiorniamo la visibilità per mostrare il pulsante "Sign In"
-        updateButtonVisibility();
+        // Su mobile-dapp, forziamo un aggiornamento (con breve delay) per mostrare il pulsante "Sign In"
+        if (env === "mobile-dapp") {
+          setTimeout(updateButtonVisibility, 500);
+        }
       } catch (error) {
         console.error("Errore nella connessione:", error);
         updateStatus("Errore durante la connessione al wallet.", true);
       }
     }
     
-    // Funzione per richiedere la firma in ambiente mobile-dapp (viene chiamata dal pulsante "Sign In")
+    // Funzione per richiedere manualmente la firma (attivata dal pulsante "Sign In" in mobile-dapp)
     async function signIn() {
       if (!walletConnected) {
         updateStatus("Collega il wallet prima.", true);
@@ -214,7 +217,7 @@
       }
     }
     
-    // Funzione per richiedere la firma (utilizzata sia su desktop che su mobile-dapp)
+    // Funzione comune per richiedere la firma
     async function requestSignature() {
       try {
         await new Promise(resolve => setTimeout(resolve, 1500));
