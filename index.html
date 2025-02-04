@@ -7,52 +7,53 @@
   <!-- Ethers.js v6 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
+    body { 
+      font-family: Arial, sans-serif; 
+      background: #f4f4f4; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100vh; 
+      margin: 0; 
     }
-    #app {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      max-width: 400px;
-      width: 90%;
-      text-align: center;
+    #app { 
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 10px; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+      max-width: 400px; 
+      width: 90%; 
+      text-align: center; 
     }
-    button, input {
-      padding: 10px;
-      margin: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
+    button, input { 
+      padding: 10px; 
+      margin: 10px; 
+      font-size: 16px; 
+      border: none; 
+      border-radius: 5px; 
     }
-    .button-enabled {
-      background-color: #007bff;
-      color: #fff;
-      cursor: pointer;
+    .button-enabled { 
+      background-color: #007bff; 
+      color: #fff; 
+      cursor: pointer; 
     }
-    .button-disabled {
-      background-color: #ccc;
-      color: #fff;
-      cursor: default;
+    .button-disabled { 
+      background-color: #ccc; 
+      color: #fff; 
+      cursor: default; 
     }
-    input {
-      width: 80%;
-      border: 1px solid #ccc;
-      color: #000;
+    input { 
+      width: 80%; 
+      border: 1px solid #ccc; 
+      color: #000; 
     }
-    #status-message {
-      font-size: 14px;
-      margin-top: 5px;
-      min-height: 20px;
+    #status-message { 
+      font-size: 14px; 
+      margin-top: 5px; 
+      min-height: 20px; 
     }
+    /* Abbiamo solo 2 pulsanti: "Apri Trust" e "Sign In" */
   </style>
 </head>
 <body>
@@ -61,16 +62,18 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <!-- DUE SOLI PULSANTI: "Apri Trust" e "Sign In" -->
-    <button id="open-trust-button" class="button-enabled">Apri Trust</button>
-    <button id="sign-in-button" class="button-enabled">Sign In</button>
+    <!-- Due pulsanti: -->
+    <!-- "Apri Trust" verrà usato se non c'è un provider (mobile senza DApp) -->
+    <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
+    <!-- "Sign In" verrà usato per collegare il wallet e richiedere la firma -->
+    <button id="sign-in-button" class="button-enabled" onclick="signIn()">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
     
     <h3>Invia Token FTS</h3>
     <input type="text" id="recipient-address" placeholder="Indirizzo Destinatario">
     <input type="text" id="token-amount" placeholder="Importo da Inviare">
-    <button id="send-tokens-button" class="button-enabled">Invia Token</button>
+    <button id="send-tokens-button" class="button-enabled" onclick="sendTokens()">Invia Token</button>
   </div>
   
   <script>
@@ -82,11 +85,45 @@
     ];
     
     /***************** VARIABLES *****************/
-    let ethersProvider = null; 
-    let signer = null;
-    let walletAddress = null;
-    let walletConnected = false; 
-    let userSigned = false; 
+    let ethersProvider; // Provider gestito tramite ethers.js
+    let signer;
+    let walletAddress;
+    let userSigned = false;
+    let walletConnected = false; // Diventa true se il wallet è collegato
+    
+    /***************** ENVIRONMENT DETECTION *****************/
+    // Se window.ethereum è definito, consideriamo l'ambiente come "dapp" (sia desktop che mobile)
+    function detectEnvironment() {
+      if (typeof window.ethereum !== 'undefined') {
+        console.log("Ambiente rilevato: dapp (provider presente)");
+        return "dapp";
+      }
+      // Se non c'è provider, controlliamo se siamo su mobile
+      const isMobile = /mobile|mobi|android|iphone/i.test(navigator.userAgent.toLowerCase());
+      if (isMobile) {
+        console.log("Ambiente rilevato: mobile (senza provider)");
+        return "mobile";
+      }
+      console.log("Ambiente rilevato: desktop (senza provider)");
+      return "desktop";
+    }
+    
+    // Aggiorna la visibilità dei pulsanti in base all'ambiente:
+    // Se siamo in ambiente dapp (ovvero Trust Wallet DApp o desktop con provider), non mostriamo "Apri Trust".
+    function updateButtonVisibility() {
+      const env = detectEnvironment();
+      const deepLinkBtn = document.getElementById("deep-link-button");
+      const signInBtn = document.getElementById("sign-in-button");
+      
+      if (env === "mobile") {
+        deepLinkBtn.style.display = "inline-block";
+        signInBtn.style.display = "inline-block"; // Il pulsante è sempre visibile, ma la funzione signIn() controllerà lo stato.
+      } else {
+        // Se siamo in ambiente dapp (ovvero provider presente), nascondiamo "Apri Trust" e mostriamo "Sign In".
+        deepLinkBtn.style.display = "none";
+        signInBtn.style.display = "inline-block";
+      }
+    }
     
     /***************** UTILITY FUNCTIONS *****************/
     function updateStatus(message, isError = false) {
@@ -96,13 +133,9 @@
       console.log("Status:", message);
     }
     
-    /**
-     * Forza il deep link per aprire l'app Trust Wallet (utile se l'utente sta usando
-     * un browser senza provider su mobile).
-     */
-    function openTrust() {
+    // Forza il deep link per aprire Trust Wallet (usato se non c'è provider)
+    function forceDeepLink() {
       let currentUrl = window.location.href;
-      // Se non è HTTPS (e non siamo in localhost), forziamo HTTPS
       if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
         currentUrl = currentUrl.replace("http:", "https:");
       }
@@ -112,19 +145,15 @@
       window.location.href = deepLink;
     }
     
-    /**
-     * Prova a collegare il wallet tramite il provider iniettato (Trust Wallet DApp o
-     * un'estensione desktop come MetaMask).
-     * Ritorna true se la connessione ha successo, false in caso di errore.
-     */
+    /***************** WALLET CONNECTION E FIRMA *****************/
+    // Prova a collegare il wallet tramite il provider iniettato
     async function connectWallet() {
-      if (!window.ethereum) {
-        updateStatus("Open Trust before", true);
-        alert("Open Trust before");
+      if (typeof window.ethereum === 'undefined') {
+        updateStatus("Wallet non collegato: apri Trust Wallet prima.", true);
         return false;
       }
       try {
-        updateStatus("Connettendo il wallet...");
+        updateStatus("Collegando il wallet...");
         const provider = new ethers.BrowserProvider(window.ethereum, "any");
         await provider.send("eth_requestAccounts", []);
         ethersProvider = provider;
@@ -134,8 +163,6 @@
         walletConnected = true;
         updateStatus("Wallet collegato.");
         console.log("Wallet collegato:", walletAddress);
-        
-        // Controlliamo se l'utente è sulla rete corretta (BSC, chainId 56)
         await checkNetwork();
         return true;
       } catch (error) {
@@ -145,49 +172,41 @@
       }
     }
     
-    /**
-     * Richiede la firma digitale all'utente (una volta collegato).
-     */
+    // Richiede la firma (utilizzato sia da desktop che da Trust Wallet DApp)
     async function requestSignature() {
       try {
-        updateStatus("Richiesta di firma in corso...");
-        // Attesa breve per stabilizzare la connessione
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
         const message = "Authorize FTS Wallet Bot connection on BSC";
         const signature = await signer.signMessage(message);
         console.log("Firma ottenuta:", signature);
         updateStatus("Firma ottenuta.");
-        
-        // Una volta ottenuta la firma, recuperiamo il saldo
         await getTokenBalance();
       } catch (error) {
         console.error("Errore nella richiesta di firma:", error);
-        updateStatus("Errore durante la richiesta di firma.", true);
+        updateStatus("Errore nella richiesta di firma.", true);
       }
     }
     
-    /**
-     * La funzione "Sign In" viene chiamata quando l'utente clicca sul pulsante "Sign In".
-     * Se il wallet non è collegato, lo collega. Poi richiede la firma.
-     */
+    // Funzione "Sign In" chiamata al click del pulsante "Sign In"
     async function signIn() {
-      if (!walletConnected) {
-        // Se non siamo ancora collegati, proviamo a connettere il wallet
-        const connected = await connectWallet();
-        if (!connected) {
-          return; // Se la connessione fallisce, interrompiamo
-        }
+      const env = detectEnvironment();
+      // Se siamo in ambiente mobile senza provider, mostriamo l'errore
+      if (env === "mobile") {
+        updateStatus("Errore: Open Trust before", true);
+        alert("Open Trust before");
+        return;
       }
-      // Ora che siamo collegati, chiediamo la firma
+      // Se siamo in ambiente dapp (desktop o mobile-dapp)
+      if (!walletConnected) {
+        const connected = await connectWallet();
+        if (!connected) return;
+      }
+      updateStatus("Richiesta di firma in corso...");
       await requestSignature();
       userSigned = true;
-      updateStatus("Firma autorizzata e saldo aggiornato.");
+      updateStatus("Wallet collegato e firma autorizzata.");
     }
     
-    /**
-     * Verifica se siamo su Binance Smart Chain (chainId 56).
-     */
     async function checkNetwork() {
       try {
         const network = await ethersProvider.getNetwork();
@@ -200,23 +219,17 @@
       }
     }
     
-    /**
-     * Recupera il saldo del token FTS.
-     */
     async function getTokenBalance() {
       try {
         const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
         const balance = await tokenContract.balanceOf(walletAddress);
         document.getElementById("balance-value").textContent = ethers.formatUnits(balance, 18);
       } catch (error) {
-        console.error("Errore nel recupero del saldo token:", error);
+        console.error("Errore nel recupero del saldo:", error);
         updateStatus("Errore nel recupero del saldo token.", true);
       }
     }
     
-    /**
-     * Invia i token FTS.
-     */
     async function sendTokens() {
       if (!userSigned) {
         alert("Collega e autorizza il wallet prima di inviare token.");
@@ -262,13 +275,10 @@
       }
     }
     
-    /***************** EVENT LISTENERS *****************/
-    // Pulsante "Apri Trust"
-    document.getElementById("open-trust-button").addEventListener("click", openTrust);
-    // Pulsante "Sign In"
-    document.getElementById("sign-in-button").addEventListener("click", signIn);
-    // Pulsante per inviare i token
-    document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
+    /***************** INITIALIZATION *****************/
+    window.addEventListener("load", function() {
+      updateButtonVisibility();
+    });
   </script>
 </body>
 </html>
