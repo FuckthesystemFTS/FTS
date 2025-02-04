@@ -63,12 +63,12 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <!-- Pulsanti per il collegamento -->
-    <!-- Su mobile senza provider verrà mostrato "Apri Trust Wallet" -->
+    <!-- I pulsanti sono sempre presenti nel DOM; la loro visibilità viene gestita via JavaScript -->
+    <!-- Se su mobile senza provider: mostra "Apri Trust Wallet" -->
     <button id="deep-link-button" class="button-enabled">Apri Trust Wallet</button>
-    <!-- Su desktop e su mobile con provider, inizialmente viene mostrato "Connetti Wallet" -->
+    <!-- Se su desktop o mobile con provider: mostra inizialmente "Connetti Wallet" -->
     <button id="connect-wallet-button" class="button-enabled">Connetti Wallet</button>
-    <!-- Una volta connesso in ambiente mobile DApp, verrà mostrato il pulsante "Sign In" -->
+    <!-- Solo in ambiente mobile con provider (Trust Wallet DApp) e dopo la connessione: mostra "Sign In" -->
     <button id="sign-in-button" class="button-enabled">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
@@ -92,7 +92,7 @@
     let signer;
     let walletAddress;
     let userSigned = false;
-    let walletConnected = false; // Stato della connessione
+    let walletConnected = false; // Stato di connessione del wallet
     
     /***************** ENVIRONMENT DETECTION *****************/
     /**
@@ -129,7 +129,7 @@
       const signInBtn = document.getElementById("sign-in-button");
       
       if (env === "mobile") {
-        // Mobile senza provider: mostra solo il pulsante deep link
+        // Mobile senza provider: mostra solo il pulsante per il deep link
         deepLinkBtn.style.display = "inline-block";
         connectBtn.style.display = "none";
         signInBtn.style.display = "none";
@@ -139,13 +139,14 @@
         connectBtn.style.display = "inline-block";
         signInBtn.style.display = "none";
       } else if (env === "mobile-dapp") {
-        deepLinkBtn.style.display = "none";
-        // Se il wallet non è ancora connesso, mostra "Connetti Wallet"
+        // In ambiente Trust Wallet DApp, se il wallet non è ancora collegato, mostra "Connetti Wallet"
         if (!walletConnected) {
+          deepLinkBtn.style.display = "none";
           connectBtn.style.display = "inline-block";
           signInBtn.style.display = "none";
         } else {
-          // Se già connesso in Trust Wallet, mostra "Sign In" per richiedere la firma
+          // Se il wallet è collegato, mostra "Sign In" per richiedere la firma
+          deepLinkBtn.style.display = "none";
           connectBtn.style.display = "none";
           signInBtn.style.display = "inline-block";
         }
@@ -179,8 +180,8 @@
     /**
      * connectWallet()
      * Collega il wallet utilizzando il provider iniettato.
-     * - Su desktop: collega il wallet e richiede immediatamente la firma.
-     * - Su mobile-dapp: collega il wallet e imposta walletConnected a true (la firma verrà richiesta cliccando "Sign In").
+     * - Su desktop: collega il wallet e richiede subito la firma.
+     * - Su mobile-dapp: collega il wallet e aggiorna lo stato per far comparire il pulsante "Sign In".
      */
     async function connectWallet() {
       const env = detectEnvironment();
@@ -204,13 +205,13 @@
         // Verifica la rete (chainId 56 per Binance Smart Chain)
         await checkNetwork();
         
-        // Su desktop, possiamo richiedere subito la firma
         if (env === "desktop") {
+          // Su desktop richiediamo subito la firma
           await requestSignature();
           userSigned = true;
           updateStatus("Wallet connesso e firma autorizzata.");
         }
-        // Su mobile-dapp, attendiamo che l'utente prema "Sign In"
+        // Su mobile-dapp l'utente dovrà cliccare "Sign In" per la firma
         updateButtonVisibility();
       } catch (error) {
         console.error("Errore durante la connessione:", error);
@@ -220,8 +221,7 @@
     
     /**
      * signIn()
-     * Funzione da attivare in ambiente mobile-dapp per richiedere la firma
-     * (viene chiamata dal pulsante "Sign In").
+     * Funzione attivata in ambiente mobile-dapp per richiedere la firma (autorizzazione).
      */
     async function signIn() {
       if (!walletConnected) {
@@ -231,9 +231,9 @@
       try {
         await requestSignature();
         userSigned = true;
-        updateStatus("Wallet connesso e firma autorizzata.");
+        updateStatus("Firma autorizzata e saldo aggiornato.");
       } catch (error) {
-        console.error("Errore durante la richiesta di firma:", error);
+        console.error("Errore nella richiesta di firma:", error);
       }
     }
     
@@ -244,7 +244,7 @@
     async function requestSignature() {
       try {
         updateStatus("Richiesta di firma in corso...");
-        // Attesa breve per stabilizzare la connessione
+        // Breve attesa per stabilizzare la connessione
         await new Promise(resolve => setTimeout(resolve, 1500));
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
@@ -342,7 +342,7 @@
     document.getElementById("deep-link-button").addEventListener("click", forceDeepLink);
     // Pulsante per collegare il wallet (desktop e mobile-dapp)
     document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
-    // Pulsante per richiedere la firma in ambiente mobile-dapp (Trust Wallet DApp)
+    // Pulsante per richiedere la firma (solo in mobile-dapp)
     document.getElementById("sign-in-button").addEventListener("click", signIn);
     // Pulsante per inviare token
     document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
