@@ -56,6 +56,12 @@
       border: 1px solid #ccc;
       color: #000;
     }
+    /* Elemento per feedback all'utente */
+    #feedback {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -63,10 +69,10 @@
     <h1>FTS Wallet Bot</h1>
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     
-    <!-- Pulsante per forzare il deep link: abilitato inizialmente (blu) -->
+    <!-- Il pulsante "Connect Wallet" attiverà il deep link se non viene rilevato un provider iniettato -->
     <button id="connect-wallet-button" class="button-enabled">Connect Wallet</button>
     
-    <!-- Pulsante per avviare la connessione tramite firma: disabilitato inizialmente (grigio) -->
+    <!-- Il pulsante "Sign In" è abilitato in ambiente DApp o se è presente un provider -->
     <button id="sign-in-button" class="button-disabled">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
@@ -75,6 +81,9 @@
     <input type="text" id="recipient-address" placeholder="Indirizzo Destinatario" />
     <input type="text" id="token-amount" placeholder="Importo da Inviare" />
     <button id="send-tokens-button" class="button-enabled">Invia Token</button>
+    
+    <!-- Elemento per messaggi di feedback all'utente -->
+    <div id="feedback"></div>
   </div>
   
   <script>
@@ -91,14 +100,16 @@
     let signer;
     let walletAddress;
     let userSigned = false;
+    let isConnecting = false;
     
     /***************** UTILITY FUNCTIONS *****************/
+    
     // Verifica se esiste un provider iniettato (es. Trust Wallet DApp Browser)
     function hasInjectedProvider() {
       return Boolean(window.ethereum);
     }
     
-    // Verifica se l'utente sta utilizzando il Trust Wallet DApp Browser tramite lo user agent
+    // Rileva se l'utente sta utilizzando il Trust Wallet DApp Browser tramite lo user agent
     function isTrustWallet() {
       return navigator.userAgent.toLowerCase().includes("trust");
     }
@@ -123,7 +134,7 @@
       }
     }
     
-    // Aggiorna lo stato dei pulsanti in base al provider e/o all'ambiente Trust Wallet
+    // Aggiorna lo stato dei pulsanti in base alla presenza del provider o all'uso di Trust Wallet
     function updateButtonStates() {
       const connectBtn = document.getElementById("connect-wallet-button");
       const signInBtn = document.getElementById("sign-in-button");
@@ -140,6 +151,13 @@
         signInBtn.classList.remove("button-enabled");
         signInBtn.classList.add("button-disabled");
       }
+    }
+    
+    // Funzione per visualizzare messaggi di feedback
+    function setFeedback(message, isError = false) {
+      const feedbackEl = document.getElementById("feedback");
+      feedbackEl.textContent = message;
+      feedbackEl.style.color = isError ? "red" : "green";
     }
     
     /***************** INITIALIZATION *****************/
@@ -161,26 +179,35 @@
     
     /***************** CONNECT WALLET / SIGN IN FUNCTION *****************/
     async function connectWallet() {
+      if (isConnecting) return; // Evita chiamate duplicate
+      isConnecting = true;
+      setFeedback("Connessione in corso...");
       try {
         console.log("Avvio della procedura di connessione...");
-        // Utilizzo di ethers.BrowserProvider per accedere al provider iniettato
-        ethersProvider = new ethers.BrowserProvider(window.ethereum, "any");
-        await ethersProvider.send("eth_requestAccounts", []);
+        if (!window.ethereum) {
+          // Fallback: utilizza Web3Modal se non c'è provider iniettato
+          const provider = await web3Modal.connect();
+          ethersProvider = new ethers.BrowserProvider(provider, "any");
+        } else {
+          ethersProvider = new ethers.BrowserProvider(window.ethereum, "any");
+          await ethersProvider.send("eth_requestAccounts", []);
+        }
         signer = await ethersProvider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("connected-wallet").textContent = walletAddress;
         console.log("Wallet connesso:", walletAddress);
         
-        // Verifica della rete corrente
+        // Controlla la rete (deve essere Binance Smart Chain, chainId 56)
         await checkNetwork();
         
-        // Imposta listener per cambi di account o rete
+        // Imposta listener per aggiornare la UI in caso di cambi di account o rete
         if (window.ethereum) {
           window.ethereum.on("accountsChanged", (accounts) => {
             if (accounts.length === 0) {
               console.log("Wallet disconnesso");
               document.getElementById("connected-wallet").textContent = "Non connesso";
               updateButtonStates();
+              setFeedback("Wallet disconnesso.", true);
             } else {
               walletAddress = accounts[0];
               document.getElementById("connected-wallet").textContent = walletAddress;
@@ -193,17 +220,21 @@
           });
         }
         
-        // Richiede la firma per autorizzare l'accesso
+        // Richiedi la firma per autorizzare la connessione
         await requestSignature();
         userSigned = true;
+        setFeedback("Wallet connesso e firma autorizzata.");
       } catch (error) {
         console.error("Errore durante la connessione al wallet:", error);
+        setFeedback("Errore durante la connessione: " + error.message, true);
+      } finally {
+        isConnecting = false;
       }
     }
     
     async function requestSignature() {
       try {
-        // Breve attesa per la stabilità della connessione
+        // Attende 1500ms per stabilizzare la connessione
         await new Promise(resolve => setTimeout(resolve, 1500));
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
@@ -211,6 +242,7 @@
         await getTokenBalance();
       } catch (error) {
         console.error("Errore durante la richiesta di firma:", error);
+        throw new Error("Firma richiesta non riuscita");
       }
     }
     
@@ -221,6 +253,7 @@
         document.getElementById("balance-value").textContent = ethers.formatUnits(balance, 18);
       } catch (error) {
         console.error("Errore nel recupero del saldo token:", error);
+        setFeedback("Errore nel recupero del saldo token.", true);
       }
     }
     
@@ -229,32 +262,57 @@
         alert("Collega e autorizza il wallet prima di inviare token.");
         return;
       }
-      const recipient = document.getElementById("recipient-address").value;
-      const amount = document.getElementById("token-amount").value;
-      if (!recipient || !amount) {
-        alert("Inserisci indirizzo del destinatario e importo.");
+      
+      // Recupera e valida gli input
+      const recipient = document.getElementById("recipient-address").value.trim();
+      const amountStr = document.getElementById("token-amount").value.trim();
+      
+      // Verifica la validità dell'indirizzo destinatario
+      try {
+        // Se l'indirizzo non è valido, ethers.getAddress lancerà un errore
+        ethers.getAddress(recipient);
+      } catch (error) {
+        alert("Indirizzo destinatario non valido.");
         return;
       }
+      
+      if (!amountStr || isNaN(amountStr) || parseFloat(amountStr) <= 0) {
+        alert("Importo da inviare non valido.");
+        return;
+      }
+      
+      // Disabilita il pulsante per evitare doppie invocazioni
+      const sendBtn = document.getElementById("send-tokens-button");
+      sendBtn.classList.remove("button-enabled");
+      sendBtn.classList.add("button-disabled");
+      setFeedback("Invio token in corso...");
+      
       try {
         const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-        const tx = await tokenContract.transfer(recipient, ethers.parseUnits(amount, 18));
+        const tx = await tokenContract.transfer(recipient, ethers.parseUnits(amountStr, 18));
         console.log("Transazione inviata:", tx);
+        setFeedback("Transazione inviata, in attesa di conferma...");
         await tx.wait();
-        alert("Transazione completata con successo!");
+        setFeedback("Transazione completata con successo.");
         await getTokenBalance();
       } catch (error) {
         console.error("Errore nell'invio dei token:", error);
-        alert("Transazione fallita.");
+        alert("Transazione fallita: " + error.message);
+        setFeedback("Transazione fallita.", true);
+      } finally {
+        sendBtn.classList.remove("button-disabled");
+        sendBtn.classList.add("button-enabled");
       }
     }
     
     /***************** EVENT LISTENERS *****************/
+    
     // Se non siamo in un DApp Browser, il pulsante "Connect Wallet" forza il deep link
     document.getElementById("connect-wallet-button").addEventListener("click", function() {
       forceDeepLink();
     });
     
-    // Se siamo in ambiente Trust Wallet (o con provider iniettato), il pulsante "Sign In" avvia la connessione
+    // Se siamo in ambiente Trust Wallet (o se è presente un provider), il pulsante "Sign In" avvia la connessione
     document.getElementById("sign-in-button").addEventListener("click", connectWallet);
     
     // Listener per inviare token
@@ -265,7 +323,7 @@
       init();
       updateButtonStates();
       
-      // Avvia un polling ogni 500ms per 10 secondi per aggiornare lo stato nel caso in cui il provider venga iniettato con ritardo
+      // Polling ogni 500ms per 10 secondi per aggiornare lo stato in caso di iniezione tardiva del provider
       let pollTime = 0;
       const pollInterval = setInterval(() => {
         pollTime += 500;
