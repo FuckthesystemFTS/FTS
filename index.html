@@ -6,10 +6,6 @@
   <title>FTS Wallet Bot - Connessione Wallet</title>
   <!-- Ethers.js v6 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  <!-- Web3Modal (fallback per mobile senza provider iniettato) -->
-  <script src="https://unpkg.com/web3modal/dist/index.js"></script>
-  <!-- WalletConnect Provider v1.8.0 -->
-  <script src="https://unpkg.com/@walletconnect/web3-provider/dist/umd/index.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -25,7 +21,7 @@
       background: #fff;
       padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       max-width: 400px;
       width: 90%;
       text-align: center;
@@ -37,18 +33,15 @@
       border: none;
       border-radius: 5px;
     }
-    /* Pulsanti abilitati: blu e cliccabili */
+    /* Stili per i pulsanti */
     .button-enabled {
       background-color: #007bff;
       color: #fff;
       cursor: pointer;
-      pointer-events: auto;
     }
-    /* Pulsanti disabilitati: grigio e non cliccabili */
     .button-disabled {
       background-color: #ccc;
       color: #fff;
-      pointer-events: none;
       cursor: default;
     }
     input {
@@ -56,7 +49,7 @@
       border: 1px solid #ccc;
       color: #000;
     }
-    /* Stato dell'operazione */
+    /* Messaggio di stato */
     #status-message {
       font-size: 14px;
       margin-top: 5px;
@@ -68,14 +61,13 @@
   <div id="app">
     <h1>FTS Wallet Bot</h1>
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
-    <!-- Messaggio di stato per operazioni in corso o errori -->
     <p id="status-message"></p>
     
-    <!-- Il pulsante varia in base all'ambiente:
-         • Su desktop (o in mobile DApp) si utilizza "Sign In" per connettere il wallet.
-         • Su mobile in browser standard (senza provider) si visualizza "Connect Wallet" che attiva WalletConnect -->
-    <button id="connect-wallet-button" class="button-enabled" style="display:none;">Connect Wallet</button>
-    <button id="sign-in-button" class="button-disabled" style="display:none;">Sign In</button>
+    <!-- Pulsanti per il collegamento: entrambi sono presenti nel DOM -->
+    <!-- Il pulsante "Apri Trust Wallet" verrà mostrato solo se siamo su mobile senza provider -->
+    <button id="deep-link-button" class="button-enabled">Apri Trust Wallet</button>
+    <!-- Il pulsante "Connetti Wallet" verrà mostrato se siamo su desktop o su mobile con provider -->
+    <button id="connect-wallet-button" class="button-enabled">Connetti Wallet</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
     
@@ -94,7 +86,6 @@
     ];
     
     /***************** VARIABLES *****************/
-    let web3Modal;
     let ethersProvider; // Provider gestito tramite ethers.js
     let signer;
     let walletAddress;
@@ -105,94 +96,82 @@
      * detectEnvironment()
      * Ritorna:
      *   - "desktop" se si è su un dispositivo desktop
-     *   - "mobile-dapp" se si è su mobile con provider iniettato (es. Trust Wallet DApp Browser)
+     *   - "mobile-dapp" se si è su mobile con provider iniettato (DApp Browser)
      *   - "mobile" se si è su mobile senza provider iniettato
      */
     function detectEnvironment() {
       const isMobile = /Mobi|Android/i.test(navigator.userAgent);
       if (isMobile) {
         if (window.ethereum) {
+          console.log("Ambiente rilevato: mobile-dapp");
           return "mobile-dapp";
         } else {
+          console.log("Ambiente rilevato: mobile (senza provider iniettato)");
           return "mobile";
         }
       } else {
+        console.log("Ambiente rilevato: desktop");
         return "desktop";
       }
     }
     
+    /**
+     * updateButtonVisibility()
+     * Regola la visibilità dei pulsanti in base all'ambiente rilevato.
+     */
+    function updateButtonVisibility() {
+      const env = detectEnvironment();
+      const deepLinkBtn = document.getElementById("deep-link-button");
+      const connectBtn = document.getElementById("connect-wallet-button");
+      if (env === "mobile") {
+        // Mobile senza provider: mostra solo il pulsante per il deep link
+        deepLinkBtn.style.display = "inline-block";
+        connectBtn.style.display = "none";
+      } else {
+        // Desktop o mobile-dapp: mostra il pulsante per connettere il wallet
+        deepLinkBtn.style.display = "none";
+        connectBtn.style.display = "inline-block";
+      }
+    }
+    
     /***************** UTILITY FUNCTIONS *****************/
-    // Aggiorna il messaggio di stato per informare l'utente
+    /**
+     * updateStatus(message, isError)
+     * Aggiorna il messaggio di stato.
+     */
     function updateStatus(message, isError = false) {
       const statusEl = document.getElementById("status-message");
       statusEl.textContent = message;
       statusEl.style.color = isError ? "red" : "green";
     }
     
-    // Aggiorna lo stato dei pulsanti in base all'ambiente rilevato
-    function updateButtonStates() {
-      const env = detectEnvironment();
-      const connectBtn = document.getElementById("connect-wallet-button");
-      const signInBtn = document.getElementById("sign-in-button");
-      
-      // Su desktop o in mobile DApp (con provider iniettato) usiamo il pulsante "Sign In"
-      if (env === "desktop" || env === "mobile-dapp") {
-        signInBtn.style.display = "inline-block";
-        connectBtn.style.display = "none";
-        signInBtn.classList.remove("button-disabled");
-        signInBtn.classList.add("button-enabled");
-      }
-      // Su mobile senza provider, si utilizza il pulsante "Connect Wallet" che attiva WalletConnect
-      else if (env === "mobile") {
-        connectBtn.style.display = "inline-block";
-        signInBtn.style.display = "none";
-        connectBtn.classList.remove("button-disabled");
-        connectBtn.classList.add("button-enabled");
-      }
+    /**
+     * forceDeepLink()
+     * Forza l'apertura dell'app wallet tramite deep link (es. Trust Wallet).
+     */
+    function forceDeepLink() {
+      const currentUrl = window.location.href;
+      const deepLink = "trust://open_url?url=" + encodeURIComponent(currentUrl);
+      updateStatus("Reindirizzamento all'app Trust Wallet...", false);
+      console.log("Deep link: ", deepLink);
+      window.location.href = deepLink;
     }
     
-    /***************** INITIALIZATION *****************/
-    function init() {
-      // Inizializza Web3Modal (necessario soprattutto per mobile senza provider iniettato)
-      const providerOptions = {
-        walletconnect: {
-          package: WalletConnectProvider,
-          options: {
-            rpc: { 56: "https://bsc-dataseed.binance.org/" },
-            chainId: 56
-          }
-        }
-      };
-      web3Modal = new window.Web3Modal({
-        cacheProvider: false,
-        providerOptions
-      });
-    }
-    
-    /***************** CONNECT WALLET / SIGN IN FUNCTION *****************/
+    /***************** WALLET CONNECTION *****************/
+    /**
+     * connectWallet()
+     * Gestisce il collegamento del wallet tramite provider iniettato.
+     */
     async function connectWallet() {
+      if (!window.ethereum) {
+        updateStatus("Provider non trovato. Prova ad aprire tramite Trust Wallet.", true);
+        return;
+      }
       try {
         updateStatus("Connettendo il wallet...");
-        const env = detectEnvironment();
-        let provider;
-        
-        // Su desktop o in mobile DApp si utilizza il provider iniettato
-        if (env === "desktop" || env === "mobile-dapp") {
-          if (!window.ethereum) {
-            alert("Wallet provider non trovato. Utilizza un'estensione compatibile.");
-            updateStatus("Provider non trovato.", true);
-            return;
-          }
-          provider = new ethers.BrowserProvider(window.ethereum, "any");
-          await provider.send("eth_requestAccounts", []);
-        }
-        // Su mobile senza provider iniettato si utilizza WalletConnect
-        else if (env === "mobile") {
-          updateStatus("Apertura dell'app wallet tramite WalletConnect...");
-          const instance = await web3Modal.connect();
-          provider = new ethers.BrowserProvider(instance, "any");
-        }
-        
+        // Usa il provider iniettato
+        const provider = new ethers.BrowserProvider(window.ethereum, "any");
+        await provider.send("eth_requestAccounts", []);
         ethersProvider = provider;
         signer = await ethersProvider.getSigner();
         walletAddress = await signer.getAddress();
@@ -200,37 +179,22 @@
         updateStatus("Wallet connesso.");
         console.log("Wallet connesso:", walletAddress);
         
-        // Verifica della rete corrente
+        // Verifica la rete (chainId 56 per Binance Smart Chain)
         await checkNetwork();
-        
-        // Imposta listener per cambi di account o rete se disponibili
-        if (window.ethereum) {
-          window.ethereum.on("accountsChanged", (accounts) => {
-            if (accounts.length === 0) {
-              document.getElementById("connected-wallet").textContent = "Non connesso";
-              updateStatus("Wallet disconnesso.", true);
-              updateButtonStates();
-            } else {
-              walletAddress = accounts[0];
-              document.getElementById("connected-wallet").textContent = walletAddress;
-              getTokenBalance();
-            }
-          });
-          window.ethereum.on("chainChanged", (chainId) => {
-            window.location.reload();
-          });
-        }
-        
-        // Richiede la firma per autorizzare la connessione
+        // Richiedi la firma per autorizzare la connessione
         await requestSignature();
         userSigned = true;
         updateStatus("Wallet connesso e firma autorizzata.");
       } catch (error) {
-        console.error("Errore durante la connessione al wallet:", error);
+        console.error("Errore durante la connessione:", error);
         updateStatus("Errore durante la connessione al wallet.", true);
       }
     }
     
+    /**
+     * requestSignature()
+     * Richiede all'utente di firmare un messaggio per autorizzare la connessione.
+     */
     async function requestSignature() {
       try {
         updateStatus("Richiesta di firma in corso...");
@@ -239,6 +203,7 @@
         const message = "Authorize FTS Wallet Bot connection";
         const signature = await signer.signMessage(message);
         console.log("Firma ottenuta:", signature);
+        updateStatus("Firma ottenuta.");
         await getTokenBalance();
       } catch (error) {
         console.error("Errore durante la richiesta di firma:", error);
@@ -246,6 +211,10 @@
       }
     }
     
+    /**
+     * checkNetwork()
+     * Verifica che l'utente sia connesso alla rete corretta (chainId 56).
+     */
     async function checkNetwork() {
       try {
         const network = await ethersProvider.getNetwork();
@@ -258,6 +227,10 @@
       }
     }
     
+    /**
+     * getTokenBalance()
+     * Recupera e visualizza il saldo del token FTS.
+     */
     async function getTokenBalance() {
       try {
         const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
@@ -269,31 +242,31 @@
       }
     }
     
+    /**
+     * sendTokens()
+     * Invia token FTS al destinatario specificato.
+     */
     async function sendTokens() {
       if (!userSigned) {
         alert("Collega e autorizza il wallet prima di inviare token.");
         return;
       }
-      // Recupera e pulisce gli input
       const recipient = document.getElementById("recipient-address").value.trim();
       const amount = document.getElementById("token-amount").value.trim();
       if (!recipient || !amount) {
         alert("Inserisci indirizzo del destinatario e importo.");
         return;
       }
-      // Validazione dell'indirizzo
       if (!ethers.isAddress(recipient)) {
         alert("L'indirizzo del destinatario non è valido.");
         return;
       }
-      // Validazione dell'importo
       if (isNaN(amount) || Number(amount) <= 0) {
         alert("L'importo deve essere un numero positivo.");
         return;
       }
       try {
         updateStatus("Invio token in corso...");
-        // Disabilita temporaneamente il pulsante per evitare doppie invocazioni
         const sendBtn = document.getElementById("send-tokens-button");
         sendBtn.disabled = true;
         sendBtn.classList.remove("button-enabled");
@@ -311,7 +284,6 @@
         alert("Transazione fallita.");
         updateStatus("Transazione fallita.", true);
       } finally {
-        // Riabilita il pulsante per l'invio token
         const sendBtn = document.getElementById("send-tokens-button");
         sendBtn.disabled = false;
         sendBtn.classList.remove("button-disabled");
@@ -320,27 +292,16 @@
     }
     
     /***************** EVENT LISTENERS *****************/
-    // Il comportamento dei pulsanti varia in base all'ambiente:
-    // - Se su mobile senza provider, "Connect Wallet" attiva la connessione (via WalletConnect)
-    // - Se su desktop o mobile con provider, "Sign In" attiva la connessione con il provider iniettato
+    // Il pulsante "Apri Trust Wallet" (deep-link) – visibile solo se non c'è provider
+    document.getElementById("deep-link-button").addEventListener("click", forceDeepLink);
+    // Il pulsante "Connetti Wallet" – visibile se c'è un provider (desktop o mobile-dapp)
     document.getElementById("connect-wallet-button").addEventListener("click", connectWallet);
-    document.getElementById("sign-in-button").addEventListener("click", connectWallet);
+    // Pulsante per inviare token
     document.getElementById("send-tokens-button").addEventListener("click", sendTokens);
     
     /***************** INITIALIZATION ON LOAD *****************/
     window.addEventListener("load", function() {
-      init();
-      updateButtonStates();
-      
-      // Polling ogni 500ms per 10 secondi per aggiornare lo stato nel caso in cui il provider venga iniettato con ritardo
-      let pollTime = 0;
-      const pollInterval = setInterval(() => {
-        pollTime += 500;
-        updateButtonStates();
-        if (pollTime >= 10000) {
-          clearInterval(pollInterval);
-        }
-      }, 500);
+      updateButtonVisibility();
     });
   </script>
 </body>
