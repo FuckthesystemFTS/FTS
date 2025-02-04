@@ -53,6 +53,8 @@
       margin-top: 5px; 
       min-height: 20px; 
     }
+    /* Per impostazione predefinita, nascondiamo il pulsante Sign In */
+    #sign-in-button { display: none; }
   </style>
 </head>
 <body>
@@ -61,12 +63,12 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <!-- I pulsanti sono sempre presenti; la loro visibilità viene gestita via JavaScript -->
+    <!-- I pulsanti sono sempre presenti nel DOM, ma la loro visibilità viene gestita via JavaScript -->
     <!-- Su mobile senza provider verrà mostrato "Apri Trust Wallet" -->
     <button id="deep-link-button" class="button-enabled">Apri Trust Wallet</button>
-    <!-- Su desktop o mobile con provider, inizialmente viene mostrato "Connetti Wallet" -->
+    <!-- Su desktop e mobile con provider (inizialmente) viene mostrato "Connetti Wallet" -->
     <button id="connect-wallet-button" class="button-enabled">Connetti Wallet</button>
-    <!-- Solo in ambiente mobile-dapp (Trust Wallet DApp) e dopo la connessione: mostra "Sign In" -->
+    <!-- Questo pulsante viene mostrato SOLO in ambiente mobile-dapp dopo che il wallet è collegato -->
     <button id="sign-in-button" class="button-enabled">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
@@ -90,7 +92,7 @@
     let signer;
     let walletAddress;
     let userSigned = false;
-    let walletConnected = false;
+    let walletConnected = false; // Stato di connessione del wallet
     
     /***************** ENVIRONMENT DETECTION *****************/
     function detectEnvironment() {
@@ -121,16 +123,18 @@
         connectBtn.style.display = "none";
         signInBtn.style.display = "none";
       } else if (env === "desktop") {
-        // Desktop: mostra il pulsante per collegare il wallet (firma richiesta automaticamente)
+        // Desktop: mostra solo il pulsante per collegare il wallet (firma richiesta automaticamente)
         deepLinkBtn.style.display = "none";
         connectBtn.style.display = "inline-block";
         signInBtn.style.display = "none";
       } else if (env === "mobile-dapp") {
         deepLinkBtn.style.display = "none";
+        // Se il wallet NON è ancora connesso, mostra "Connetti Wallet"
         if (!walletConnected) {
           connectBtn.style.display = "inline-block";
           signInBtn.style.display = "none";
         } else {
+          // Se il wallet è collegato, mostra "Sign In" per richiedere la firma
           connectBtn.style.display = "none";
           signInBtn.style.display = "inline-block";
         }
@@ -142,21 +146,23 @@
       const statusEl = document.getElementById("status-message");
       statusEl.textContent = message;
       statusEl.style.color = isError ? "red" : "green";
+      console.log("Status:", message);
     }
     
     function forceDeepLink() {
       let currentUrl = window.location.href;
-      // Se il protocollo non è HTTPS (e non siamo in localhost), forza la conversione a HTTPS
+      // Se il protocollo non è HTTPS (e non siamo in localhost), converte in HTTPS
       if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
         currentUrl = currentUrl.replace("http:", "https:");
       }
       const deepLink = "trust://open_url?url=" + encodeURIComponent(currentUrl);
-      updateStatus("Reindirizzamento all'app Trust Wallet...", false);
+      updateStatus("Reindirizzamento all'app Trust Wallet...");
       console.log("Deep link:", deepLink);
       window.location.href = deepLink;
     }
     
     /***************** WALLET CONNECTION *****************/
+    // Funzione per collegare il wallet tramite provider iniettato
     async function connectWallet() {
       const env = detectEnvironment();
       if (!window.ethereum) {
@@ -166,7 +172,6 @@
       try {
         updateStatus("Connettendo il wallet...");
         const provider = new ethers.BrowserProvider(window.ethereum, "any");
-        // Su desktop o mobile-dapp il provider iniettato è utilizzato
         await provider.send("eth_requestAccounts", []);
         ethersProvider = provider;
         signer = await ethersProvider.getSigner();
@@ -179,12 +184,12 @@
         await checkNetwork();
         
         if (env === "desktop") {
-          // Su desktop richiediamo subito la firma
+          // Su desktop, richiediamo subito la firma
           await requestSignature();
           userSigned = true;
           updateStatus("Wallet connesso e firma autorizzata.");
         }
-        // Su mobile-dapp, aggiorniamo i pulsanti per mostrare "Sign In"
+        // Su mobile-dapp, aggiorniamo la visibilità per mostrare il pulsante "Sign In"
         updateButtonVisibility();
       } catch (error) {
         console.error("Errore nella connessione:", error);
@@ -192,12 +197,14 @@
       }
     }
     
+    // Funzione per richiedere la firma in ambiente mobile-dapp (viene chiamata dal pulsante "Sign In")
     async function signIn() {
       if (!walletConnected) {
         updateStatus("Collega il wallet prima.", true);
         return;
       }
       try {
+        updateStatus("Richiesta di firma in corso...");
         await requestSignature();
         userSigned = true;
         updateStatus("Firma autorizzata e saldo aggiornato.");
@@ -207,11 +214,11 @@
       }
     }
     
+    // Funzione per richiedere la firma (utilizzata sia su desktop che su mobile-dapp)
     async function requestSignature() {
       try {
-        updateStatus("Richiesta di firma in corso...");
         await new Promise(resolve => setTimeout(resolve, 1500));
-        // Messaggio aggiornato per evitare riferimenti a link non sicuri
+        // Messaggio aggiornato per evitare avvisi di link non sicuro
         const message = "Authorize FTS Wallet Bot connection on BSC";
         const signature = await signer.signMessage(message);
         console.log("Firma ottenuta:", signature);
