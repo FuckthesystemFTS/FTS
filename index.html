@@ -63,7 +63,7 @@
     <p id="status-message"></p>
     
     <!-- Due pulsanti: -->
-    <!-- "Apri Trust" verrà usato se non c'è un provider (mobile senza DApp) -->
+    <!-- "Apri Trust" verrà usato se non è presente un provider (mobile senza DApp) -->
     <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
     <!-- "Sign In" verrà usato per collegare il wallet e richiedere la firma -->
     <button id="sign-in-button" class="button-enabled" onclick="signIn()">Sign In</button>
@@ -92,13 +92,18 @@
     let walletConnected = false; // Diventa true se il wallet è collegato
     
     /***************** ENVIRONMENT DETECTION *****************/
-    // Se window.ethereum è definito, consideriamo l'ambiente come "dapp" (sia desktop che mobile)
+    // Se window.ethereum è definito e se è presente la proprietà isTrustWallet (o isTrust), consideriamo l'ambiente come "dapp"
     function detectEnvironment() {
       if (typeof window.ethereum !== 'undefined') {
+        // Controlla se Trust Wallet espone una proprietà specifica
+        if (window.ethereum.isTrustWallet || window.ethereum.isTrust) {
+          console.log("Ambiente rilevato: Trust Wallet DApp");
+          return "dapp";
+        }
         console.log("Ambiente rilevato: dapp (provider presente)");
         return "dapp";
       }
-      // Se non c'è provider, controlliamo se siamo su mobile
+      // Se non c'è provider, controlla se siamo su mobile
       const isMobile = /mobile|mobi|android|iphone/i.test(navigator.userAgent.toLowerCase());
       if (isMobile) {
         console.log("Ambiente rilevato: mobile (senza provider)");
@@ -108,18 +113,18 @@
       return "desktop";
     }
     
-    // Aggiorna la visibilità dei pulsanti in base all'ambiente:
-    // Se siamo in ambiente dapp (ovvero Trust Wallet DApp o desktop con provider), non mostriamo "Apri Trust".
+    // Aggiorna la visibilità dei pulsanti in base all'ambiente
     function updateButtonVisibility() {
       const env = detectEnvironment();
       const deepLinkBtn = document.getElementById("deep-link-button");
       const signInBtn = document.getElementById("sign-in-button");
       
       if (env === "mobile") {
+        // Se siamo su mobile senza provider, mostriamo entrambi; la funzione signIn() gestirà l'errore
         deepLinkBtn.style.display = "inline-block";
-        signInBtn.style.display = "inline-block"; // Il pulsante è sempre visibile, ma la funzione signIn() controllerà lo stato.
+        signInBtn.style.display = "inline-block";
       } else {
-        // Se siamo in ambiente dapp (ovvero provider presente), nascondiamo "Apri Trust" e mostriamo "Sign In".
+        // Se siamo in ambiente dapp (Trust Wallet DApp o desktop con provider), nascondiamo "Apri Trust"
         deepLinkBtn.style.display = "none";
         signInBtn.style.display = "inline-block";
       }
@@ -146,7 +151,7 @@
     }
     
     /***************** WALLET CONNECTION E FIRMA *****************/
-    // Prova a collegare il wallet tramite il provider iniettato
+    // Tenta di collegare il wallet tramite il provider iniettato
     async function connectWallet() {
       if (typeof window.ethereum === 'undefined') {
         updateStatus("Wallet non collegato: apri Trust Wallet prima.", true);
@@ -172,7 +177,7 @@
       }
     }
     
-    // Richiede la firma (utilizzato sia da desktop che da Trust Wallet DApp)
+    // Richiede la firma, usata sia su desktop che in Trust Wallet DApp
     async function requestSignature() {
       try {
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -187,16 +192,16 @@
       }
     }
     
-    // Funzione "Sign In" chiamata al click del pulsante "Sign In"
+    // Funzione "Sign In": se siamo in un ambiente DApp, collega il wallet (se non già collegato) e richiede la firma
     async function signIn() {
       const env = detectEnvironment();
-      // Se siamo in ambiente mobile senza provider, mostriamo l'errore
       if (env === "mobile") {
+        // Se siamo su mobile senza provider, segnalare l'errore
         updateStatus("Errore: Open Trust before", true);
         alert("Open Trust before");
         return;
       }
-      // Se siamo in ambiente dapp (desktop o mobile-dapp)
+      // In ambiente dapp (desktop o Trust Wallet DApp)
       if (!walletConnected) {
         const connected = await connectWallet();
         if (!connected) return;
