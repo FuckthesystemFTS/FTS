@@ -53,7 +53,6 @@
       margin-top: 5px; 
       min-height: 20px; 
     }
-    /* In questa soluzione abbiamo SOLO 2 pulsanti: "Apri Trust" e "Sign In" */
   </style>
 </head>
 <body>
@@ -62,10 +61,8 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <!-- Due pulsanti: -->
-    <!-- "Apri Trust" verrà utilizzato se siamo su mobile senza provider -->
+    <!-- Due pulsanti: "Apri Trust" e "Sign In" -->
     <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
-    <!-- "Sign In" verrà usato in Trust Wallet DApp (o su desktop) per collegare il wallet e richiedere la firma -->
     <button id="sign-in-button" class="button-enabled" onclick="signIn()">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
@@ -89,17 +86,24 @@
     let signer;
     let walletAddress;
     let userSigned = false;
-    let walletConnected = false; // Viene impostato a true dopo una connessione riuscita
+    let walletConnected = false; // Impostato a true dopo una connessione riuscita
     
     /***************** ENVIRONMENT DETECTION *****************/
-    // Semplice rilevamento: se siamo su mobile e window.ethereum esiste, consideriamo l'ambiente come "mobile-dapp".
+    // Rileva l'ambiente controllando l'user agent e la presenza di window.ethereum
     function detectEnvironment() {
       const ua = navigator.userAgent.toLowerCase();
+      // Se l'user agent contiene "trust" o "trustwallet", consideriamo l'ambiente come Trust Wallet DApp
+      if (ua.includes("trust") || ua.includes("trustwallet")) {
+        console.log("Ambiente rilevato: mobile-dapp (user agent indica Trust Wallet)");
+        return "mobile-dapp";
+      }
+      // Se siamo su mobile e window.ethereum è presente, consideriamo l'ambiente come DApp
       const isMobile = /mobile|mobi|android|iphone/i.test(ua);
       if (isMobile && window.ethereum) {
-        console.log("Ambiente rilevato: mobile-dapp (window.ethereum presente)");
+        console.log("Ambiente rilevato: mobile-dapp (mobile + window.ethereum)");
         return "mobile-dapp";
-      } else if (isMobile) {
+      }
+      if (isMobile) {
         console.log("Ambiente rilevato: mobile (senza provider)");
         return "mobile";
       }
@@ -107,19 +111,18 @@
       return "desktop";
     }
     
-    // Aggiorna la visibilità dei pulsanti in base all'ambiente
+    // Aggiorna la visibilità dei pulsanti
     function updateButtonVisibility() {
       const env = detectEnvironment();
       const deepLinkBtn = document.getElementById("deep-link-button");
       const signInBtn = document.getElementById("sign-in-button");
       
       if (env === "mobile") {
-        // Se siamo su mobile senza provider, mostra entrambi (l'utente dovrà cliccare "Apri Trust")
+        // Se siamo su mobile senza provider, mostriamo entrambi i pulsanti
         deepLinkBtn.style.display = "inline-block";
         signInBtn.style.display = "inline-block";
       } else {
-        // Se siamo in mobile-dapp o desktop, non serve il deep link: 
-        // Mostriamo solo "Sign In"
+        // In ambiente DApp (mobile-dapp o desktop), non serve il deep link
         deepLinkBtn.style.display = "none";
         signInBtn.style.display = "inline-block";
       }
@@ -133,7 +136,7 @@
       console.log("Status:", message);
     }
     
-    // Forza il deep link per aprire Trust Wallet (utilizzato in mobile senza provider)
+    // Forza il deep link per aprire Trust Wallet (da mobile senza provider)
     function forceDeepLink() {
       let currentUrl = window.location.href;
       if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
@@ -146,9 +149,10 @@
     }
     
     /***************** WALLET CONNECTION E FIRMA *****************/
-    // Collega il wallet tramite il provider iniettato
+    // Tenta di collegare il wallet tramite il provider iniettato
     async function connectWallet() {
-      if (!window.ethereum) {
+      // Se window.ethereum non esiste e l'user agent non indica Trust, ritorna false
+      if (!window.ethereum && !navigator.userAgent.toLowerCase().includes("trust")) {
         updateStatus("Wallet non collegato: apri Trust Wallet prima.", true);
         return false;
       }
@@ -172,7 +176,7 @@
       }
     }
     
-    // Funzione comune per richiedere la firma
+    // Richiede la firma usando il provider (se il wallet è collegato)
     async function requestSignature() {
       try {
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -187,16 +191,16 @@
       }
     }
     
-    // La funzione "Sign In" viene chiamata al click del pulsante "Sign In"
+    // Funzione "Sign In": se non siamo in un ambiente DApp, mostra errore; altrimenti collega e richiede la firma.
     async function signIn() {
-      const env = detectEnvironment();
-      // Se non siamo in un ambiente DApp (mobile-dapp o desktop), mostriamo l'errore
-      if (env !== "mobile-dapp" && env !== "desktop") {
+      const ua = navigator.userAgent.toLowerCase();
+      // Se window.ethereum non esiste e l'user agent NON indica Trust Wallet, avvisa l'utente.
+      if (!window.ethereum && !ua.includes("trust") && !ua.includes("trustwallet")) {
         updateStatus("Errore: Open Trust before", true);
         alert("Open Trust before");
         return;
       }
-      // Se siamo in un ambiente DApp ma il wallet non è ancora collegato, prova a collegarlo
+      // Se il wallet non è ancora collegato, tenta la connessione
       if (!walletConnected) {
         const connected = await connectWallet();
         if (!connected) return;
