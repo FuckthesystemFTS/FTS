@@ -1,59 +1,60 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FTS Wallet Bot - Connessione Wallet</title>
-  <!-- ethers.js v5 -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
-  <!-- WalletConnect Provider v1 -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+  <!-- ethers.js v6 -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
+  <!-- WalletConnect Ethereum Provider v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.0.7/dist/ethereum-provider.umd.min.js"></script>
   <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      background: #f4f4f4; 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      justify-content: center; 
-      min-height: 100vh; 
-      margin: 0; 
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
     }
-    #app { 
-      background: #fff; 
-      padding: 20px; 
-      border-radius: 10px; 
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-      max-width: 400px; 
-      width: 90%; 
-      text-align: center; 
+    #app {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
     }
-    button, input { 
-      padding: 10px; 
-      margin: 10px; 
-      font-size: 16px; 
-      border: none; 
-      border-radius: 5px; 
+    button,
+    input {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
     }
-    .button-enabled { 
-      background-color: #007bff; 
-      color: #fff; 
-      cursor: pointer; 
+    .button-enabled {
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
     }
-    .button-disabled { 
-      background-color: #ccc; 
-      color: #fff; 
-      cursor: default; 
+    .button-disabled {
+      background-color: #ccc;
+      color: #fff;
+      cursor: default;
     }
-    input { 
-      width: 80%; 
-      border: 1px solid #ccc; 
-      color: #000; 
+    input {
+      width: 80%;
+      border: 1px solid #ccc;
+      color: #000;
     }
-    #status-message { 
-      font-size: 14px; 
-      margin-top: 5px; 
-      min-height: 20px; 
+    #status-message {
+      font-size: 14px;
+      margin-top: 5px;
+      min-height: 20px;
     }
   </style>
 </head>
@@ -62,14 +63,14 @@
     <h1>FTS Wallet Bot</h1>
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
-    
+
     <!-- Pulsanti -->
     <button id="connect-wallet-button" class="button-enabled" onclick="connectWallet()">Connect Wallet</button>
     <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
-    
+
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
   </div>
-  
+
   <script>
     /***************** CONFIGURAZIONE *****************/
     // Indirizzo e ABI del token FTS sulla rete BNB (verifica che siano corretti)
@@ -78,107 +79,106 @@
       "function transfer(address to, uint256 amount) public returns (bool)",
       "function balanceOf(address owner) public view returns (uint256)"
     ];
-    
+
     /***************** VARIABILI GLOBALI *****************/
-    let provider;      // Provider ethers.js
+    let ethersProvider;  // Provider gestito da ethers.js
     let signer;
     let walletAddress;
     let walletConnected = false;
     let tokenContract;
-    
+
     /***************** FUNZIONI UTILITY *****************/
-    // Aggiorna lo stato sullo schermo
     function updateStatus(message, isError = false) {
       const statusEl = document.getElementById("status-message");
       statusEl.textContent = message;
       statusEl.style.color = isError ? "red" : "green";
       console.log(message);
     }
-    
-    // Rileva se l'utente è su mobile
+
+    // Rileva se l'utente sta usando un dispositivo mobile
     function isMobile() {
       return /mobile|android|iphone/i.test(navigator.userAgent.toLowerCase());
     }
-    
-    // Mostra o nasconde il pulsante deep link a Trust Wallet (solo su mobile)
+
+    // Mostra o nasconde il pulsante per il deep link a Trust Wallet (solo su mobile)
     function updateButtonVisibility() {
       const deepLinkBtn = document.getElementById("deep-link-button");
       deepLinkBtn.style.display = isMobile() ? "inline-block" : "none";
     }
-    
+
     // Deep link per aprire Trust Wallet (su mobile)
     function forceDeepLink() {
       const deepLink = `trust://open_url?url=${encodeURIComponent(window.location.href)}`;
       updateStatus("Reindirizzamento a Trust Wallet...");
       window.location.href = deepLink;
     }
-    
+
     /***************** CONNESSIONE DEL WALLET *****************/
     async function connectWallet() {
-      // Se è presente window.ethereum (MetaMask, dApp browser, ecc.)
+      // 1. Se esiste un provider iniettato (MetaMask, dApp browser, ecc.)
       if (typeof window.ethereum !== "undefined") {
         try {
-          updateStatus("Connessione al wallet in corso...");
-          provider = new ethers.providers.Web3Provider(window.ethereum);
+          updateStatus("Connessione con provider iniettato...");
+          // Con ethers v6 usiamo BrowserProvider
+          const provider = new ethers.BrowserProvider(window.ethereum, "any");
           await provider.send("eth_requestAccounts", []);
-          signer = provider.getSigner();
+          ethersProvider = provider;
+          signer = await ethersProvider.getSigner();
           walletAddress = await signer.getAddress();
           walletConnected = true;
           document.getElementById("connected-wallet").textContent = walletAddress;
-          updateStatus("Wallet collegato con successo.");
-          
-          // Inizializza il contratto FTS
+          updateStatus("Wallet collegato con provider iniettato.");
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
           await getBalance();
           return;
         } catch (error) {
           console.error(error);
-          updateStatus("Errore nella connessione: " + error.message, true);
-          return;
+          updateStatus("Errore con provider iniettato: " + error.message, true);
+          // Se fallisce, si passa al tentativo con WalletConnect v2
         }
       }
-      
-      // Altrimenti, se siamo su mobile, tentiamo con WalletConnect
+
+      // 2. Se non esiste provider iniettato oppure si è su mobile, proviamo con WalletConnect v2
       if (isMobile()) {
         try {
-          updateStatus("Connessione tramite WalletConnect in corso...");
-          // Usa WalletConnectProvider (v1)
-          const walletConnectProvider = new WalletConnectProvider.default({
-            rpc: {
-              56: "https://bsc-dataseed.binance.org/"
-            },
-            chainId: 56
+          updateStatus("Connessione tramite WalletConnect v2 in corso...");
+          // Inizializza WalletConnect Ethereum Provider v2
+          // Utilizza il project ID fornito: d2dbf72ab740e1656b27eefd66a94298
+          const wcProvider = await WalletConnectEthereumProvider.init({
+            projectId: "d2dbf72ab740e1656b27eefd66a94298",
+            chains: [56],           // Rete BNB Chain
+            optionalChains: [56],
+            showQrModal: true,
           });
-          await walletConnectProvider.enable();
-          provider = new ethers.providers.Web3Provider(walletConnectProvider);
-          signer = provider.getSigner();
+          // Effettua la connessione
+          await wcProvider.connect();
+          ethersProvider = new ethers.BrowserProvider(wcProvider, "any");
+          signer = await ethersProvider.getSigner();
           walletAddress = await signer.getAddress();
           walletConnected = true;
           document.getElementById("connected-wallet").textContent = walletAddress;
-          updateStatus("Wallet collegato tramite WalletConnect.");
-          
-          // Inizializza il contratto FTS
+          updateStatus("Wallet collegato tramite WalletConnect v2.");
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
           await getBalance();
           return;
         } catch (error) {
           console.error(error);
-          updateStatus("Errore con WalletConnect: " + error.message, true);
+          updateStatus("Errore con WalletConnect v2: " + error.message, true);
           return;
         }
       }
-      
-      updateStatus("Nessun provider di wallet trovato.", true);
+
+      updateStatus("Nessun provider disponibile.", true);
     }
-    
+
     // Recupera il saldo del token FTS
     async function getBalance() {
       if (!tokenContract || !walletAddress) return;
       try {
         updateStatus("Recupero del saldo FTS...");
         const balanceBN = await tokenContract.balanceOf(walletAddress);
-        // Supponendo che il token abbia 18 decimali
-        const balance = ethers.utils.formatUnits(balanceBN, 18);
+        // Assumendo 18 decimali per il token
+        const balance = ethers.formatUnits(balanceBN, 18);
         document.getElementById("balance-value").textContent = balance;
         updateStatus("Saldo aggiornato.");
       } catch (error) {
@@ -186,7 +186,7 @@
         updateStatus("Errore nel recupero del saldo: " + error.message, true);
       }
     }
-    
+
     /***************** INIZIALIZZAZIONE *****************/
     window.addEventListener("load", function () {
       updateButtonVisibility();
