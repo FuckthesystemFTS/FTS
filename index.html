@@ -55,7 +55,6 @@
       margin-top: 5px; 
       min-height: 20px; 
     }
-    /* Abbiamo solo 2 pulsanti: "Apri Trust" e "Sign In" */
   </style>
 </head>
 <body>
@@ -64,7 +63,7 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <!-- Due pulsanti: -->
+    <!-- Pulsanti per aprire Trust Wallet e firmare -->
     <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
     <button id="sign-in-button" class="button-enabled" onclick="signIn()">Sign In</button>
     
@@ -72,44 +71,23 @@
   </div>
   
   <script>
-    /***************** CONFIGURATION *****************/
+    /***************** CONFIGURAZIONE *****************/
+    // Indirizzo del contratto FTS su BSC (assicurati che l'indirizzo e ABI siano corretti)
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
     const TOKEN_ABI = [
       "function transfer(address to, uint256 amount) public returns (bool)",
       "function balanceOf(address owner) public view returns (uint256)"
     ];
     
-    /***************** VARIABLES *****************/
-    let ethersProvider; // Provider gestito tramite ethers.js
+    /***************** VARIABILI GLOBALI *****************/
+    let ethersProvider;  // Provider gestito tramite ethers.js
     let signer;
     let walletAddress;
     let walletConnected = false;
+    let tokenContract;
     
-    /***************** ENVIRONMENT DETECTION *****************/
-    function detectEnvironment() {
-      // Se esiste un provider iniettato (es. MetaMask o dApp Browser) lo usiamo
-      if (typeof window.ethereum !== "undefined") {
-        return "dapp";
-      }
-      // Altrimenti controlliamo se siamo su mobile
-      const isMobile = /mobile|android|iphone/i.test(navigator.userAgent.toLowerCase());
-      return isMobile ? "mobile" : "desktop";
-    }
-    
-    function updateButtonVisibility() {
-      const env = detectEnvironment();
-      const deepLinkBtn = document.getElementById("deep-link-button");
-      const signInBtn = document.getElementById("sign-in-button");
-      if (env === "mobile") {
-        deepLinkBtn.style.display = "inline-block";
-        signInBtn.style.display = "inline-block"; // Permettiamo all'utente di provare comunque
-      } else {
-        deepLinkBtn.style.display = "none";
-        signInBtn.style.display = "inline-block";
-      }
-    }
-    
-    /***************** UTILITY FUNCTIONS *****************/
+    /***************** FUNZIONI DI SUPPORTO *****************/
+    // Aggiorna il messaggio di stato
     function updateStatus(message, isError = false) {
       const statusEl = document.getElementById("status-message");
       statusEl.textContent = message;
@@ -117,26 +95,62 @@
       console.log(message);
     }
     
-    // Funzione di deep link per aprire Trust Wallet direttamente
+    // Rileva l'ambiente: dApp (con provider iniettato), mobile o desktop
+    function detectEnvironment() {
+      if (typeof window.ethereum !== "undefined") {
+        return "dapp";
+      }
+      // Verifica se si tratta di mobile
+      const isMobile = /mobile|android|iphone/i.test(navigator.userAgent.toLowerCase());
+      return isMobile ? "mobile" : "desktop";
+    }
+    
+    // Aggiorna la visibilità dei pulsanti in base all'ambiente
+    function updateButtonVisibility() {
+      const env = detectEnvironment();
+      const deepLinkBtn = document.getElementById("deep-link-button");
+      const signInBtn = document.getElementById("sign-in-button");
+      
+      if (env === "mobile") {
+        // Su mobile mostriamo entrambi i pulsanti
+        deepLinkBtn.style.display = "inline-block";
+        signInBtn.style.display = "inline-block";
+      } else {
+        // Su desktop potenzialmente non è disponibile Trust Wallet
+        deepLinkBtn.style.display = "none";
+        signInBtn.style.display = "inline-block";
+      }
+    }
+    
+    // Funzione per aprire Trust Wallet tramite deep link
     function forceDeepLink() {
       const deepLink = `trust://open_url?url=${encodeURIComponent(window.location.href)}`;
       updateStatus("Reindirizzamento a Trust Wallet...");
       window.location.href = deepLink;
     }
     
-    /***************** WALLET CONNECTION *****************/
+    /***************** CONNESSIONE DEL WALLET *****************/
     async function connectWallet() {
-      // Se è presente un provider iniettato (desktop o alcuni dApp browser)
+      // Se esiste un provider iniettato (MetaMask, browser dApp, ecc.)
       if (typeof window.ethereum !== "undefined") {
         try {
+          updateStatus("Connessione al wallet in corso...");
+          // Per ethers.js v6 si usa BrowserProvider
           const provider = new ethers.BrowserProvider(window.ethereum, "any");
+          // Richiedi l'accesso agli account
           await provider.send("eth_requestAccounts", []);
           ethersProvider = provider;
           signer = await ethersProvider.getSigner();
           walletAddress = await signer.getAddress();
           walletConnected = true;
           document.getElementById("connected-wallet").textContent = walletAddress;
-          updateStatus("Wallet collegato.");
+          updateStatus("Wallet collegato con successo.");
+          
+          // Inizializza il contratto FTS
+          tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+          
+          // Recupera e mostra il saldo FTS
+          await getBalance();
           return true;
         } catch (error) {
           console.error(error);
@@ -144,23 +158,23 @@
           return false;
         }
       } else {
-        // Se non esiste window.ethereum, proviamo con WalletConnect (utile soprattutto da mobile)
+        // Se non esiste window.ethereum, proviamo con WalletConnect (utile su mobile)
         const env = detectEnvironment();
         if (env === "mobile") {
           try {
-            updateStatus("Tentativo di connessione tramite WalletConnect...");
-            // Verifichiamo che WalletConnect sia disponibile
+            updateStatus("Connessione tramite WalletConnect in corso...");
+            // Verifica se WalletConnectProvider è disponibile
             if (typeof WalletConnectProvider === "undefined") {
-              updateStatus("WalletConnect non disponibile. Apri Trust Wallet.", true);
+              updateStatus("WalletConnect non disponibile. Reindirizzamento a Trust Wallet.", true);
               forceDeepLink();
               return false;
             }
-            // Configuriamo WalletConnect per BSC (chainId 56)
-            const walletConnectProvider = new WalletConnectProvider({
-              rpc: {
-                56: "https://bsc-dataseed.binance.org/"
+            // Configura WalletConnect per BSC (chainId 56)
+            const walletConnectProvider = new WalletConnectProvider.default({
+              rpc: { 
+                56: "https://bsc-dataseed.binance.org/" 
               },
-              chainId: 56
+              chainId: 56,
             });
             await walletConnectProvider.enable();
             ethersProvider = new ethers.BrowserProvider(walletConnectProvider, "any");
@@ -169,42 +183,63 @@
             walletConnected = true;
             document.getElementById("connected-wallet").textContent = walletAddress;
             updateStatus("Wallet collegato tramite WalletConnect.");
+            
+            // Inizializza il contratto FTS
+            tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+            await getBalance();
             return true;
           } catch (error) {
             console.error(error);
             updateStatus("Errore nella connessione tramite WalletConnect: " + error.message, true);
-            // Se anche WalletConnect fallisce, forziamo il deep linking a Trust Wallet
+            // Se anche WalletConnect fallisce, forziamo il deep link
             forceDeepLink();
             return false;
           }
         } else {
-          updateStatus("Provider non trovato.", true);
+          updateStatus("Nessun provider di wallet trovato.", true);
           return false;
         }
       }
     }
     
-    /***************** SIGN IN *****************/
+    // Funzione per recuperare il saldo del token FTS
+    async function getBalance() {
+      if (!tokenContract || !walletAddress) return;
+      try {
+        updateStatus("Recupero del saldo FTS...");
+        // La funzione balanceOf restituisce un BigNumber; convertilo in stringa decimale
+        const balanceBN = await tokenContract.balanceOf(walletAddress);
+        // Se il token ha 18 decimali, puoi formattare il valore; altrimenti, adattalo
+        const balance = ethers.formatUnits(balanceBN, 18);
+        document.getElementById("balance-value").textContent = balance;
+        updateStatus("Saldo aggiornato.");
+      } catch (error) {
+        console.error(error);
+        updateStatus("Errore nel recupero del saldo: " + error.message, true);
+      }
+    }
+    
+    /***************** FUNZIONE DI SIGN IN *****************/
     async function signIn() {
-      const env = detectEnvironment();
-      // Se siamo su mobile senza provider iniettato, la funzione connectWallet gestirà il fallback
+      // Se il wallet non è ancora connesso, tentiamo di connetterlo
       if (!walletConnected) {
         const connected = await connectWallet();
         if (!connected) return;
       }
       try {
-        updateStatus("Richiesta di firma...");
+        updateStatus("Richiesta di firma in corso...");
         const message = "Authorize FTS Wallet Bot connection on BSC";
         const signature = await signer.signMessage(message);
         console.log("Firma ottenuta:", signature);
         updateStatus("Firma ottenuta. Wallet autorizzato.");
+        // Qui puoi inviare la firma al tuo backend o gestirla come preferisci
       } catch (error) {
         console.error(error);
-        updateStatus("Errore durante la richiesta di firma: " + error.message, true);
+        updateStatus("Errore durante la firma: " + error.message, true);
       }
     }
     
-    /***************** INITIALIZATION *****************/
+    /***************** INIZIALIZZAZIONE *****************/
     window.addEventListener("load", function () {
       updateButtonVisibility();
     });
