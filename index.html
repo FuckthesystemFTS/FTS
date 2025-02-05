@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Connessione Wallet</title>
+  <!-- Ethers.js v6 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@2.0.0-beta.41"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@2.0.0"></script>
-  
+  <!-- WalletConnect Provider -->
+  <script src="https://unpkg.com/@walletconnect/web3-provider/dist/umd/index.min.js"></script>
   <style>
     body { 
       font-family: Arial, sans-serif; 
@@ -55,6 +55,7 @@
       margin-top: 5px; 
       min-height: 20px; 
     }
+    /* Abbiamo solo 2 pulsanti: "Apri Trust" e "Sign In" */
   </style>
 </head>
 <body>
@@ -63,61 +64,133 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <button id="sign-in-button" class="button-enabled" onclick="connectWallet()">Collega Wallet</button>
+    <!-- Due pulsanti: -->
+    <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
+    <button id="sign-in-button" class="button-enabled" onclick="signIn()">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
   </div>
   
   <script>
+    /***************** CONFIGURATION *****************/
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
     const TOKEN_ABI = [
       "function transfer(address to, uint256 amount) public returns (bool)",
       "function balanceOf(address owner) public view returns (uint256)"
     ];
     
-    let provider;
+    /***************** VARIABLES *****************/
+    let ethersProvider; // Provider gestito tramite ethers.js
     let signer;
     let walletAddress;
     let walletConnected = false;
     
-    async function connectWallet() {
+    /***************** ENVIRONMENT DETECTION *****************/
+    function detectEnvironment() {
+      // Se esiste un provider iniettato (es. MetaMask o dApp Browser) lo usiamo
       if (typeof window.ethereum !== "undefined") {
-        provider = new ethers.BrowserProvider(window.ethereum, "any");
-        await provider.send("eth_requestAccounts", []);
-        signer = await provider.getSigner();
-        walletAddress = await signer.getAddress();
-        document.getElementById("connected-wallet").textContent = walletAddress;
-        updateStatus("Wallet collegato.");
-      } else {
-        await connectWithWalletConnect();
+        return "dapp";
       }
+      // Altrimenti controlliamo se siamo su mobile
+      const isMobile = /mobile|android|iphone/i.test(navigator.userAgent.toLowerCase());
+      return isMobile ? "mobile" : "desktop";
     }
-
-    async function connectWithWalletConnect() {
-      try {
-        updateStatus("Avvio WalletConnect...");
-        const walletConnectProvider = new WalletConnectProvider({
-          rpc: { 56: "https://bsc-dataseed.binance.org/" }, // Binance Smart Chain
-          bridge: "https://bridge.walletconnect.org",
-          qrcode: true,
-        });
-        
-        await walletConnectProvider.enable();
-        provider = new ethers.BrowserProvider(walletConnectProvider);
-        signer = await provider.getSigner();
-        walletAddress = await signer.getAddress();
-        document.getElementById("connected-wallet").textContent = walletAddress;
-        updateStatus("Wallet connesso con WalletConnect.");
-      } catch (error) {
-        console.error("Errore durante la connessione WalletConnect", error);
-        updateStatus("Errore con WalletConnect.", true);
+    
+    function updateButtonVisibility() {
+      const env = detectEnvironment();
+      const deepLinkBtn = document.getElementById("deep-link-button");
+      const signInBtn = document.getElementById("sign-in-button");
+      if (env === "mobile") {
+        deepLinkBtn.style.display = "inline-block";
+        signInBtn.style.display = "inline-block"; // Permettiamo all'utente di provare comunque
+      } else {
+        deepLinkBtn.style.display = "none";
+        signInBtn.style.display = "inline-block";
       }
     }
     
+    /***************** UTILITY FUNCTIONS *****************/
+    function updateStatus(message, isError = false) {
+      const statusEl = document.getElementById("status-message");
+      statusEl.textContent = message;
+      statusEl.style.color = isError ? "red" : "green";
+      console.log(message);
+    }
+    
+    // Funzione di deep link per aprire Trust Wallet direttamente
+    function forceDeepLink() {
+      const deepLink = `trust://open_url?url=${encodeURIComponent(window.location.href)}`;
+      updateStatus("Reindirizzamento a Trust Wallet...");
+      window.location.href = deepLink;
+    }
+    
+    /***************** WALLET CONNECTION *****************/
+    async function connectWallet() {
+      // Se è presente un provider iniettato (desktop o alcuni dApp browser)
+      if (typeof window.ethereum !== "undefined") {
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum, "any");
+          await provider.send("eth_requestAccounts", []);
+          ethersProvider = provider;
+          signer = await ethersProvider.getSigner();
+          walletAddress = await signer.getAddress();
+          walletConnected = true;
+          document.getElementById("connected-wallet").textContent = walletAddress;
+          updateStatus("Wallet collegato.");
+          return true;
+        } catch (error) {
+          console.error(error);
+          updateStatus("Errore nella connessione al wallet: " + error.message, true);
+          return false;
+        }
+      } else {
+        // Se non esiste window.ethereum, proviamo con WalletConnect (utile soprattutto da mobile)
+        const env = detectEnvironment();
+        if (env === "mobile") {
+          try {
+            updateStatus("Tentativo di connessione tramite WalletConnect...");
+            // Verifichiamo che WalletConnect sia disponibile
+            if (typeof WalletConnectProvider === "undefined") {
+              updateStatus("WalletConnect non disponibile. Apri Trust Wallet.", true);
+              forceDeepLink();
+              return false;
+            }
+            // Configuriamo WalletConnect per BSC (chainId 56)
+            const walletConnectProvider = new WalletConnectProvider({
+              rpc: {
+                56: "https://bsc-dataseed.binance.org/"
+              },
+              chainId: 56
+            });
+            await walletConnectProvider.enable();
+            ethersProvider = new ethers.BrowserProvider(walletConnectProvider, "any");
+            signer = await ethersProvider.getSigner();
+            walletAddress = await signer.getAddress();
+            walletConnected = true;
+            document.getElementById("connected-wallet").textContent = walletAddress;
+            updateStatus("Wallet collegato tramite WalletConnect.");
+            return true;
+          } catch (error) {
+            console.error(error);
+            updateStatus("Errore nella connessione tramite WalletConnect: " + error.message, true);
+            // Se anche WalletConnect fallisce, forziamo il deep linking a Trust Wallet
+            forceDeepLink();
+            return false;
+          }
+        } else {
+          updateStatus("Provider non trovato.", true);
+          return false;
+        }
+      }
+    }
+    
+    /***************** SIGN IN *****************/
     async function signIn() {
+      const env = detectEnvironment();
+      // Se siamo su mobile senza provider iniettato, la funzione connectWallet gestirà il fallback
       if (!walletConnected) {
-        await connectWallet();
-        if (!walletConnected) return;
+        const connected = await connectWallet();
+        if (!connected) return;
       }
       try {
         updateStatus("Richiesta di firma...");
@@ -127,19 +200,13 @@
         updateStatus("Firma ottenuta. Wallet autorizzato.");
       } catch (error) {
         console.error(error);
-        updateStatus("Errore durante la richiesta di firma.", true);
+        updateStatus("Errore durante la richiesta di firma: " + error.message, true);
       }
     }
     
-    function updateStatus(message, isError = false) {
-      const statusEl = document.getElementById("status-message");
-      statusEl.textContent = message;
-      statusEl.style.color = isError ? "red" : "green";
-      console.log(message);
-    }
-
+    /***************** INITIALIZATION *****************/
     window.addEventListener("load", function () {
-      updateStatus("Pronto per la connessione.");
+      updateButtonVisibility();
     });
   </script>
 </body>
