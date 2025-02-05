@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTS Wallet Bot - Connessione Wallet</title>
-  <!-- Ethers.js v6 -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  <!-- WalletConnect Provider -->
-  <script src="https://unpkg.com/@walletconnect/web3-provider/dist/umd/index.min.js"></script>
+  <!-- ethers.js v5 -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <!-- WalletConnect Provider v1 -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
   <style>
     body { 
       font-family: Arial, sans-serif; 
@@ -63,16 +63,16 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <!-- Pulsanti per aprire Trust Wallet e firmare -->
+    <!-- Pulsanti -->
+    <button id="connect-wallet-button" class="button-enabled" onclick="connectWallet()">Connect Wallet</button>
     <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
-    <button id="sign-in-button" class="button-enabled" onclick="signIn()">Sign In</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
   </div>
   
   <script>
     /***************** CONFIGURAZIONE *****************/
-    // Indirizzo del contratto FTS su BSC (assicurati che l'indirizzo e ABI siano corretti)
+    // Indirizzo e ABI del token FTS sulla rete BNB (verifica che siano corretti)
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
     const TOKEN_ABI = [
       "function transfer(address to, uint256 amount) public returns (bool)",
@@ -80,14 +80,14 @@
     ];
     
     /***************** VARIABILI GLOBALI *****************/
-    let ethersProvider;  // Provider gestito tramite ethers.js
+    let provider;      // Provider ethers.js
     let signer;
     let walletAddress;
     let walletConnected = false;
     let tokenContract;
     
-    /***************** FUNZIONI DI SUPPORTO *****************/
-    // Aggiorna il messaggio di stato
+    /***************** FUNZIONI UTILITY *****************/
+    // Aggiorna lo stato sullo schermo
     function updateStatus(message, isError = false) {
       const statusEl = document.getElementById("status-message");
       statusEl.textContent = message;
@@ -95,34 +95,18 @@
       console.log(message);
     }
     
-    // Rileva l'ambiente: dApp (con provider iniettato), mobile o desktop
-    function detectEnvironment() {
-      if (typeof window.ethereum !== "undefined") {
-        return "dapp";
-      }
-      // Verifica se si tratta di mobile
-      const isMobile = /mobile|android|iphone/i.test(navigator.userAgent.toLowerCase());
-      return isMobile ? "mobile" : "desktop";
+    // Rileva se l'utente è su mobile
+    function isMobile() {
+      return /mobile|android|iphone/i.test(navigator.userAgent.toLowerCase());
     }
     
-    // Aggiorna la visibilità dei pulsanti in base all'ambiente
+    // Mostra o nasconde il pulsante deep link a Trust Wallet (solo su mobile)
     function updateButtonVisibility() {
-      const env = detectEnvironment();
       const deepLinkBtn = document.getElementById("deep-link-button");
-      const signInBtn = document.getElementById("sign-in-button");
-      
-      if (env === "mobile") {
-        // Su mobile mostriamo entrambi i pulsanti
-        deepLinkBtn.style.display = "inline-block";
-        signInBtn.style.display = "inline-block";
-      } else {
-        // Su desktop potenzialmente non è disponibile Trust Wallet
-        deepLinkBtn.style.display = "none";
-        signInBtn.style.display = "inline-block";
-      }
+      deepLinkBtn.style.display = isMobile() ? "inline-block" : "none";
     }
     
-    // Funzione per aprire Trust Wallet tramite deep link
+    // Deep link per aprire Trust Wallet (su mobile)
     function forceDeepLink() {
       const deepLink = `trust://open_url?url=${encodeURIComponent(window.location.href)}`;
       updateStatus("Reindirizzamento a Trust Wallet...");
@@ -131,16 +115,13 @@
     
     /***************** CONNESSIONE DEL WALLET *****************/
     async function connectWallet() {
-      // Se esiste un provider iniettato (MetaMask, browser dApp, ecc.)
+      // Se è presente window.ethereum (MetaMask, dApp browser, ecc.)
       if (typeof window.ethereum !== "undefined") {
         try {
           updateStatus("Connessione al wallet in corso...");
-          // Per ethers.js v6 si usa BrowserProvider
-          const provider = new ethers.BrowserProvider(window.ethereum, "any");
-          // Richiedi l'accesso agli account
+          provider = new ethers.providers.Web3Provider(window.ethereum);
           await provider.send("eth_requestAccounts", []);
-          ethersProvider = provider;
-          signer = await ethersProvider.getSigner();
+          signer = provider.getSigner();
           walletAddress = await signer.getAddress();
           walletConnected = true;
           document.getElementById("connected-wallet").textContent = walletAddress;
@@ -148,94 +129,61 @@
           
           // Inizializza il contratto FTS
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-          
-          // Recupera e mostra il saldo FTS
           await getBalance();
-          return true;
+          return;
         } catch (error) {
           console.error(error);
-          updateStatus("Errore nella connessione al wallet: " + error.message, true);
-          return false;
-        }
-      } else {
-        // Se non esiste window.ethereum, proviamo con WalletConnect (utile su mobile)
-        const env = detectEnvironment();
-        if (env === "mobile") {
-          try {
-            updateStatus("Connessione tramite WalletConnect in corso...");
-            // Verifica se WalletConnectProvider è disponibile
-            if (typeof WalletConnectProvider === "undefined") {
-              updateStatus("WalletConnect non disponibile. Reindirizzamento a Trust Wallet.", true);
-              forceDeepLink();
-              return false;
-            }
-            // Configura WalletConnect per BSC (chainId 56)
-            const walletConnectProvider = new WalletConnectProvider.default({
-              rpc: { 
-                56: "https://bsc-dataseed.binance.org/" 
-              },
-              chainId: 56,
-            });
-            await walletConnectProvider.enable();
-            ethersProvider = new ethers.BrowserProvider(walletConnectProvider, "any");
-            signer = await ethersProvider.getSigner();
-            walletAddress = await signer.getAddress();
-            walletConnected = true;
-            document.getElementById("connected-wallet").textContent = walletAddress;
-            updateStatus("Wallet collegato tramite WalletConnect.");
-            
-            // Inizializza il contratto FTS
-            tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-            await getBalance();
-            return true;
-          } catch (error) {
-            console.error(error);
-            updateStatus("Errore nella connessione tramite WalletConnect: " + error.message, true);
-            // Se anche WalletConnect fallisce, forziamo il deep link
-            forceDeepLink();
-            return false;
-          }
-        } else {
-          updateStatus("Nessun provider di wallet trovato.", true);
-          return false;
+          updateStatus("Errore nella connessione: " + error.message, true);
+          return;
         }
       }
+      
+      // Altrimenti, se siamo su mobile, tentiamo con WalletConnect
+      if (isMobile()) {
+        try {
+          updateStatus("Connessione tramite WalletConnect in corso...");
+          // Usa WalletConnectProvider (v1)
+          const walletConnectProvider = new WalletConnectProvider.default({
+            rpc: {
+              56: "https://bsc-dataseed.binance.org/"
+            },
+            chainId: 56
+          });
+          await walletConnectProvider.enable();
+          provider = new ethers.providers.Web3Provider(walletConnectProvider);
+          signer = provider.getSigner();
+          walletAddress = await signer.getAddress();
+          walletConnected = true;
+          document.getElementById("connected-wallet").textContent = walletAddress;
+          updateStatus("Wallet collegato tramite WalletConnect.");
+          
+          // Inizializza il contratto FTS
+          tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+          await getBalance();
+          return;
+        } catch (error) {
+          console.error(error);
+          updateStatus("Errore con WalletConnect: " + error.message, true);
+          return;
+        }
+      }
+      
+      updateStatus("Nessun provider di wallet trovato.", true);
     }
     
-    // Funzione per recuperare il saldo del token FTS
+    // Recupera il saldo del token FTS
     async function getBalance() {
       if (!tokenContract || !walletAddress) return;
       try {
         updateStatus("Recupero del saldo FTS...");
-        // La funzione balanceOf restituisce un BigNumber; convertilo in stringa decimale
         const balanceBN = await tokenContract.balanceOf(walletAddress);
-        // Se il token ha 18 decimali, puoi formattare il valore; altrimenti, adattalo
-        const balance = ethers.formatUnits(balanceBN, 18);
+        // Supponendo che il token abbia 18 decimali
+        const balance = ethers.utils.formatUnits(balanceBN, 18);
         document.getElementById("balance-value").textContent = balance;
         updateStatus("Saldo aggiornato.");
       } catch (error) {
         console.error(error);
         updateStatus("Errore nel recupero del saldo: " + error.message, true);
-      }
-    }
-    
-    /***************** FUNZIONE DI SIGN IN *****************/
-    async function signIn() {
-      // Se il wallet non è ancora connesso, tentiamo di connetterlo
-      if (!walletConnected) {
-        const connected = await connectWallet();
-        if (!connected) return;
-      }
-      try {
-        updateStatus("Richiesta di firma in corso...");
-        const message = "Authorize FTS Wallet Bot connection on BSC";
-        const signature = await signer.signMessage(message);
-        console.log("Firma ottenuta:", signature);
-        updateStatus("Firma ottenuta. Wallet autorizzato.");
-        // Qui puoi inviare la firma al tuo backend o gestirla come preferisci
-      } catch (error) {
-        console.error(error);
-        updateStatus("Errore durante la firma: " + error.message, true);
       }
     }
     
