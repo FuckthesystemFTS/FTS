@@ -68,26 +68,33 @@
     <button id="connect-wallet-button" class="button-enabled" onclick="connectWallet()">Connect Wallet</button>
     <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
 
-    <p>Saldo Token: <span id="balance-value">0</span> FTS</p>
+    <p>Saldo Token: <span id="balance-value">0</span> <span id="token-symbol">FTS</span></p>
   </div>
 
   <script>
     /***************** CONFIGURAZIONE *****************/
-    // Indirizzo e ABI del token FTS sulla rete BNB (verifica che siano corretti)
+    // Indirizzo del contratto FTS sulla rete BNB
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
+    // ABI basata sullo smart contract fornito
     const TOKEN_ABI = [
       "function transfer(address to, uint256 amount) public returns (bool)",
-      "function balanceOf(address owner) public view returns (uint256)"
+      "function balanceOf(address owner) public view returns (uint256)",
+      "function decimals() public view returns (uint8)",
+      "function name() public view returns (string)",
+      "function symbol() public view returns (string)"
     ];
 
     /***************** VARIABILI GLOBALI *****************/
-    let ethersProvider;  // Provider gestito da ethers.js
+    let ethersProvider;   // Provider gestito da ethers.js
     let signer;
     let walletAddress;
     let walletConnected = false;
     let tokenContract;
+    let tokenDecimals = 18;  // Valore di default, verrà aggiornato dal contratto
+    let tokenSymbol = "FTS"; // Valore di default, verrà aggiornato dal contratto
 
     /***************** FUNZIONI UTILITY *****************/
+    // Aggiorna il messaggio di stato sulla UI
     function updateStatus(message, isError = false) {
       const statusEl = document.getElementById("status-message");
       statusEl.textContent = message;
@@ -95,7 +102,7 @@
       console.log(message);
     }
 
-    // Rileva se l'utente sta usando un dispositivo mobile
+    // Rileva se l'utente sta utilizzando un dispositivo mobile
     function isMobile() {
       return /mobile|android|iphone/i.test(navigator.userAgent.toLowerCase());
     }
@@ -115,11 +122,10 @@
 
     /***************** CONNESSIONE DEL WALLET *****************/
     async function connectWallet() {
-      // 1. Se esiste un provider iniettato (MetaMask, dApp browser, ecc.)
+      // 1. Tentativo con provider iniettato (MetaMask, dApp browser, ecc.)
       if (typeof window.ethereum !== "undefined") {
         try {
           updateStatus("Connessione con provider iniettato...");
-          // Con ethers v6 usiamo BrowserProvider
           const provider = new ethers.BrowserProvider(window.ethereum, "any");
           await provider.send("eth_requestAccounts", []);
           ethersProvider = provider;
@@ -129,6 +135,7 @@
           document.getElementById("connected-wallet").textContent = walletAddress;
           updateStatus("Wallet collegato con provider iniettato.");
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+          await loadTokenDetails();
           await getBalance();
           return;
         } catch (error) {
@@ -138,19 +145,17 @@
         }
       }
 
-      // 2. Se non esiste provider iniettato oppure si è su mobile, proviamo con WalletConnect v2
+      // 2. Se non c'è provider iniettato oppure si è su mobile, si tenta con WalletConnect v2
       if (isMobile()) {
         try {
           updateStatus("Connessione tramite WalletConnect v2 in corso...");
           // Inizializza WalletConnect Ethereum Provider v2
-          // Utilizza il project ID fornito: d2dbf72ab740e1656b27eefd66a94298
           const wcProvider = await WalletConnectEthereumProvider.init({
-            projectId: "d2dbf72ab740e1656b27eefd66a94298",
+            projectId: "d2dbf72ab740e1656b27eefd66a94298",  // Project ID fornito
             chains: [56],           // Rete BNB Chain
             optionalChains: [56],
             showQrModal: true,
           });
-          // Effettua la connessione
           await wcProvider.connect();
           ethersProvider = new ethers.BrowserProvider(wcProvider, "any");
           signer = await ethersProvider.getSigner();
@@ -159,6 +164,7 @@
           document.getElementById("connected-wallet").textContent = walletAddress;
           updateStatus("Wallet collegato tramite WalletConnect v2.");
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+          await loadTokenDetails();
           await getBalance();
           return;
         } catch (error) {
@@ -171,14 +177,27 @@
       updateStatus("Nessun provider disponibile.", true);
     }
 
-    // Recupera il saldo del token FTS
+    // Recupera i dettagli del token (decimali e simbolo) dallo smart contract FTS
+    async function loadTokenDetails() {
+      try {
+        tokenDecimals = await tokenContract.decimals();
+        tokenSymbol = await tokenContract.symbol();
+        document.getElementById("token-symbol").textContent = tokenSymbol;
+        updateStatus("Dettagli del token caricati.");
+      } catch (error) {
+        console.error(error);
+        updateStatus("Errore nel caricamento dei dettagli del token: " + error.message, true);
+      }
+    }
+
+    // Recupera il saldo del token FTS per l'indirizzo connesso
     async function getBalance() {
       if (!tokenContract || !walletAddress) return;
       try {
         updateStatus("Recupero del saldo FTS...");
         const balanceBN = await tokenContract.balanceOf(walletAddress);
-        // Assumendo 18 decimali per il token
-        const balance = ethers.formatUnits(balanceBN, 18);
+        // Formatta il saldo utilizzando il numero di decimali recuperato
+        const balance = ethers.formatUnits(balanceBN, tokenDecimals);
         document.getElementById("balance-value").textContent = balance;
         updateStatus("Saldo aggiornato.");
       } catch (error) {
