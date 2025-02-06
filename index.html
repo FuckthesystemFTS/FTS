@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FTS Wallet Bot - Connessione Wallet</title>
-  <!-- ethers.js (ultima versione stabile v6.6.0) -->
+  <!-- ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  <!-- WalletConnect Ethereum Provider v2 (ultima versione stabile v2.0.7) -->
+  <!-- WalletConnect Ethereum Provider -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.0.7/dist/ethereum-provider.umd.min.js"></script>
   <style>
     body {
@@ -28,8 +28,7 @@
       width: 90%;
       text-align: center;
     }
-    button,
-    input {
+    button, input {
       padding: 10px;
       margin: 10px;
       font-size: 16px;
@@ -63,9 +62,11 @@
     <h1>FTS Wallet Bot</h1>
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
-
+    
     <!-- Pulsanti -->
     <button id="connect-wallet-button" class="button-enabled" onclick="connectWallet()">Connect Wallet</button>
+    <!-- Pulsante per forzare la richiesta di firma -->
+    <button id="sign-button" class="button-enabled" onclick="richiediFirma()" style="display:none;">Firma ora</button>
     <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
 
     <p>Saldo Token: <span id="balance-value">0</span> <span id="token-symbol">FTS</span></p>
@@ -73,9 +74,7 @@
 
   <script>
     /***************** CONFIGURAZIONE *****************/
-    // Indirizzo del contratto FTS sulla rete BNB
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-    // ABI basata sullo smart contract fornito
     const TOKEN_ABI = [
       "function transfer(address to, uint256 amount) public returns (bool)",
       "function balanceOf(address owner) public view returns (uint256)",
@@ -85,15 +84,11 @@
     ];
 
     /***************** VARIABILI GLOBALI *****************/
-    let ethersProvider;   // Provider gestito da ethers.js
-    let signer;
-    let walletAddress;
-    let tokenContract;
-    let tokenDecimals = 18;  // Valore di default, verrà aggiornato dal contratto
-    let tokenSymbol = "FTS"; // Valore di default, verrà aggiornato dal contratto
+    let ethersProvider, signer, walletAddress, tokenContract;
+    let tokenDecimals = 18;
+    let tokenSymbol = "FTS";
 
     /***************** FUNZIONI UTILITY *****************/
-    // Aggiorna il messaggio di stato sulla UI
     function updateStatus(message, isError = false) {
       const statusEl = document.getElementById("status-message");
       statusEl.textContent = message;
@@ -101,18 +96,15 @@
       console.log(message);
     }
 
-    // Rileva se l'utente sta utilizzando un dispositivo mobile
     function isMobile() {
       return /mobile|android|iphone/i.test(navigator.userAgent.toLowerCase());
     }
 
-    // Mostra o nasconde il pulsante per il deep link a Trust Wallet (solo su mobile)
     function updateButtonVisibility() {
       const deepLinkBtn = document.getElementById("deep-link-button");
       deepLinkBtn.style.display = isMobile() ? "inline-block" : "none";
     }
 
-    // Deep link per aprire Trust Wallet (su mobile)
     function forceDeepLink() {
       const deepLink = `trust://open_url?url=${encodeURIComponent(window.location.href)}`;
       updateStatus("Reindirizzamento a Trust Wallet...");
@@ -121,7 +113,7 @@
 
     /***************** CONNESSIONE DEL WALLET *****************/
     async function connectWallet() {
-      // 1. Tentativo con provider iniettato (MetaMask, dApp browser, ecc.)
+      // 1. Provider iniettato
       if (typeof window.ethereum !== "undefined") {
         try {
           updateStatus("Connessione con provider iniettato...");
@@ -133,8 +125,8 @@
           document.getElementById("connected-wallet").textContent = walletAddress;
           updateStatus("Wallet collegato con provider iniettato.");
 
-          // Forza richiesta di firma per attivare l'autorizzazione
-          await richiediFirma();
+          // Mostra il pulsante per la firma manuale
+          document.getElementById("sign-button").style.display = "inline-block";
 
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
           await loadTokenDetails();
@@ -143,25 +135,21 @@
         } catch (error) {
           console.error(error);
           updateStatus("Errore con provider iniettato: " + error.message, true);
-          // Se fallisce, si passa al tentativo con WalletConnect v2
         }
       }
 
-      // 2. Se non c'è provider iniettato oppure si è su mobile, si tenta con WalletConnect v2
+      // 2. WalletConnect su mobile
       if (isMobile()) {
         try {
           updateStatus("Connessione tramite WalletConnect v2 in corso...");
-
-          // Usa l'oggetto globale, verificando se è definito nella proprietà default
           const WalletConnectProvider = (window.WalletConnectEthereumProvider && window.WalletConnectEthereumProvider.default) ||
                                         window.WalletConnectEthereumProvider;
           if (!WalletConnectProvider) {
             throw new Error("WalletConnectEthereumProvider non è definito.");
           }
-
           const wcProvider = await WalletConnectProvider.init({
-            projectId: "a56c60368c892e57e3099fa3c35c35db",  // Project ID aggiornato
-            chains: [56],  // BNB Chain
+            projectId: "a56c60368c892e57e3099fa3c35c35db",
+            chains: [56],
             optionalChains: [56],
             showQrModal: true,
           });
@@ -172,8 +160,8 @@
           document.getElementById("connected-wallet").textContent = walletAddress;
           updateStatus("Wallet collegato tramite WalletConnect v2.");
 
-          // Forza richiesta di firma per attivare l'autorizzazione
-          await richiediFirma();
+          // Mostra il pulsante per la firma manuale
+          document.getElementById("sign-button").style.display = "inline-block";
 
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
           await loadTokenDetails();
@@ -189,7 +177,7 @@
       updateStatus("Nessun provider disponibile.", true);
     }
 
-    // Funzione per forzare la richiesta di firma
+    // Funzione per forzare la richiesta di firma, chiamata tramite il pulsante "Firma ora"
     async function richiediFirma() {
       try {
         const message = "Autorizza la connessione per visualizzare il saldo FTS.";
@@ -203,7 +191,6 @@
       }
     }
 
-    // Recupera i dettagli del token (decimali e simbolo) dallo smart contract FTS
     async function loadTokenDetails() {
       try {
         tokenDecimals = await tokenContract.decimals();
@@ -216,7 +203,6 @@
       }
     }
 
-    // Recupera il saldo del token FTS per l'indirizzo connesso
     async function getBalance() {
       if (!tokenContract || !walletAddress) return;
       try {
