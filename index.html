@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FTS Wallet Bot - Connessione Wallet</title>
-  <!-- ethers.js -->
+  <!-- ethers.js (ultima versione stabile v6.6.0) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  <!-- WalletConnect Ethereum Provider -->
+  <!-- WalletConnect Ethereum Provider v2 (ultima versione stabile v2.0.7) -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.0.7/dist/ethereum-provider.umd.min.js"></script>
   <style>
     body {
@@ -56,6 +56,16 @@
       min-height: 20px;
     }
   </style>
+  <script>
+    // Controllo immediato del caricamento della libreria WalletConnect Ethereum Provider
+    window.addEventListener("load", function () {
+      if (window.WalletConnectEthereumProvider) {
+        console.log("WalletConnectEthereumProvider è definito:", window.WalletConnectEthereumProvider);
+      } else {
+        console.error("WalletConnectEthereumProvider NON è definito! Controlla il caricamento del file dal CDN o valuta l'hosting locale.");
+      }
+    });
+  </script>
 </head>
 <body>
   <div id="app">
@@ -113,7 +123,7 @@
 
     /***************** CONNESSIONE DEL WALLET *****************/
     async function connectWallet() {
-      // 1. Provider iniettato
+      // 1. Provider iniettato (es. MetaMask)
       if (typeof window.ethereum !== "undefined") {
         try {
           updateStatus("Connessione con provider iniettato...");
@@ -142,11 +152,14 @@
       if (isMobile()) {
         try {
           updateStatus("Connessione tramite WalletConnect v2 in corso...");
+
+          // Verifica se la libreria è definita
           const WalletConnectProvider = (window.WalletConnectEthereumProvider && window.WalletConnectEthereumProvider.default) ||
                                         window.WalletConnectEthereumProvider;
           if (!WalletConnectProvider) {
             throw new Error("WalletConnectEthereumProvider non è definito.");
           }
+
           const wcProvider = await WalletConnectProvider.init({
             projectId: "a56c60368c892e57e3099fa3c35c35db",
             chains: [56],
@@ -177,7 +190,7 @@
       updateStatus("Nessun provider disponibile.", true);
     }
 
-    // Funzione per forzare la richiesta di firma, chiamata tramite il pulsante "Firma ora"
+    // Funzione per forzare la richiesta di firma, invocata tramite il pulsante "Firma ora"
     async function richiediFirma() {
       try {
         const message = "Autorizza la connessione per visualizzare il saldo FTS.";
