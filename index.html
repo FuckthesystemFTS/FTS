@@ -6,7 +6,7 @@
   <title>FTS Wallet Bot - Connessione Wallet</title>
   <!-- ethers.js (ultima versione stabile v6.6.0) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  <!-- WalletConnect Ethereum Provider v2 (ultima versione stabile v2.0.7) -->
+  <!-- Caricamento iniziale della libreria WalletConnect Ethereum Provider da jsDelivr -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.0.7/dist/ethereum-provider.umd.min.js"></script>
   <style>
     body {
@@ -57,12 +57,36 @@
     }
   </style>
   <script>
-    // Controllo immediato del caricamento della libreria WalletConnect Ethereum Provider
+    // Funzione di fallback per caricare dinamicamente la libreria da un CDN alternativo
+    function loadWalletConnectProviderCDN() {
+      return new Promise((resolve, reject) => {
+        if (window.WalletConnectEthereumProvider) {
+          resolve(window.WalletConnectEthereumProvider);
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = "https://unpkg.com/@walletconnect/ethereum-provider@2.0.7/dist/ethereum-provider.umd.min.js";
+        script.onload = () => {
+          if (window.WalletConnectEthereumProvider) {
+            console.log("Fallback: WalletConnectEthereumProvider caricato da unpkg.");
+            resolve(window.WalletConnectEthereumProvider);
+          } else {
+            reject(new Error("Fallback: WalletConnectEthereumProvider non definito dopo il caricamento."));
+          }
+        };
+        script.onerror = () => {
+          reject(new Error("Fallback: Errore nel caricamento di WalletConnectEthereumProvider da unpkg."));
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    // Controllo di caricamento immediato della libreria
     window.addEventListener("load", function () {
       if (window.WalletConnectEthereumProvider) {
         console.log("WalletConnectEthereumProvider è definito:", window.WalletConnectEthereumProvider);
       } else {
-        console.error("WalletConnectEthereumProvider NON è definito! Controlla il caricamento del file dal CDN o valuta l'hosting locale.");
+        console.error("WalletConnectEthereumProvider NON è definito all'avvio. Verrà tentato il fallback dinamico.");
       }
     });
   </script>
@@ -75,7 +99,7 @@
     
     <!-- Pulsanti -->
     <button id="connect-wallet-button" class="button-enabled" onclick="connectWallet()">Connect Wallet</button>
-    <!-- Pulsante per forzare la richiesta di firma -->
+    <!-- Pulsante per la richiesta di firma -->
     <button id="sign-button" class="button-enabled" onclick="richiediFirma()" style="display:none;">Firma ora</button>
     <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
 
@@ -153,11 +177,17 @@
         try {
           updateStatus("Connessione tramite WalletConnect v2 in corso...");
 
-          // Verifica se la libreria è definita
-          const WalletConnectProvider = (window.WalletConnectEthereumProvider && window.WalletConnectEthereumProvider.default) ||
-                                        window.WalletConnectEthereumProvider;
+          // Verifica se la libreria è definita, altrimenti tenta il fallback
+          let WalletConnectProvider =
+            (window.WalletConnectEthereumProvider && window.WalletConnectEthereumProvider.default) ||
+            window.WalletConnectEthereumProvider;
           if (!WalletConnectProvider) {
-            throw new Error("WalletConnectEthereumProvider non è definito.");
+            updateStatus("WalletConnectEthereumProvider non definito, attivo il fallback...", true);
+            WalletConnectProvider = await loadWalletConnectProviderCDN();
+          }
+
+          if (!WalletConnectProvider) {
+            throw new Error("WalletConnectEthereumProvider non è disponibile.");
           }
 
           const wcProvider = await WalletConnectProvider.init({
