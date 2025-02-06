@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FTS Wallet Bot - Connessione Wallet</title>
+  <title>Mobile WalletConnect - FTS Wallet Bot</title>
   
-  <!-- Carica ethers.js (UMD) dalla CDN -->
+  <!-- Carica ethers.js dalla CDN (UMD) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
   
-  <!-- Import map: mappa il modulo per WalletConnectEthereumProvider -->
+  <!-- Import map: mappa il modulo WalletConnectEthereumProvider all'URL su unpkg -->
   <script type="importmap">
   {
     "imports": {
@@ -17,81 +17,66 @@
   }
   </script>
   
+  <!-- Caricamento dinamico del modulo tramite import map -->
+  <script type="module">
+    async function getWalletConnectProvider() {
+      try {
+        // Importa il modulo secondo l'import map
+        const module = await import("@walletconnect/ethereum-provider");
+        console.log("WalletConnectEthereumProvider importato con successo:", module.default);
+        return module.default;
+      } catch (err) {
+        console.error("Errore durante l'import dinamico:", err);
+        throw err;
+      }
+    }
+    // Rendi la funzione disponibile globalmente
+    window.getWalletConnectProvider = getWalletConnectProvider;
+  </script>
+  
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f4f4f4;
+      margin: 0;
+      padding: 0;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      margin: 0;
     }
     #app {
       background: #fff;
       padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       max-width: 400px;
       width: 90%;
-      text-align: center;
     }
-    button, input {
-      padding: 10px;
+    button {
+      padding: 10px 20px;
       margin: 10px;
       font-size: 16px;
       border: none;
       border-radius: 5px;
-    }
-    .button-enabled {
       background-color: #007bff;
       color: #fff;
       cursor: pointer;
     }
-    .button-disabled {
-      background-color: #ccc;
-      color: #fff;
-      cursor: default;
-    }
-    input {
-      width: 80%;
-      border: 1px solid #ccc;
-      color: #000;
-    }
     #status-message {
       font-size: 14px;
-      margin-top: 5px;
+      margin-top: 10px;
       min-height: 20px;
     }
   </style>
   
-  <!-- Import dinamico tramite import map -->
-  <script type="module">
-    async function getWalletConnectProvider() {
-      try {
-        const module = await import("@walletconnect/ethereum-provider");
-        console.log("WalletConnectEthereumProvider importato correttamente:", module.default);
-        return module.default;
-      } catch (err) {
-        console.error("Errore durante l'import dinamico via import map:", err);
-        throw err;
-      }
-    }
-    // Rendi la funzione globale per poterla usare in tutto il codice
-    window.getWalletConnectProvider = getWalletConnectProvider;
-  </script>
-  
   <script>
+    // Controllo base al caricamento (da usare solo per debug)
     window.addEventListener("load", function () {
-      if (window.getWalletConnectProvider) {
-        console.log("La funzione getWalletConnectProvider è disponibile.");
-      } else {
-        console.error("Errore: getWalletConnectProvider non è definita.");
-      }
+      console.log("Pagina caricata. Servi la pagina via HTTPS per funzionare correttamente.");
     });
   </script>
-  
 </head>
 <body>
   <div id="app">
@@ -99,11 +84,10 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <!-- Pulsanti per le azioni -->
-    <button id="connect-wallet-button" class="button-enabled" onclick="connectWallet()">Connect Wallet</button>
-    <!-- Pulsante per richiedere la firma manualmente -->
-    <button id="sign-button" class="button-enabled" onclick="richiediFirma()" style="display:none;">Firma ora</button>
-    <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
+    <!-- Pulsante per connettere il wallet -->
+    <button onclick="connectWallet()">Connect Wallet</button>
+    <!-- Pulsante per richiedere la firma (visibile dopo la connessione) -->
+    <button id="sign-button" style="display:none;" onclick="richiediFirma()">Firma ora</button>
     
     <p>Saldo Token: <span id="balance-value">0</span> <span id="token-symbol">FTS</span></p>
   </div>
@@ -132,87 +116,44 @@
       console.log(message);
     }
     
-    function isMobile() {
-      return /mobile|android|iphone/i.test(navigator.userAgent.toLowerCase());
-    }
-    
-    function updateButtonVisibility() {
-      const deepLinkBtn = document.getElementById("deep-link-button");
-      deepLinkBtn.style.display = isMobile() ? "inline-block" : "none";
-    }
-    
-    function forceDeepLink() {
-      const deepLink = `trust://open_url?url=${encodeURIComponent(window.location.href)}`;
-      updateStatus("Reindirizzamento a Trust Wallet...");
-      window.location.href = deepLink;
-    }
-    
-    /***************** CONNESSIONE DEL WALLET *****************/
+    /***************** CONNESSIONE DEL WALLET (SOLO MOBILE) *****************/
     async function connectWallet() {
-      // Se esiste un provider iniettato (ad es. MetaMask), usalo.
-      if (typeof window.ethereum !== "undefined") {
-        try {
-          updateStatus("Connessione con provider iniettato...");
-          const provider = new ethers.BrowserProvider(window.ethereum, "any");
-          await provider.send("eth_requestAccounts", []);
-          ethersProvider = provider;
-          signer = await ethersProvider.getSigner();
-          walletAddress = await signer.getAddress();
-          document.getElementById("connected-wallet").textContent = walletAddress;
-          updateStatus("Wallet collegato con provider iniettato.");
-    
-          // Mostra il pulsante per richiedere la firma manuale
-          document.getElementById("sign-button").style.display = "inline-block";
-    
-          tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-          await loadTokenDetails();
-          await getBalance();
-          return;
-        } catch (error) {
-          console.error(error);
-          updateStatus("Errore con provider iniettato: " + error.message, true);
+      try {
+        updateStatus("Connessione tramite WalletConnect v2 in corso...");
+        // Carica dinamicamente il provider
+        const WalletConnectProvider = await window.getWalletConnectProvider();
+        if (!WalletConnectProvider) {
+          throw new Error("WalletConnectProvider non disponibile.");
         }
+        // Inizializza il provider con il project ID e le impostazioni per la rete BNB (56)
+        const wcProvider = await WalletConnectProvider.init({
+          projectId: "a56c60368c892e57e3099fa3c35c35db",
+          chains: [56],
+          optionalChains: [56],
+          showQrModal: true
+        });
+        // Connetti il provider (questo aprirà il QR code o un deep link sul dispositivo mobile)
+        await wcProvider.connect();
+        // Usa ethers.js per creare un provider compatibile
+        ethersProvider = new ethers.BrowserProvider(wcProvider, "any");
+        signer = await ethersProvider.getSigner();
+        walletAddress = await signer.getAddress();
+        document.getElementById("connected-wallet").textContent = walletAddress;
+        updateStatus("Wallet collegato tramite WalletConnect v2.");
+        // Mostra il pulsante per richiedere la firma
+        document.getElementById("sign-button").style.display = "inline-block";
+        
+        // Crea il contratto per interagire con il token FTS
+        tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+        await loadTokenDetails();
+        await getBalance();
+      } catch (error) {
+        console.error(error);
+        updateStatus("Errore nella connessione: " + error.message, true);
       }
-      
-      // Se non esiste provider iniettato oppure se l'utente è su mobile, usa WalletConnect v2.
-      if (isMobile()) {
-        try {
-          updateStatus("Connessione tramite WalletConnect v2 in corso...");
-          const WalletConnectProvider = await window.getWalletConnectProvider();
-          if (!WalletConnectProvider) {
-            throw new Error("WalletConnectProvider non è disponibile.");
-          }
-          const wcProvider = await WalletConnectProvider.init({
-            projectId: "a56c60368c892e57e3099fa3c35c35db",
-            chains: [56],
-            optionalChains: [56],
-            showQrModal: true,
-          });
-          await wcProvider.connect();
-          ethersProvider = new ethers.BrowserProvider(wcProvider, "any");
-          signer = await ethersProvider.getSigner();
-          walletAddress = await signer.getAddress();
-          document.getElementById("connected-wallet").textContent = walletAddress;
-          updateStatus("Wallet collegato tramite WalletConnect v2.");
-    
-          // Mostra il pulsante per la richiesta di firma manuale
-          document.getElementById("sign-button").style.display = "inline-block";
-    
-          tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-          await loadTokenDetails();
-          await getBalance();
-          return;
-        } catch (error) {
-          console.error(error);
-          updateStatus("Errore con WalletConnect v2: " + error.message, true);
-          return;
-        }
-      }
-      
-      updateStatus("Nessun provider disponibile.", true);
     }
     
-    // Funzione per richiedere la firma manualmente (invocata dal pulsante "Firma ora")
+    // Funzione per richiedere manualmente la firma (utile per forzare l'interazione)
     async function richiediFirma() {
       try {
         const message = "Autorizza la connessione per visualizzare il saldo FTS.";
@@ -221,11 +162,12 @@
         console.log("Firma ottenuta:", signature);
         updateStatus("Firma eseguita correttamente.");
       } catch (error) {
-        console.error("Errore durante la richiesta di firma:", error);
-        updateStatus("Firma richiesta non completata: " + error.message, true);
+        console.error(error);
+        updateStatus("Errore nella firma: " + error.message, true);
       }
     }
     
+    // Funzione per caricare i dettagli del token (decimali e simbolo)
     async function loadTokenDetails() {
       try {
         tokenDecimals = await tokenContract.decimals();
@@ -238,8 +180,8 @@
       }
     }
     
+    // Funzione per ottenere il saldo del token FTS
     async function getBalance() {
-      if (!tokenContract || !walletAddress) return;
       try {
         updateStatus("Recupero del saldo FTS...");
         const balanceBN = await tokenContract.balanceOf(walletAddress);
@@ -251,10 +193,6 @@
         updateStatus("Errore nel recupero del saldo: " + error.message, true);
       }
     }
-    
-    window.addEventListener("load", function () {
-      updateButtonVisibility();
-    });
   </script>
 </body>
 </html>
