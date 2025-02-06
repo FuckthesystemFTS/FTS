@@ -8,8 +8,8 @@
   <!-- Carica ethers.js da jsDelivr -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
   
-  <!-- Carica WalletConnectEthereumProvider da un URL senza versione fissa -->
-  <script src="https://unpkg.com/@walletconnect/ethereum-provider/dist/ethereum-provider.umd.min.js"></script>
+  <!-- Prova a caricare WalletConnectEthereumProvider dalla versione 2.0.9 (usa HTTPS) -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.0.9/dist/ethereum-provider.umd.min.js"></script>
   
   <style>
     body {
@@ -61,12 +61,11 @@
   </style>
   
   <script>
-    // All'avvio della pagina verifichiamo che WalletConnectEthereumProvider sia stato caricato correttamente.
     window.addEventListener("load", function () {
       if (window.WalletConnectEthereumProvider) {
-        console.log("WalletConnectEthereumProvider è stato caricato correttamente:", window.WalletConnectEthereumProvider);
+        console.log("WalletConnectEthereumProvider caricato correttamente:", window.WalletConnectEthereumProvider);
       } else {
-        console.error("Errore: WalletConnectEthereumProvider NON è definito. Assicurati di usare HTTPS e che il CDN funzioni correttamente.");
+        console.error("Errore: WalletConnectEthereumProvider NON è definito. Controlla l'URL del CDN, la versione e assicurati di usare HTTPS.");
       }
     });
   </script>
@@ -78,9 +77,7 @@
     <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
     <p id="status-message"></p>
     
-    <!-- Pulsanti per le azioni -->
     <button id="connect-wallet-button" class="button-enabled" onclick="connectWallet()">Connect Wallet</button>
-    <!-- Pulsante per la richiesta di firma manuale -->
     <button id="sign-button" class="button-enabled" onclick="richiediFirma()" style="display:none;">Firma ora</button>
     <button id="deep-link-button" class="button-enabled" onclick="forceDeepLink()">Apri Trust</button>
     
@@ -88,7 +85,6 @@
   </div>
   
   <script>
-    /***************** CONFIGURAZIONE DEL CONTRATTO *****************/
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
     const TOKEN_ABI = [
       "function transfer(address to, uint256 amount) public returns (bool)",
@@ -98,12 +94,10 @@
       "function symbol() public view returns (string)"
     ];
     
-    /***************** VARIABILI GLOBALI *****************/
     let ethersProvider, signer, walletAddress, tokenContract;
     let tokenDecimals = 18;
     let tokenSymbol = "FTS";
     
-    /***************** FUNZIONI UTILITY *****************/
     function updateStatus(message, isError = false) {
       const statusEl = document.getElementById("status-message");
       statusEl.textContent = message;
@@ -126,9 +120,7 @@
       window.location.href = deepLink;
     }
     
-    /***************** CONNESSIONE DEL WALLET *****************/
     async function connectWallet() {
-      // 1. Se esiste un provider iniettato (es. MetaMask), usalo.
       if (typeof window.ethereum !== "undefined") {
         try {
           updateStatus("Connessione con provider iniettato...");
@@ -140,7 +132,6 @@
           document.getElementById("connected-wallet").textContent = walletAddress;
           updateStatus("Wallet collegato con provider iniettato.");
     
-          // Mostra il pulsante per la richiesta di firma manuale
           document.getElementById("sign-button").style.display = "inline-block";
     
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
@@ -153,11 +144,9 @@
         }
       }
       
-      // 2. Se non c'è provider iniettato o se sei su mobile, usa WalletConnect v2.
       if (isMobile()) {
         try {
           updateStatus("Connessione tramite WalletConnect v2 in corso...");
-          // Usa il nome corretto della libreria (con la giusta capitalizzazione)
           let WalletConnectProvider = (window.WalletConnectEthereumProvider && window.WalletConnectEthereumProvider.default) ||
                                       window.WalletConnectEthereumProvider;
           if (!WalletConnectProvider) {
@@ -176,7 +165,6 @@
           document.getElementById("connected-wallet").textContent = walletAddress;
           updateStatus("Wallet collegato tramite WalletConnect v2.");
     
-          // Mostra il pulsante per la richiesta di firma manuale
           document.getElementById("sign-button").style.display = "inline-block";
     
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
@@ -193,7 +181,6 @@
       updateStatus("Nessun provider disponibile.", true);
     }
     
-    // Funzione per richiedere la firma manualmente (cliccando "Firma ora")
     async function richiediFirma() {
       try {
         const message = "Autorizza la connessione per visualizzare il saldo FTS.";
@@ -233,7 +220,6 @@
       }
     }
     
-    /***************** INIZIALIZZAZIONE *****************/
     window.addEventListener("load", function () {
       updateButtonVisibility();
     });
