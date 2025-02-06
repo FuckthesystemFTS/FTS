@@ -152,16 +152,15 @@
         try {
           updateStatus("Connessione tramite WalletConnect v2 in corso...");
 
-          // Verifica se la libreria è caricata e se è disponibile la proprietà default
+          // Usa l'oggetto globale, verificando se è definito nella proprietà default
           const WalletConnectProvider = (window.WalletConnectEthereumProvider && window.WalletConnectEthereumProvider.default) ||
                                         window.WalletConnectEthereumProvider;
-
           if (!WalletConnectProvider) {
             throw new Error("WalletConnectEthereumProvider non è definito.");
           }
 
           const wcProvider = await WalletConnectProvider.init({
-            projectId: "d2dbf72ab740e1656b27eefd66a94298",  // Inserisci qui il tuo project ID
+            projectId: "a56c60368c892e57e3099fa3c35c35db",  // Project ID aggiornato
             chains: [56],  // BNB Chain
             optionalChains: [56],
             showQrModal: true,
