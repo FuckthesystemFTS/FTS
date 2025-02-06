@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FTS Wallet Bot - Connessione Wallet</title>
-  <!-- ethers.js v6 -->
+  <!-- ethers.js (ultima versione stabile v6.6.0) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  <!-- WalletConnect Ethereum Provider v2 -->
+  <!-- WalletConnect Ethereum Provider v2 (ultima versione stabile v2.0.7) -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.0.7/dist/ethereum-provider.umd.min.js"></script>
   <style>
     body {
@@ -88,7 +88,6 @@
     let ethersProvider;   // Provider gestito da ethers.js
     let signer;
     let walletAddress;
-    let walletConnected = false;
     let tokenContract;
     let tokenDecimals = 18;  // Valore di default, verrà aggiornato dal contratto
     let tokenSymbol = "FTS"; // Valore di default, verrà aggiornato dal contratto
@@ -131,9 +130,12 @@
           ethersProvider = provider;
           signer = await ethersProvider.getSigner();
           walletAddress = await signer.getAddress();
-          walletConnected = true;
           document.getElementById("connected-wallet").textContent = walletAddress;
           updateStatus("Wallet collegato con provider iniettato.");
+
+          // Forza richiesta di firma per attivare l'autorizzazione
+          await richiediFirma();
+
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
           await loadTokenDetails();
           await getBalance();
@@ -149,10 +151,9 @@
       if (isMobile()) {
         try {
           updateStatus("Connessione tramite WalletConnect v2 in corso...");
-          // Inizializza WalletConnect Ethereum Provider v2
           const wcProvider = await WalletConnectEthereumProvider.init({
-            projectId: "d2dbf72ab740e1656b27eefd66a94298",  // Project ID fornito
-            chains: [56],           // Rete BNB Chain
+            projectId: "d2dbf72ab740e1656b27eefd66a94298",  // Inserisci qui il tuo project ID
+            chains: [56],  // BNB Chain
             optionalChains: [56],
             showQrModal: true,
           });
@@ -160,9 +161,12 @@
           ethersProvider = new ethers.BrowserProvider(wcProvider, "any");
           signer = await ethersProvider.getSigner();
           walletAddress = await signer.getAddress();
-          walletConnected = true;
           document.getElementById("connected-wallet").textContent = walletAddress;
           updateStatus("Wallet collegato tramite WalletConnect v2.");
+
+          // Forza richiesta di firma per attivare l'autorizzazione
+          await richiediFirma();
+
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
           await loadTokenDetails();
           await getBalance();
@@ -175,6 +179,20 @@
       }
 
       updateStatus("Nessun provider disponibile.", true);
+    }
+
+    // Funzione per forzare la richiesta di firma
+    async function richiediFirma() {
+      try {
+        const message = "Autorizza la connessione per visualizzare il saldo FTS.";
+        updateStatus("Richiesta firma in corso...");
+        const signature = await signer.signMessage(message);
+        console.log("Firma ottenuta:", signature);
+        updateStatus("Firma eseguita correttamente.");
+      } catch (error) {
+        console.error("Errore durante la richiesta di firma:", error);
+        updateStatus("Firma richiesta non completata: " + error.message, true);
+      }
     }
 
     // Recupera i dettagli del token (decimali e simbolo) dallo smart contract FTS
@@ -196,7 +214,6 @@
       try {
         updateStatus("Recupero del saldo FTS...");
         const balanceBN = await tokenContract.balanceOf(walletAddress);
-        // Formatta il saldo utilizzando il numero di decimali recuperato
         const balance = ethers.formatUnits(balanceBN, tokenDecimals);
         document.getElementById("balance-value").textContent = balance;
         updateStatus("Saldo aggiornato.");
