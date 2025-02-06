@@ -57,19 +57,40 @@
     }
   </style>
   
-  <script>
-    // Non ci affidiamo al caricamento globale della libreria.
-    // Invece, definiamo una funzione che carica dinamicamente il modulo ESM
+  <!-- Importa dinamicamente il modulo ESM della libreria da un URL alternativo (unpkg) -->
+  <script type="module">
     async function getWalletConnectProvider() {
       try {
-        const module = await import('https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.0.9/dist/ethereum-provider.esm.min.js');
+        // Prova a importare dalla versione 2.0.9 da unpkg
+        const module = await import("https://unpkg.com/@walletconnect/ethereum-provider@2.0.9/dist/ethereum-provider.esm.min.js");
         console.log("WalletConnectEthereumProvider importato dinamicamente:", module.default);
         return module.default;
       } catch (err) {
-        console.error("Import dinamico fallito:", err);
-        throw err;
+        console.error("Import dinamico fallito (2.0.9):", err);
+        // Se fallisce, prova con una versione precedente, ad esempio 2.0.6
+        try {
+          const module = await import("https://unpkg.com/@walletconnect/ethereum-provider@2.0.6/dist/ethereum-provider.esm.min.js");
+          console.log("WalletConnectEthereumProvider importato dinamicamente (2.0.6):", module.default);
+          return module.default;
+        } catch (err2) {
+          console.error("Import dinamico fallito (2.0.6):", err2);
+          throw err2;
+        }
       }
     }
+    // Assegniamo la funzione al globale, così potrà essere usata nel resto del codice
+    window.getWalletConnectProvider = getWalletConnectProvider;
+  </script>
+  
+  <script>
+    // Verifica al caricamento che la funzione sia disponibile
+    window.addEventListener("load", function () {
+      if (window.getWalletConnectProvider) {
+        console.log("La funzione getWalletConnectProvider è disponibile.");
+      } else {
+        console.error("Errore: getWalletConnectProvider non è definita.");
+      }
+    });
   </script>
   
 </head>
@@ -141,7 +162,6 @@
           document.getElementById("connected-wallet").textContent = walletAddress;
           updateStatus("Wallet collegato con provider iniettato.");
     
-          // Mostra il pulsante per la firma manuale
           document.getElementById("sign-button").style.display = "inline-block";
     
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
@@ -154,12 +174,11 @@
         }
       }
       
-      // Se non esiste un provider iniettato oppure se sei su mobile, usiamo WalletConnect v2
+      // Se non c'è provider iniettato o se sei su mobile, usa WalletConnect v2
       if (isMobile()) {
         try {
           updateStatus("Connessione tramite WalletConnect v2 in corso...");
-          // Carica dinamicamente la libreria se necessario
-          const WalletConnectProvider = await getWalletConnectProvider();
+          const WalletConnectProvider = await window.getWalletConnectProvider();
           if (!WalletConnectProvider) {
             throw new Error("WalletConnectProvider non è disponibile.");
           }
@@ -176,7 +195,6 @@
           document.getElementById("connected-wallet").textContent = walletAddress;
           updateStatus("Wallet collegato tramite WalletConnect v2.");
     
-          // Mostra il pulsante per la firma manuale
           document.getElementById("sign-button").style.display = "inline-block";
     
           tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
@@ -193,7 +211,6 @@
       updateStatus("Nessun provider disponibile.", true);
     }
     
-    // Funzione per richiedere la firma manualmente (cliccando "Firma ora")
     async function richiediFirma() {
       try {
         const message = "Autorizza la connessione per visualizzare il saldo FTS.";
