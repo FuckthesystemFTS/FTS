@@ -147,8 +147,17 @@ async function connectWallet() {
   try {
     statusEl.textContent = "Inizializzo WalletConnect v2...";
 
-    // Inizializza il provider di WalletConnect v2 utilizzando l'oggetto globale "WalletConnectEthereumProvider"
-    wcProvider = await window.WalletConnectEthereumProvider.init({
+    // Utilizza il provider controllando se è esposto direttamente oppure tramite .default
+    const WCProvider =
+      window.WalletConnectEthereumProvider &&
+      (window.WalletConnectEthereumProvider.default || window.WalletConnectEthereumProvider);
+
+    if (!WCProvider || !WCProvider.init) {
+      throw new Error("WalletConnectEthereumProvider.init non è definito.");
+    }
+
+    // Inizializza il provider di WalletConnect v2
+    wcProvider = await WCProvider.init({
       projectId: WALLETCONNECT_PROJECT_ID,
       chains: [BNB_CHAIN_ID],
       optionalChains: [],
