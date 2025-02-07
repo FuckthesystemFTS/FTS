@@ -1,62 +1,118 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Token FTS - Wallet</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interazione Wallet - Token FTS</title>
+  <!-- Includiamo ethers.js da CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
+      margin: 20px;
+      padding: 0;
       background-color: #f4f4f4;
-      padding: 20px;
     }
-    h1 {
+    h1, h2 {
       color: #333;
     }
     button {
-      padding: 10px 15px;
-      font-size: 16px;
+      padding: 10px 20px;
+      margin: 10px 0;
       cursor: pointer;
-      margin-top: 10px;
-    }
-    input {
-      width: 80%;
-      padding: 8px;
-      margin: 5px 0;
+      border: none;
+      background-color: #2979ff;
+      color: #fff;
+      border-radius: 4px;
       font-size: 16px;
     }
-    #balance, #transferStatus {
+    input, label {
+      display: block;
+      margin: 5px 0;
+    }
+    form {
+      margin-top: 15px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0px 0px 5px rgba(0,0,0,0.1);
+    }
+    #transferStatus {
       margin-top: 10px;
-      font-weight: bold;
+      color: green;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .info-box {
+      background-color: #fff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      box-shadow: 0px 0px 5px rgba(0,0,0,0.1);
+    }
+    .info-box p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
-
-  <h1>Interazione con il Token FTS</h1>
-
-  <button id="connectWallet">🔗 Collega Wallet</button>
-  <p id="account"></p>
-
-  <div id="balanceSection" style="display:none;">
-    <h2>💰 Saldo FTS</h2>
-    <button id="getBalance">🔄 Aggiorna Saldo</button>
-    <p id="balance"></p>
+  <div class="container">
+    <h1>Interazione con il Token FTS</h1>
+    <div class="info-box">
+      <p><strong>Rete:</strong> BNB Chain</p>
+      <p><strong>Token Address:</strong> 0xF87993C72C40268FF93989810192e575D17CAfb0</p>
+      <p><strong>Decimali:</strong> 18</p>
+      <p><strong>Simbolo:</strong> FTS</p>
+    </div>
+    
+    <!-- Bottone per connettere il wallet -->
+    <button id="connectWallet">Collega Wallet</button>
+    <div id="accountDisplay"></div>
+    
+    <!-- Sezione per mostrare info sul token (nome e simbolo) -->
+    <div id="tokenInfoSection" class="hidden">
+      <h2>Info Token</h2>
+      <p id="tokenName"></p>
+      <p id="tokenSymbol"></p>
+    </div>
+    
+    <!-- Sezione per visualizzare il saldo -->
+    <div id="balanceSection" class="hidden">
+      <h2>Saldo FTS</h2>
+      <button id="getBalance">Mostra Saldo</button>
+      <div id="balanceDisplay"></div>
+    </div>
+    
+    <!-- Sezione per trasferire token -->
+    <div id="transferSection" class="hidden">
+      <h2>Trasferisci FTS</h2>
+      <form id="transferForm">
+        <label for="recipient">Indirizzo destinatario:</label>
+        <input type="text" id="recipient" placeholder="0x..." required />
+        
+        <label for="amount">Importo da trasferire:</label>
+        <input type="number" id="amount" placeholder="Quantità" required step="any" min="0" />
+        
+        <button type="submit">Invia</button>
+      </form>
+      <div id="transferStatus"></div>
+    </div>
   </div>
-
-  <div id="transferSection" style="display:none;">
-    <h2>📤 Trasferisci FTS</h2>
-    <input type="text" id="recipient" placeholder="Indirizzo destinatario (0x...)" required>
-    <input type="number" id="amount" placeholder="Quantità FTS" step="any" required>
-    <button id="sendTokens">🚀 Invia</button>
-    <p id="transferStatus"></p>
-  </div>
-
+  
   <script>
-    let provider, signer, userAddress;
+    /***********************************************
+     * CONFIGURAZIONE
+     ***********************************************/
+    // Indirizzo del token FTS
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
+    
+    // ABI per le funzioni ERC-20 di base
     const TOKEN_ABI = [
       "function transfer(address to, uint256 amount) public returns (bool)",
       "function balanceOf(address owner) public view returns (uint256)",
@@ -64,61 +120,173 @@
       "function name() public view returns (string)",
       "function symbol() public view returns (string)"
     ];
+    
+    // ID di chain BNB Mainnet (Smart Chain) è 56 in esadecimale 0x38
+    // Per altre reti (testnet), ID = 97 (0x61)
+    const BNB_CHAIN_ID = "0x38"; 
 
-    document.getElementById("connectWallet").addEventListener("click", async () => {
-      if (window.ethereum) {
-        try {
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          await provider.send("eth_requestAccounts", []);
-          signer = provider.getSigner();
-          userAddress = await signer.getAddress();
-          document.getElementById("account").innerText = "Wallet: " + userAddress;
-          document.getElementById("balanceSection").style.display = "block";
-          document.getElementById("transferSection").style.display = "block";
-        } catch (err) {
-          console.error(err);
-          alert("Errore durante la connessione al wallet.");
+    /***********************************************
+     * VARIABILI GLOBALI
+     ***********************************************/
+    let provider;
+    let signer;
+    let userAddress;
+    let tokenContract;
+
+    // Riferimenti agli elementi del DOM
+    const connectWalletBtn = document.getElementById('connectWallet');
+    const accountDisplay = document.getElementById('accountDisplay');
+    const tokenInfoSection = document.getElementById('tokenInfoSection');
+    const tokenNameEl = document.getElementById('tokenName');
+    const tokenSymbolEl = document.getElementById('tokenSymbol');
+    const balanceSection = document.getElementById('balanceSection');
+    const getBalanceBtn = document.getElementById('getBalance');
+    const balanceDisplay = document.getElementById('balanceDisplay');
+    const transferSection = document.getElementById('transferSection');
+    const transferForm = document.getElementById('transferForm');
+    const transferStatus = document.getElementById('transferStatus');
+
+    /***********************************************
+     * FUNZIONE: CONNETTERE IL WALLET
+     ***********************************************/
+    connectWalletBtn.addEventListener('click', async () => {
+      if (typeof window.ethereum === 'undefined') {
+        alert("Nessun wallet rilevato. Installa MetaMask o un altro wallet compatibile.");
+        return;
+      }
+      
+      try {
+        // Richiede l'accesso all'account
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        
+        // Verifica se l'utente è su BNB Chain
+        const network = await provider.getNetwork();
+        const chainIdHex = "0x" + network.chainId.toString(16);
+
+        if (chainIdHex !== BNB_CHAIN_ID) {
+          // Tenta di chiedere all'utente di switchare alla BNB Chain
+          try {
+            await provider.send("wallet_switchEthereumChain", [{ chainId: BNB_CHAIN_ID }]);
+          } catch (switchError) {
+            // Se la chain non è aggiunta su MetaMask, potremmo aggiungerla
+            if (switchError.code === 4902) {
+              try {
+                // Aggiunge la mainnet di BNB a MetaMask
+                await provider.send("wallet_addEthereumChain", [{
+                  chainId: BNB_CHAIN_ID,
+                  chainName: "BNB Smart Chain Mainnet",
+                  nativeCurrency: {
+                    name: "BNB",
+                    symbol: "BNB",
+                    decimals: 18
+                  },
+                  rpcUrls: ["https://bsc-dataseed.binance.org/"],
+                  blockExplorerUrls: ["https://bscscan.com"]
+                }]);
+              } catch (addError) {
+                alert("Impossibile aggiungere la BNB Chain al wallet. Configura manualmente la rete.");
+                console.error(addError);
+                return;
+              }
+            } else {
+              alert("Switch di rete rifiutato o non riuscito. Assicurati di essere sulla BNB Chain.");
+              return;
+            }
+          }
         }
-      } else {
-        alert("Wallet non rilevato! Installa MetaMask.");
+        
+        // Ottieni l'indirizzo dell'utente
+        userAddress = await signer.getAddress();
+        accountDisplay.innerText = "Wallet collegato: " + userAddress;
+        
+        // Inizializza il contratto
+        tokenContract = new ethers.Contract(
+          TOKEN_CONTRACT_ADDRESS,
+          TOKEN_ABI,
+          signer
+        );
+        
+        // Mostra le sezioni (info, saldo, trasferimento)
+        tokenInfoSection.classList.remove('hidden');
+        balanceSection.classList.remove('hidden');
+        transferSection.classList.remove('hidden');
+
+        // Recupera e mostra informazioni base sul token
+        try {
+          const tokenName = await tokenContract.name();
+          const tokenSymbol = await tokenContract.symbol();
+          tokenNameEl.innerText = "Nome: " + tokenName;
+          tokenSymbolEl.innerText = "Simbolo: " + tokenSymbol;
+        } catch(err) {
+          console.error("Errore nel recuperare name e symbol:", err);
+        }
+
+      } catch (err) {
+        console.error(err);
+        alert("Errore durante la connessione del wallet: " + (err.message || err));
       }
     });
 
-    document.getElementById("getBalance").addEventListener("click", async () => {
-      if (!signer) return alert("Collega prima il wallet!");
-      const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
+    /***********************************************
+     * FUNZIONE: MOSTRARE IL SALDO DEL TOKEN
+     ***********************************************/
+    getBalanceBtn.addEventListener('click', async () => {
+      if (!tokenContract || !userAddress) {
+        return alert("Collega prima il wallet e assicurati di essere su BNB Chain.");
+      }
       try {
+        // Otteniamo i decimali del token
         const decimals = await tokenContract.decimals();
         let balance = await tokenContract.balanceOf(userAddress);
+        // Convertiamo il saldo nei formati leggibili
         balance = ethers.utils.formatUnits(balance, decimals);
-        document.getElementById("balance").innerText = "Saldo: " + balance + " FTS";
+        balanceDisplay.innerText = "Saldo FTS: " + balance;
       } catch (err) {
         console.error(err);
-        alert("Errore nel recupero del saldo.");
+        alert("Errore nel recuperare il saldo del token: " + (err.message || err));
       }
     });
 
-    document.getElementById("sendTokens").addEventListener("click", async () => {
-      if (!signer) return alert("Collega prima il wallet!");
-      
-      const recipient = document.getElementById("recipient").value;
-      const amount = document.getElementById("amount").value;
-      if (!ethers.utils.isAddress(recipient)) return alert("Indirizzo destinatario non valido!");
+    /***********************************************
+     * FUNZIONE: INVIARE TOKEN
+     ***********************************************/
+    transferForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!tokenContract || !userAddress) {
+        return alert("Collega prima il wallet.");
+      }
 
-      const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+      const recipient = document.getElementById('recipient').value;
+      const amount = document.getElementById('amount').value;
+
+      // Controllo di validità dell'indirizzo
+      if (!ethers.utils.isAddress(recipient)) {
+        return alert("L'indirizzo del destinatario non è valido.");
+      }
+
       try {
+        // Otteniamo i decimali del token
         const decimals = await tokenContract.decimals();
+        // Convertiamo l'importo in formato compatibile
         const amountParsed = ethers.utils.parseUnits(amount, decimals);
+
+        // Invia la transazione
         const tx = await tokenContract.transfer(recipient, amountParsed);
-        document.getElementById("transferStatus").innerText = "Transazione in corso... Hash: " + tx.hash;
+        transferStatus.style.color = "blue";
+        transferStatus.innerText = "Transazione inviata. Attendi conferma... (Tx Hash: " + tx.hash + ")";
+
+        // Aspetta la conferma
         await tx.wait();
-        document.getElementById("transferStatus").innerText = "✅ Transazione completata!";
+        transferStatus.style.color = "green";
+        transferStatus.innerText = "Transazione confermata!";
       } catch (err) {
         console.error(err);
-        document.getElementById("transferStatus").innerText = "Errore: " + err.message;
+        transferStatus.style.color = "red";
+        transferStatus.innerText = "Errore nella transazione: " + (err.message || err);
       }
     });
   </script>
-
 </body>
 </html>
