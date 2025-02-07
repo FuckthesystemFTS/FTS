@@ -147,14 +147,14 @@ async function connectWallet() {
   try {
     statusEl.textContent = "Inizializzo WalletConnect v2...";
 
-    // Inizializza il provider di WalletConnect v2
-    wcProvider = await window.WalletConnectProvider.EthereumProvider.init({
+    // Inizializza il provider di WalletConnect v2 utilizzando l'oggetto globale "WalletConnectEthereumProvider"
+    wcProvider = await window.WalletConnectEthereumProvider.init({
       projectId: WALLETCONNECT_PROJECT_ID,
       chains: [BNB_CHAIN_ID],
       optionalChains: [],
       methods: ["eth_sendTransaction", "eth_sign", "personal_sign", "eth_signTypedData"],
       optionalMethods: [],
-      showQrModal: true, // Mostra il QR code o prompt se necessario
+      showQrModal: true, // Mostra il QR code o deep link se necessario
       rpcMap: {
         [BNB_CHAIN_ID]: BNB_RPC_URL
       }
