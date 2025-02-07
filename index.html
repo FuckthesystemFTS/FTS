@@ -6,8 +6,8 @@
   <title>Token FTS su BNB Chain – Connessione via WalletConnect v2</title>
   <!-- ethers.js (UMD) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
-  <!-- WalletConnect v2 Provider (UMD) tramite jsDelivr -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.8.11/dist/umd/index.min.js"></script>
+  <!-- WalletConnect v2 Provider (UMD) tramite unpkg -->
+  <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.8.11/dist/umd/index.min.js"></script>
   <style>
     body { 
       font-family: Arial, sans-serif; 
@@ -147,15 +147,14 @@ async function connectWallet() {
   try {
     statusEl.textContent = "Inizializzo WalletConnect v2...";
 
-    // Utilizza il provider controllando se è esposto direttamente oppure tramite .default
-    const WCProvider =
-      window.WalletConnectEthereumProvider &&
-      (window.WalletConnectEthereumProvider.default || window.WalletConnectEthereumProvider);
-
-    if (!WCProvider || !WCProvider.init) {
-      throw new Error("WalletConnectEthereumProvider.init non è definito.");
+    // Verifica che il provider sia stato caricato correttamente
+    if (typeof window.WalletConnectEthereumProvider === "undefined") {
+      throw new Error("WalletConnectEthereumProvider non è definito. Assicurati che il file JS sia stato caricato correttamente.");
     }
-
+    
+    // Usa il provider; se è esportato come default, usalo
+    const WCProvider = window.WalletConnectEthereumProvider.default || window.WalletConnectEthereumProvider;
+    
     // Inizializza il provider di WalletConnect v2
     wcProvider = await WCProvider.init({
       projectId: WALLETCONNECT_PROJECT_ID,
