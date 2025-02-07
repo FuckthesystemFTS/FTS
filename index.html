@@ -2,20 +2,18 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Interazione Token FTS - WalletConnect</title>
-  <!-- ethers.js -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FTS su BNB Chain - WalletConnect v2</title>
+  <!-- ethers.js (UMD) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
-  <!-- Web3Modal -->
-  <script src="https://unpkg.com/web3modal@1.9.5/dist/index.js"></script>
-  <!-- WalletConnect Provider -->
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
-  
+  <!-- WalletConnect v2 Provider (UMD) -->
+  <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.8.11/dist/umd/index.min.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
+      margin: 20px;
       background: #f4f4f4;
-      margin: 0; padding: 20px;
     }
     .container {
       max-width: 600px;
@@ -26,248 +24,239 @@
     }
     button {
       padding: 10px 15px;
-      margin: 5px 0;
-      background: #2979ff;
-      color: #fff;
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      background: #2979ff;
+      color: #fff;
+      font-size: 16px;
+      margin: 5px 0;
     }
     form {
       background: #fff;
       padding: 15px;
-      margin-top: 20px;
       border-radius: 5px;
+      margin-top: 10px;
     }
     label, input {
       display: block;
       margin: 5px 0;
     }
-    #transferStatus {
+    #status, #balanceDisplay, #transferStatus {
       margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Token FTS su BNB Chain</h1>
+<div class="container">
+  <h1>Interazione con Token FTS su BNB Chain</h1>
+  
+  <!-- Bottone per connettere il wallet via WalletConnect v2 -->
+  <button id="connectBtn">Collega Wallet (WC v2)</button>
+  <div id="status"></div>
 
-    <!-- Sezione Connessione -->
-    <button id="connectButton">Collega Wallet</button>
-    <div id="walletInfo"></div>
-    
-    <!-- Sezione per Info Token -->
-    <div id="tokenInfoSection" style="display:none;">
-      <h2>Info Token</h2>
-      <p id="tokenName"></p>
-      <p id="tokenSymbol"></p>
-    </div>
-
-    <!-- Sezione per il saldo -->
-    <div id="balanceSection" style="display:none;">
-      <h2>Saldo Token</h2>
-      <button id="getBalanceButton">Mostra Saldo</button>
-      <div id="balanceDisplay"></div>
-    </div>
-
-    <!-- Sezione per il trasferimento -->
-    <div id="transferSection" style="display:none;">
-      <h2>Trasferisci Token</h2>
-      <form id="transferForm">
-        <label for="recipient">Indirizzo destinatario</label>
-        <input type="text" id="recipient" placeholder="0x..." required />
-        
-        <label for="amount">Quantità</label>
-        <input type="number" step="any" id="amount" required />
-        
-        <button type="submit">Invia</button>
-      </form>
-      <div id="transferStatus"></div>
-    </div>
+  <!-- Sezione Info Token (nome e simbolo) -->
+  <div id="tokenInfoSection" style="display:none;">
+    <h2>Info Token FTS</h2>
+    <p id="tokenName"></p>
+    <p id="tokenSymbol"></p>
   </div>
 
-  <script>
-    /******************************************
-     * CONFIGURAZIONE
-     ******************************************/
-    const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-    const TOKEN_ABI = [
-      "function transfer(address to, uint256 amount) public returns (bool)",
-      "function balanceOf(address owner) public view returns (uint256)",
-      "function decimals() public view returns (uint8)",
-      "function name() public view returns (string)",
-      "function symbol() public view returns (string)"
-    ];
-    const BNB_CHAIN_ID = 56; // BSC Mainnet
+  <!-- Sezione per il saldo -->
+  <div id="balanceSection" style="display:none;">
+    <h2>Saldo del Token</h2>
+    <button id="getBalanceBtn">Mostra Saldo</button>
+    <div id="balanceDisplay"></div>
+  </div>
 
-    // Riferimenti a elementi del DOM
-    const connectButton = document.getElementById("connectButton");
-    const walletInfo = document.getElementById("walletInfo");
-    const tokenInfoSection = document.getElementById("tokenInfoSection");
-    const tokenNameEl = document.getElementById("tokenName");
-    const tokenSymbolEl = document.getElementById("tokenSymbol");
-    const balanceSection = document.getElementById("balanceSection");
-    const getBalanceButton = document.getElementById("getBalanceButton");
-    const balanceDisplay = document.getElementById("balanceDisplay");
-    const transferSection = document.getElementById("transferSection");
-    const transferForm = document.getElementById("transferForm");
-    const transferStatus = document.getElementById("transferStatus");
+  <!-- Sezione per il trasferimento -->
+  <div id="transferSection" style="display:none;">
+    <h2>Trasferisci Token</h2>
+    <form id="transferForm">
+      <label for="recipient">Destinatario</label>
+      <input type="text" id="recipient" placeholder="0x..." required />
+      <label for="amount">Quantità</label>
+      <input type="number" step="any" id="amount" required />
+      <button type="submit">Invia</button>
+    </form>
+    <div id="transferStatus"></div>
+  </div>
+</div>
 
-    // Variabili globali
-    let web3Modal;
-    let provider;       // provider generico iniettatato da Web3Modal
-    let ethersProvider; // provider di ethers.js
-    let signer;         // signer ethers (account collegato)
-    let tokenContract;  // istanza del contratto FTS
+<script>
+/***************************************************
+ * CONFIGURAZIONI E COSTANTI
+ ***************************************************/
+// Dati del Token FTS su BNB Chain
+const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
+const TOKEN_ABI = [
+  "function transfer(address to, uint256 amount) public returns (bool)",
+  "function balanceOf(address owner) public view returns (uint256)",
+  "function decimals() public view returns (uint8)",
+  "function name() public view returns (string)",
+  "function symbol() public view returns (string)"
+];
+// BNB Mainnet: chainId 56
+const BNB_CHAIN_ID = 56;
+const BNB_RPC_URL = "https://bsc-dataseed.binance.org";
 
-    /******************************************
-     * INIZIALIZZA WEB3MODAL + WALLETCONNECT
-     ******************************************/
-    function init() {
-      // Config del provider WalletConnect
-      const walletConnectProvider = {
-        package: window.WalletConnectProvider.default,
-        options: {
-          rpc: {
-            56: "https://bsc-dataseed.binance.org/",
-            97: "https://data-seed-prebsc-1-s1.binance.org:8545/" // se vuoi aggiungere la testnet
-          },
-          chainId: BNB_CHAIN_ID
-        }
-      };
+// Il tuo Project ID di WalletConnect v2
+const WALLETCONNECT_PROJECT_ID = "d2dbf72ab740e1656b27eefd66a94298";
 
-      // Config Web3Modal
-      web3Modal = new window.Web3Modal.default({
-        cacheProvider: false, // se true, ricorda l'ultima connessione
-        providerOptions: {
-          walletconnect: walletConnectProvider
-        },
-        disableInjectedProvider: false  // se fosse true, ignora MetaMask injection
-      });
-    }
+/***************************************************
+ * ELEMENTI DEL DOM
+ ***************************************************/
+const connectBtn         = document.getElementById("connectBtn");
+const statusEl           = document.getElementById("status");
+const tokenInfoSection   = document.getElementById("tokenInfoSection");
+const tokenNameEl        = document.getElementById("tokenName");
+const tokenSymbolEl      = document.getElementById("tokenSymbol");
+const balanceSection     = document.getElementById("balanceSection");
+const getBalanceBtn      = document.getElementById("getBalanceBtn");
+const balanceDisplay     = document.getElementById("balanceDisplay");
+const transferSection    = document.getElementById("transferSection");
+const transferForm       = document.getElementById("transferForm");
+const transferStatus     = document.getElementById("transferStatus");
 
-    /******************************************
-     * FUNZIONE: COLLEGA WALLET
-     ******************************************/
-    async function connectWallet() {
-      try {
-        // Mostra popup Web3Modal (scegli wallet)
-        provider = await web3Modal.connect();
-        
-        // Forziamo Ethers a usare il provider appena ottenuto
-        ethersProvider = new ethers.providers.Web3Provider(provider);
-        signer = ethersProvider.getSigner();
-        
-        // Verifica la chain
-        const network = await ethersProvider.getNetwork();
-        if (network.chainId !== BNB_CHAIN_ID) {
-          alert("Attenzione: Non sei su BNB Chain (Mainnet).");
-          // Puoi gestire qui la richiesta di switch, 
-          // ma con WalletConnect non sempre è possibile forzarlo come con MetaMask injection.
-        }
+/***************************************************
+ * VARIABILI GLOBALI
+ ***************************************************/
+let wcProvider;       // WalletConnectProvider (v2)
+let ethersProvider;   // ethers.js provider
+let signer;           // ethers.js signer
+let tokenContract;    // Contratto FTS
 
-        // Mostra info di base
-        const userAddress = await signer.getAddress();
-        walletInfo.innerText = "Wallet collegato: " + userAddress;
+/***************************************************
+ * FUNZIONE: Connetti Wallet con WC v2
+ ***************************************************/
+async function connectWallet() {
+  try {
+    statusEl.textContent = "Inizializzo WalletConnect...";
 
-        // Inizializza il contratto
-        tokenContract = new ethers.Contract(
-          TOKEN_CONTRACT_ADDRESS,
-          TOKEN_ABI,
-          signer
-        );
-
-        // Mostra sezioni
-        tokenInfoSection.style.display = "block";
-        balanceSection.style.display = "block";
-        transferSection.style.display = "block";
-
-        // Carica il nome e il simbolo
-        const [name, symbol] = await Promise.all([
-          tokenContract.name(),
-          tokenContract.symbol()
-        ]);
-        tokenNameEl.innerText = "Nome: " + name;
-        tokenSymbolEl.innerText = "Simbolo: " + symbol;
-
-      } catch (err) {
-        console.error("Errore connessione wallet:", err);
-        alert("Connessione al wallet annullata o fallita.");
+    // 1) Crea il provider di WalletConnect v2
+    wcProvider = await window.WalletConnectProvider.EthereumProvider.init({
+      projectId: WALLETCONNECT_PROJECT_ID,
+      chains: [BNB_CHAIN_ID],
+      methods: ["eth_sendTransaction","eth_sign","personal_sign","eth_signTypedData"],
+      showQrModal: true, // Mostra il QR code se serve
+      rpcMap: {
+        [BNB_CHAIN_ID]: BNB_RPC_URL
       }
-    }
-
-    /******************************************
-     * FUNZIONE: MOSTRA SALDO
-     ******************************************/
-    async function showBalance() {
-      if (!tokenContract) {
-        alert("Devi prima collegare il wallet.");
-        return;
-      }
-      try {
-        const userAddress = await signer.getAddress();
-        const decimals = await tokenContract.decimals();
-        let balance = await tokenContract.balanceOf(userAddress);
-        balance = ethers.utils.formatUnits(balance, decimals);
-        balanceDisplay.innerText = "Saldo FTS: " + balance;
-      } catch (err) {
-        console.error("Errore nel recuperare il saldo:", err);
-        alert("Impossibile ottenere il saldo.");
-      }
-    }
-
-    /******************************************
-     * FUNZIONE: INVIA TOKEN
-     ******************************************/
-    async function transferTokens(event) {
-      event.preventDefault();
-      if (!tokenContract) {
-        alert("Collega prima il wallet.");
-        return;
-      }
-      const recipient = document.getElementById("recipient").value;
-      const amount = document.getElementById("amount").value;
-      
-      if (!ethers.utils.isAddress(recipient)) {
-        alert("Indirizzo destinatario non valido.");
-        return;
-      }
-      if (!amount || isNaN(amount)) {
-        alert("Inserisci un importo valido.");
-        return;
-      }
-      
-      try {
-        transferStatus.innerText = "";
-        transferStatus.style.color = "black";
-
-        const decimals = await tokenContract.decimals();
-        const amountParsed = ethers.utils.parseUnits(amount, decimals);
-
-        // Invia la transazione di trasferimento
-        const tx = await tokenContract.transfer(recipient, amountParsed);
-        transferStatus.innerText = "Transazione inviata. Tx Hash: " + tx.hash;
-        transferStatus.style.color = "blue";
-        // Aspetta la conferma on-chain
-        await tx.wait();
-        transferStatus.innerText = "Transazione confermata!";
-        transferStatus.style.color = "green";
-      } catch (err) {
-        console.error("Errore invio token:", err);
-        transferStatus.innerText = "Transazione fallita: " + (err.message || err);
-        transferStatus.style.color = "red";
-      }
-    }
-
-    /******************************************
-     * EVENT LISTENERS
-     ******************************************/
-    window.addEventListener('load', () => {
-      init();
-      connectButton.addEventListener('click', connectWallet);
-      getBalanceButton.addEventListener('click', showBalance);
-      transferForm.addEventListener('submit', transferTokens);
     });
-  </script>
+
+    // 2) Connetti
+    statusEl.textContent = "Richiesta di connessione al wallet...";
+    await wcProvider.connect();
+
+    // 3) Inizializza ethers.js con wcProvider
+    ethersProvider = new ethers.providers.Web3Provider(wcProvider);
+    signer = ethersProvider.getSigner();
+
+    // Verifica la rete
+    const network = await ethersProvider.getNetwork();
+    if (network.chainId !== BNB_CHAIN_ID) {
+      statusEl.textContent = `Attenzione: il wallet è su chain ${network.chainId}, non BNB Chain (56).`;
+    } else {
+      statusEl.textContent = "Wallet connesso su BNB Chain!";
+    }
+
+    // Inizializza il contratto FTS
+    tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+
+    // Mostra le sezioni Info, Saldo, Trasferimento
+    tokenInfoSection.style.display   = "block";
+    balanceSection.style.display     = "block";
+    transferSection.style.display    = "block";
+
+    // Recupera e mostra nome e simbolo del token
+    const [tokenName, tokenSymbol] = await Promise.all([
+      tokenContract.name(),
+      tokenContract.symbol()
+    ]);
+    tokenNameEl.textContent   = "Nome: " + tokenName;
+    tokenSymbolEl.textContent = "Simbolo: " + tokenSymbol;
+    
+  } catch (err) {
+    console.error("Errore nella connessione WalletConnect:", err);
+    statusEl.textContent = "Connessione fallita: " + (err.message || err);
+  }
+}
+
+/***************************************************
+ * FUNZIONE: Mostra il saldo di FTS
+ ***************************************************/
+async function showBalance() {
+  if (!tokenContract || !signer) {
+    alert("Collega prima il wallet tramite WalletConnect.");
+    return;
+  }
+  try {
+    // Indirizzo dell'utente
+    const userAddress = await signer.getAddress();
+    // Decimali del token
+    const decimals = await tokenContract.decimals();
+    // Saldo in formato bigNumber
+    let balance = await tokenContract.balanceOf(userAddress);
+    // Converti in formato leggibile
+    balance = ethers.utils.formatUnits(balance, decimals);
+    balanceDisplay.innerText = `Saldo FTS: ${balance}`;
+  } catch (err) {
+    console.error("Errore nel recuperare il saldo:", err);
+    alert("Errore nel recuperare il saldo: " + (err.message || err));
+  }
+}
+
+/***************************************************
+ * FUNZIONE: Trasferisci token
+ ***************************************************/
+async function transferTokens(e) {
+  e.preventDefault();
+  if (!tokenContract) {
+    alert("Collega prima il wallet.");
+    return;
+  }
+  transferStatus.textContent = "";
+
+  const recipient = document.getElementById("recipient").value;
+  const amount    = document.getElementById("amount").value;
+
+  if (!ethers.utils.isAddress(recipient)) {
+    alert("Indirizzo destinatario non valido.");
+    return;
+  }
+  if (!amount || isNaN(amount)) {
+    alert("Inserisci una quantità valida.");
+    return;
+  }
+
+  try {
+    // Otteniamo i decimali
+    const decimals = await tokenContract.decimals();
+    // Convertiamo la quantità in base ai decimali
+    const amountParsed = ethers.utils.parseUnits(amount, decimals);
+
+    // Invia transazione
+    const tx = await tokenContract.transfer(recipient, amountParsed);
+    transferStatus.style.color = "blue";
+    transferStatus.textContent = `Transazione inviata (hash: ${tx.hash}). Attendi conferma...`;
+
+    // Attendi la conferma
+    await tx.wait();
+    transferStatus.style.color = "green";
+    transferStatus.textContent = "Transazione confermata!";
+  } catch (err) {
+    console.error("Errore nella transazione:", err);
+    transferStatus.style.color = "red";
+    transferStatus.textContent = "Errore: " + (err.message || err);
+  }
+}
+
+/***************************************************
+ * EVENTI
+ ***************************************************/
+connectBtn.addEventListener("click", connectWallet);
+getBalanceBtn.addEventListener("click", showBalance);
+transferForm.addEventListener("submit", transferTokens);
+</script>
 </body>
 </html>
