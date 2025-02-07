@@ -2,98 +2,80 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobile WalletConnect - FTS Wallet Bot</title>
-  
-  <!-- Carica ethers.js dalla CDN (UMD) -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
-  
-  <!-- Import map: mappa il modulo WalletConnectEthereumProvider all'URL su unpkg -->
-  <script type="importmap">
-  {
-    "imports": {
-      "@walletconnect/ethereum-provider": "https://unpkg.com/@walletconnect/ethereum-provider@2.0.9/dist/ethereum-provider.esm.js"
-    }
-  }
-  </script>
-  
-  <!-- Caricamento dinamico del modulo tramite import map -->
-  <script type="module">
-    async function getWalletConnectProvider() {
-      try {
-        // Importa il modulo secondo l'import map
-        const module = await import("@walletconnect/ethereum-provider");
-        console.log("WalletConnectEthereumProvider importato con successo:", module.default);
-        return module.default;
-      } catch (err) {
-        console.error("Errore durante l'import dinamico:", err);
-        throw err;
-      }
-    }
-    // Rendi la funzione disponibile globalmente
-    window.getWalletConnectProvider = getWalletConnectProvider;
-  </script>
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Interazione con il Token FTS</title>
+  <!-- Inclusione di ethers.js tramite CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
+      margin: 20px;
+      background-color: #f4f4f4;
     }
-    #app {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      max-width: 400px;
-      width: 90%;
+    h1, h2 {
+      color: #333;
     }
     button {
       padding: 10px 20px;
-      margin: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
-      background-color: #007bff;
-      color: #fff;
+      margin: 10px 0;
       cursor: pointer;
     }
-    #status-message {
-      font-size: 14px;
+    input, label {
+      display: block;
+      margin: 5px 0;
+    }
+    form {
+      margin-top: 15px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0px 0px 5px rgba(0,0,0,0.1);
+    }
+    #transferStatus, #networkStatus {
       margin-top: 10px;
-      min-height: 20px;
+      color: green;
+    }
+    #errorStatus {
+      margin-top: 10px;
+      color: red;
     }
   </style>
-  
-  <script>
-    // Controllo base al caricamento (da usare solo per debug)
-    window.addEventListener("load", function () {
-      console.log("Pagina caricata. Servi la pagina via HTTPS per funzionare correttamente.");
-    });
-  </script>
 </head>
 <body>
-  <div id="app">
-    <h1>FTS Wallet Bot</h1>
-    <p>Wallet Connesso: <span id="connected-wallet">Non connesso</span></p>
-    <p id="status-message"></p>
-    
-    <!-- Pulsante per connettere il wallet -->
-    <button onclick="connectWallet()">Connect Wallet</button>
-    <!-- Pulsante per richiedere la firma (visibile dopo la connessione) -->
-    <button id="sign-button" style="display:none;" onclick="richiediFirma()">Firma ora</button>
-    
-    <p>Saldo Token: <span id="balance-value">0</span> <span id="token-symbol">FTS</span></p>
+  <h1>Interazione con il Token FTS</h1>
+  
+  <!-- Bottone per collegare il wallet -->
+  <button id="connectWallet">Collega Wallet</button>
+  <div id="accountDisplay"></div>
+  <div id="networkStatus"></div>
+  
+  <!-- Sezione per visualizzare il saldo -->
+  <div id="balanceSection" style="display:none;">
+    <h2>Saldo FTS</h2>
+    <button id="getBalance">Mostra Saldo</button>
+    <div id="balanceDisplay"></div>
   </div>
   
+  <!-- Sezione per trasferire token -->
+  <div id="transferSection" style="display:none;">
+    <h2>Trasferisci FTS</h2>
+    <form id="transferForm">
+      <label for="recipient">Indirizzo destinatario:</label>
+      <input type="text" id="recipient" placeholder="0x..." required>
+      
+      <label for="amount">Importo da trasferire:</label>
+      <input type="number" id="amount" placeholder="Quantità" required step="any" min="0">
+      
+      <button type="submit">Invia</button>
+    </form>
+    <div id="transferStatus"></div>
+  </div>
+  
+  <!-- Sezione per errori -->
+  <div id="errorStatus"></div>
+  
   <script>
-    /***************** CONFIGURAZIONE DEL CONTRATTO *****************/
+    // Dati del token forniti
     const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
     const TOKEN_ABI = [
       "function transfer(address to, uint256 amount) public returns (bool)",
@@ -103,96 +85,105 @@
       "function symbol() public view returns (string)"
     ];
     
-    /***************** VARIABILI GLOBALI *****************/
-    let ethersProvider, signer, walletAddress, tokenContract;
-    let tokenDecimals = 18;
-    let tokenSymbol = "FTS";
+    // Variabili globali
+    let provider;
+    let signer;
+    let userAddress;
     
-    /***************** FUNZIONI UTILITY *****************/
-    function updateStatus(message, isError = false) {
-      const statusEl = document.getElementById("status-message");
-      statusEl.textContent = message;
-      statusEl.style.color = isError ? "red" : "green";
-      console.log(message);
-    }
-    
-    /***************** CONNESSIONE DEL WALLET (SOLO MOBILE) *****************/
-    async function connectWallet() {
+    // Funzione per controllare la rete: Binance Smart Chain Mainnet (chainId 56 o in esadecimale "0x38")
+    async function checkNetwork() {
       try {
-        updateStatus("Connessione tramite WalletConnect v2 in corso...");
-        // Carica dinamicamente il provider
-        const WalletConnectProvider = await window.getWalletConnectProvider();
-        if (!WalletConnectProvider) {
-          throw new Error("WalletConnectProvider non disponibile.");
+        const network = await provider.getNetwork();
+        // BSC Mainnet ha chainId = 56
+        if (network.chainId !== 56) {
+          document.getElementById('networkStatus').innerText = "Attenzione: il tuo wallet non è collegato alla Binance Smart Chain (BSC). Attiva la rete BSC per interagire correttamente.";
+          return false;
+        } else {
+          document.getElementById('networkStatus').innerText = "Rete: Binance Smart Chain (BSC)";
+          return true;
         }
-        // Inizializza il provider con il project ID e le impostazioni per la rete BNB (56)
-        const wcProvider = await WalletConnectProvider.init({
-          projectId: "a56c60368c892e57e3099fa3c35c35db",
-          chains: [56],
-          optionalChains: [56],
-          showQrModal: true
-        });
-        // Connetti il provider (questo aprirà il QR code o un deep link sul dispositivo mobile)
-        await wcProvider.connect();
-        // Usa ethers.js per creare un provider compatibile
-        ethersProvider = new ethers.BrowserProvider(wcProvider, "any");
-        signer = await ethersProvider.getSigner();
-        walletAddress = await signer.getAddress();
-        document.getElementById("connected-wallet").textContent = walletAddress;
-        updateStatus("Wallet collegato tramite WalletConnect v2.");
-        // Mostra il pulsante per richiedere la firma
-        document.getElementById("sign-button").style.display = "inline-block";
+      } catch (err) {
+        console.error("Errore nel controllo della rete:", err);
+        return false;
+      }
+    }
+    
+    // Collegamento del wallet
+    document.getElementById('connectWallet').addEventListener('click', async () => {
+      if (window.ethereum) {
+        try {
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          await provider.send("eth_requestAccounts", []);
+          signer = provider.getSigner();
+          userAddress = await signer.getAddress();
+          document.getElementById('accountDisplay').innerText = "Wallet collegato: " + userAddress;
+          
+          // Controlla se l'utente è sulla rete BSC
+          const isBSC = await checkNetwork();
+          if (!isBSC) {
+            // Se non è su BSC, puoi opzionalmente chiedere di cambiare rete oppure fermare ulteriori operazioni.
+            document.getElementById('errorStatus').innerText = "Per favore, cambia rete nel tuo wallet a Binance Smart Chain (BSC).";
+          } else {
+            // Mostra le sezioni per saldo e trasferimento
+            document.getElementById('balanceSection').style.display = "block";
+            document.getElementById('transferSection').style.display = "block";
+            document.getElementById('errorStatus').innerText = "";
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Errore durante la connessione del wallet.");
+        }
+      } else {
+        alert("Nessun wallet rilevato. Installa MetaMask o un altro wallet compatibile.");
+      }
+    });
+    
+    // Funzione per mostrare il saldo del token FTS
+    document.getElementById('getBalance').addEventListener('click', async () => {
+      if (!signer) return alert("Collega prima il wallet.");
+      
+      try {
+        const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
+        const decimals = await tokenContract.decimals();
+        let balance = await tokenContract.balanceOf(userAddress);
+        // Formatta il saldo in base ai decimali
+        balance = ethers.utils.formatUnits(balance, decimals);
+        document.getElementById('balanceDisplay').innerText = "Saldo FTS: " + balance;
+      } catch (err) {
+        console.error(err);
+        alert("Errore nel recuperare il saldo del token.");
+      }
+    });
+    
+    // Gestione del trasferimento del token FTS
+    document.getElementById('transferForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!signer) return alert("Collega prima il wallet.");
+      
+      const recipient = document.getElementById('recipient').value;
+      const amount = document.getElementById('amount').value;
+      
+      // Verifica che l'indirizzo inserito sia valido
+      if (!ethers.utils.isAddress(recipient)) {
+        return alert("L'indirizzo del destinatario non è valido.");
+      }
+      
+      try {
+        const tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
+        const decimals = await tokenContract.decimals();
+        const amountParsed = ethers.utils.parseUnits(amount, decimals);
         
-        // Crea il contratto per interagire con il token FTS
-        tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-        await loadTokenDetails();
-        await getBalance();
-      } catch (error) {
-        console.error(error);
-        updateStatus("Errore nella connessione: " + error.message, true);
+        // Invia la transazione di trasferimento
+        const tx = await tokenContract.transfer(recipient, amountParsed);
+        document.getElementById('transferStatus').innerText = "Transazione inviata. Attendi conferma... (Tx Hash: " + tx.hash + ")";
+        // Attendi la conferma della transazione
+        await tx.wait();
+        document.getElementById('transferStatus').innerText = "Transazione confermata!";
+      } catch (err) {
+        console.error(err);
+        document.getElementById('transferStatus').innerText = "Errore nella transazione: " + (err.message || err);
       }
-    }
-    
-    // Funzione per richiedere manualmente la firma (utile per forzare l'interazione)
-    async function richiediFirma() {
-      try {
-        const message = "Autorizza la connessione per visualizzare il saldo FTS.";
-        updateStatus("Richiesta firma in corso...");
-        const signature = await signer.signMessage(message);
-        console.log("Firma ottenuta:", signature);
-        updateStatus("Firma eseguita correttamente.");
-      } catch (error) {
-        console.error(error);
-        updateStatus("Errore nella firma: " + error.message, true);
-      }
-    }
-    
-    // Funzione per caricare i dettagli del token (decimali e simbolo)
-    async function loadTokenDetails() {
-      try {
-        tokenDecimals = await tokenContract.decimals();
-        tokenSymbol = await tokenContract.symbol();
-        document.getElementById("token-symbol").textContent = tokenSymbol;
-        updateStatus("Dettagli del token caricati.");
-      } catch (error) {
-        console.error(error);
-        updateStatus("Errore nel caricamento dei dettagli del token: " + error.message, true);
-      }
-    }
-    
-    // Funzione per ottenere il saldo del token FTS
-    async function getBalance() {
-      try {
-        updateStatus("Recupero del saldo FTS...");
-        const balanceBN = await tokenContract.balanceOf(walletAddress);
-        const balance = ethers.formatUnits(balanceBN, tokenDecimals);
-        document.getElementById("balance-value").textContent = balance;
-        updateStatus("Saldo aggiornato.");
-      } catch (error) {
-        console.error(error);
-        updateStatus("Errore nel recupero del saldo: " + error.message, true);
-      }
-    }
+    });
   </script>
 </body>
 </html>
