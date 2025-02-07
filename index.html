@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Token FTS su BNB Chain – Connessione via WalletConnect v2</title>
-  <!-- ethers.js (UMD) -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
-  <!-- WalletConnect v2 Provider (UMD) -->
-  <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.8.11/dist/umd/index.min.js"></script>
+  <title>Token FTS su BNB Chain – WalletConnect v2</title>
+  <!-- Carichiamo ethers.js per primi -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <!-- Carichiamo @walletconnect/ethereum-provider (WalletConnect v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.8.11/dist/umd/index.min.js"></script>
+
   <style>
     body { 
       font-family: Arial, sans-serif; 
@@ -58,6 +59,7 @@
     }
   </style>
 </head>
+
 <body>
 <div class="container">
   <h1>Token FTS su BNB Chain</h1>
@@ -109,12 +111,13 @@ const TOKEN_ABI = [
   "function name() public view returns (string)",
   "function symbol() public view returns (string)"
 ];
+
 // ID della BNB Chain (Mainnet)
 const BNB_CHAIN_ID = 56;
 // Endpoint RPC ufficiale di BSC
 const BNB_RPC_URL = "https://bsc-dataseed.binance.org";
 
-// Il projectId fornito per WalletConnect v2
+// Il tuo projectId di WalletConnect v2
 const WALLETCONNECT_PROJECT_ID = "d2dbf72ab740e1656b27eefd66a94298";
 
 /***************************************************
@@ -154,14 +157,14 @@ async function connectWallet() {
       optionalChains: [],
       methods: ["eth_sendTransaction", "eth_sign", "personal_sign", "eth_signTypedData"],
       optionalMethods: [],
-      showQrModal: true, // Mostra il QR code se necessario (o prompt su mobile)
+      showQrModal: true, // Mostra il QR code se necessario
       rpcMap: {
         [BNB_CHAIN_ID]: BNB_RPC_URL
       }
     });
 
     statusEl.textContent = "Richiesta di connessione in corso...";
-    // Avvia la connessione (viene mostrato il QR code o il deep link)
+    // Avvia la connessione (viene mostrato il QR code o il deep link su mobile)
     await wcProvider.connect();
 
     // Imposta ethers.js con il provider ottenuto
