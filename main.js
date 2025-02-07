@@ -1,4 +1,3 @@
-// Importa ethers.js e il provider WalletConnect v2
 import { ethers } from "ethers";
 import { EthereumProvider } from "@walletconnect/ethereum-provider";
 
@@ -35,14 +34,11 @@ let wcProvider, ethersProvider, signer, tokenContract;
 async function connectWallet() {
   try {
     statusEl.textContent = "Connecting with WalletConnect v2...";
-
-    // Inizializza il provider Ethereum di WalletConnect v2
     const provider = await EthereumProvider.init({
       projectId: WALLETCONNECT_PROJECT_ID,
       chains: [BNB_CHAIN_ID],
       rpcMap: { [BNB_CHAIN_ID]: BNB_RPC_URL }
     });
-    // Avvia la connessione (aprirà il QR code o deep link su mobile)
     await provider.connect();
     ethersProvider = new ethers.providers.Web3Provider(provider);
     signer = ethersProvider.getSigner();
@@ -52,13 +48,10 @@ async function connectWallet() {
     } else {
       statusEl.textContent = "Connected on BNB Chain!";
     }
-    // Inizializza il contratto del token FTS
     tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-    // Mostra le sezioni nascoste
     tokenInfoSection.style.display = "block";
     balanceSection.style.display = "block";
     transferSection.style.display = "block";
-    // Recupera e mostra il nome e il simbolo del token
     const [name, symbol] = await Promise.all([
       tokenContract.name(),
       tokenContract.symbol()
@@ -114,7 +107,7 @@ async function transferTokens(e) {
   }
 }
 
-// ASSOCIA GLI EVENTI
+// EVENT LISTENERS
 connectBtn.addEventListener("click", connectWallet);
 getBalanceBtn.addEventListener("click", showBalance);
 transferForm.addEventListener("submit", transferTokens);
