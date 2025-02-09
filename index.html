@@ -57,6 +57,8 @@
         font-size: 14px;
       }
     </style>
+    <!-- Carichiamo il bundle UMD di WalletConnect Ethereum Provider (versione 2.8.12) -->
+    <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.8.12/dist/umd/index.min.js"></script>
   </head>
   <body>
     <div class="container">
@@ -90,13 +92,16 @@
       </div>
     </div>
 
-    <!-- Script ES Module: Importiamo i moduli dai rispettivi CDN -->
+    <!-- Importiamo ethers.js come ES Module -->
     <script type="module">
-      // Importa ethers.js (ES Module) da jsDelivr
       import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
-      // Importa WalletConnect Ethereum Provider usando unpkg
-      import { EthereumProvider } from "https://unpkg.com/@walletconnect/ethereum-provider@2.8.11";
-
+      
+      // Accediamo al provider tramite la variabile globale (ipotizziamo sia "EthereumProvider")
+      const EthereumProvider = window.EthereumProvider;
+      if (!EthereumProvider) {
+        console.error("EthereumProvider non è disponibile. Controlla il bundle UMD.");
+      }
+      
       // CONFIGURAZIONI DEL TOKEN E DELLA RETE
       const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
       const TOKEN_ABI = [
@@ -106,11 +111,11 @@
         "function name() public view returns (string)",
         "function symbol() public view returns (string)"
       ];
-
+      
       const BNB_CHAIN_ID = 56;
       const BNB_RPC_URL = "https://bsc-dataseed.binance.org";
       const WALLETCONNECT_PROJECT_ID = "d2dbf72ab740e1656b27eefd66a94298"; // Sostituisci con il tuo projectId se necessario
-
+      
       // ELEMENTI DEL DOM
       const connectBtn = document.getElementById("connectBtn");
       const statusEl = document.getElementById("status");
@@ -123,20 +128,20 @@
       const transferSection = document.getElementById("transferSection");
       const transferForm = document.getElementById("transferForm");
       const transferStatus = document.getElementById("transferStatus");
-
+      
       let provider, ethersProvider, signer, tokenContract;
-
+      
       // FUNZIONE: CONNETTI IL WALLET CON WALLETCONNECT V2
       async function connectWallet() {
         try {
           statusEl.textContent = "Connessione in corso con WalletConnect v2...";
-          // Inizializza il provider di WalletConnect v2
+          // Inizializza il provider di WalletConnect v2 usando la classe esposta dal bundle UMD
           provider = await EthereumProvider.init({
             projectId: WALLETCONNECT_PROJECT_ID,
             chains: [BNB_CHAIN_ID],
             rpcMap: { [BNB_CHAIN_ID]: BNB_RPC_URL }
           });
-          // Avvia la connessione: su desktop verrà mostrato un QR code, su mobile verrà usato il deep linking
+          // Avvia la connessione: su desktop apparirà un QR code, su mobile verrà utilizzato il deep linking
           await provider.connect();
           ethersProvider = new ethers.providers.Web3Provider(provider);
           signer = ethersProvider.getSigner();
@@ -164,7 +169,7 @@
           statusEl.textContent = "Connessione fallita: " + err.message;
         }
       }
-
+      
       // FUNZIONE: MOSTRA IL SALDO DEL TOKEN
       async function showBalance() {
         try {
@@ -181,7 +186,7 @@
           alert("Impossibile recuperare il saldo: " + err.message);
         }
       }
-
+      
       // FUNZIONE: TRASFERISCI TOKEN
       async function transferTokens(e) {
         e.preventDefault();
@@ -207,7 +212,7 @@
           transferStatus.textContent = "Errore: " + err.message;
         }
       }
-
+      
       // ASSOCIA GLI EVENTI
       connectBtn.addEventListener("click", connectWallet);
       getBalanceBtn.addEventListener("click", showBalance);
