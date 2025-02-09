@@ -94,8 +94,8 @@
     <script type="module">
       // Importa ethers.js (ES Module) da jsDelivr
       import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
-      // Importa il provider di WalletConnect da Skypack (per evitare l'errore 404)
-      import { EthereumProvider } from "https://cdn.skypack.dev/@walletconnect/ethereum-provider@2.8.11";
+      // Importa il provider di WalletConnect tramite esm.sh per evitare il problema 404
+      import { EthereumProvider } from "https://esm.sh/@walletconnect/ethereum-provider@2.8.11";
 
       // CONFIGURAZIONI DEL TOKEN E DELLA RETE
       const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
