@@ -94,10 +94,8 @@
     <script type="module">
       // Importa ethers.js (ES Module) da jsDelivr
       import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
-      // Proviamo una versione differente del modulo WalletConnect Ethereum Provider
-      import { EthereumProvider } from "https://esm.sh/@walletconnect/ethereum-provider@2.8.12";
-      // Se questa versione non funziona, puoi provare una versione precedente
-      // import { EthereumProvider } from "https://esm.sh/@walletconnect/ethereum-provider@2.8.10";
+      // Importa WalletConnect Ethereum Provider usando unpkg
+      import { EthereumProvider } from "https://unpkg.com/@walletconnect/ethereum-provider@2.8.11";
 
       // CONFIGURAZIONI DEL TOKEN E DELLA RETE
       const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
