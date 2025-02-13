@@ -1,216 +1,341 @@
 <!DOCTYPE html>
 <html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FTS Token su BNB Chain – WalletConnect v1</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-        background: #f4f4f4;
-        color: #333;
-      }
-      .container {
-        max-width: 600px;
-        margin: 0 auto;
-      }
-      h1, h2 {
-        text-align: center;
-      }
-      button {
-        padding: 10px 15px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        background: #2979ff;
-        color: #fff;
-        font-size: 16px;
-        margin: 5px 0;
-        width: 100%;
-      }
-      form {
-        background: #fff;
-        padding: 15px;
-        border-radius: 5px;
-        margin-top: 10px;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-      }
-      label, input {
-        display: block;
-        margin: 5px 0;
-        font-size: 14px;
-      }
-      input {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-      }
-      #status, #balanceDisplay, #transferStatus {
-        margin-top: 10px;
-        text-align: center;
-        font-size: 14px;
-      }
-    </style>
-    <!-- Carichiamo il bundle UMD di WalletConnect v1 (Web3 Provider) -->
-    <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
-  </head>
-  <body>
-    <div class="container">
-      <h1>FTS Token su BNB Chain</h1>
-      <!-- Sezione Connessione -->
-      <button id="connectBtn">Collega Wallet (WalletConnect v1)</button>
-      <div id="status"></div>
-      <!-- Sezione Info Token -->
-      <div id="tokenInfoSection" style="display: none;">
-        <h2>Info Token</h2>
-        <p id="tokenName"></p>
-        <p id="tokenSymbol"></p>
-      </div>
-      <!-- Sezione Saldo -->
-      <div id="balanceSection" style="display: none;">
-        <h2>Saldo Token</h2>
-        <button id="getBalanceBtn">Mostra Saldo</button>
-        <div id="balanceDisplay"></div>
-      </div>
-      <!-- Sezione Trasferimento -->
-      <div id="transferSection" style="display: none;">
-        <h2>Trasferisci Token</h2>
-        <form id="transferForm">
-          <label for="recipient">Indirizzo destinatario</label>
-          <input type="text" id="recipient" placeholder="0x..." required />
-          <label for="amount">Quantità</label>
-          <input type="number" step="any" id="amount" placeholder="Inserisci quantità" required />
-          <button type="submit">Invia</button>
-        </form>
-        <div id="transferStatus"></div>
-      </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Token Rewards Bot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      margin: 0;
+      padding: 0;
+      background-image: url('image7.png');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      color: white;
+    }
+    #app {
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      position: relative;
+      background: rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    h2 {
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
+    p {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
+    button {
+      background-color: #006400;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+      text-shadow: 1px 1px 2px black;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    button:hover:not(:disabled) {
+      background-color: #004d00;
+      transform: scale(1.05);
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 10px;
+    }
+    #balance {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
+    #balance span {
+      color: white;
+    }
+    #notification {
+      display: none;
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #006400;
+      color: white;
+      padding: 15px 30px;
+      border-radius: 5px;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      text-shadow: 1px 1px 2px black;
+    }
+    #login-modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    #login-modal input {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    #login-modal button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #006400;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
+    /* Stile per il pulsante Claim Your FTS */
+    #claim-button {
+      background-color: gray;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      color: white;
+      cursor: not-allowed;
+      margin-top: 20px;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    #claim-button.enabled {
+      background-color: green;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body onload="initializeApp()">
+  <div id="app">
+    <p>Complete activities and earn tokens!</p>
+    <div id="balance">Token Balance: <span id="balance-value">0</span> FTS</div>
+
+    <div id="notification">Notification</div>
+
+    <!-- Sezione Task Airdrop -->
+    <div id="airdrop-tasks">
+      <h2>Task Airdrop</h2>
+      <ul id="airdrop-tasks-list">
+        <li>
+          <button onclick="openTask('https://t.me/FTSTokenOfficial/23', 'airdrop1', 'airdrop')">
+            Follow on Telegram
+          </button>
+        </li>
+        <li>
+          <button onclick="openTask('https://fuckthesystemfts.github.io/whitepaper-/', 'airdrop2', 'airdrop')">
+            Read Whitepaper
+          </button>
+        </li>
+        <li>
+          <button onclick="openTask('https://opensea.io/collection/nft-f-uckthesystem', 'airdrop3', 'airdrop')">
+            NFT Collection
+          </button>
+        </li>
+        <li>
+          <button onclick="openTask('https://x.com/Fu_ktheSytemFTS?t=TF7iljK2djbJFXaCKcF_oQ&s=09', 'airdrop4', 'airdrop')">
+            Follow on X
+          </button>
+        </li>
+        <li>
+          <button onclick="openTask('https://youtube.com/@f_ckthesystemfts?feature=shared', 'airdrop5', 'airdrop')">
+            Follow on YouTube
+          </button>
+        </li>
+      </ul>
     </div>
 
-    <!-- Importiamo ethers.js come ES Module -->
-    <script type="module">
-      import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+    <!-- Sezione Task Official Partner -->
+    <div id="partner-tasks">
+      <h2>Task Official Partner</h2>
+      <ul id="partner-tasks-list">
+        <li>
+          <button onclick="openTask('https://youtube.com/@gkyofficial-r8m?si=L0a-LFF6AOiV0gJ2', 'partner1', 'partner')">
+            Follow on YouTube (Official)
+          </button>
+        </li>
+        <li>
+          <button onclick="openTask('https://giankycoin.com/', 'partner2', 'partner')">
+            Visit Giankycoin
+          </button>
+        </li>
+      </ul>
+    </div>
 
-      // CONFIGURAZIONI DEL TOKEN E DELLA RETE
-      const TOKEN_CONTRACT_ADDRESS = "0xF87993C72C40268FF93989810192e575D17CAfb0";
-      const TOKEN_ABI = [
-        "function transfer(address to, uint256 amount) public returns (bool)",
-        "function balanceOf(address owner) public view returns (uint256)",
-        "function decimals() public view returns (uint8)",
-        "function name() public view returns (string)",
-        "function symbol() public view returns (string)"
-      ];
+    <!-- Pulsante Claim Your FTS -->
+    <div id="claim-section">
+      <button id="claim-button" disabled>CLAIM YOUR FTS</button>
+    </div>
 
-      const BNB_CHAIN_ID = 56;
-      const BNB_RPC_URL = "https://bsc-dataseed.binance.org";
+    <!-- Login Admin -->
+    <div id="login-modal">
+      <h2>Admin Login</h2>
+      <input type="password" id="admin-password" placeholder="Enter Password" />
+      <button onclick="validateAdmin()">Login</button>
+    </div>
+  </div>
 
-      // ELEMENTI DEL DOM
-      const connectBtn = document.getElementById("connectBtn");
-      const statusEl = document.getElementById("status");
-      const tokenInfoSection = document.getElementById("tokenInfoSection");
-      const tokenNameEl = document.getElementById("tokenName");
-      const tokenSymbolEl = document.getElementById("tokenSymbol");
-      const balanceSection = document.getElementById("balanceSection");
-      const getBalanceBtn = document.getElementById("getBalanceBtn");
-      const balanceDisplay = document.getElementById("balanceDisplay");
-      const transferSection = document.getElementById("transferSection");
-      const transferForm = document.getElementById("transferForm");
-      const transferStatus = document.getElementById("transferStatus");
+  <script>
+    function initializeApp() {
+      updateBalance();
+      checkPendingTaskRewards();
+      updateClaimButtonStatus();
+      // Evento per il pulsante Claim: apre il link quando abilitato
+      document.getElementById("claim-button").addEventListener("click", function() {
+        if (!this.disabled) {
+          window.open("https://docs.google.com/forms/d/e/1FAIpQLSeRqo88eocozeepgnoiTnSfPXD-o9-bklhru_HGuCZ4v4r6Nw/viewform?usp=dialog", "_blank");
+        }
+      });
+    }
 
-      let provider, ethersProvider, signer, tokenContract;
+    function updateBalance() {
+      let balance = parseInt(localStorage.getItem('balance'), 10);
+      if (isNaN(balance)) {
+        alert('Previous balance invalid. Token reset to 5000 FTS.');
+        balance = 5000;
+        localStorage.setItem('balance', balance);
+      }
+      document.getElementById('balance-value').textContent = balance;
+    }
 
-      // FUNZIONE: CONNETTI IL WALLET CON WALLETCONNECT v1
-      async function connectWallet() {
-        try {
-          statusEl.textContent = "Connessione in corso con WalletConnect...";
-          // Verifica che WalletConnectProvider sia disponibile (viene esposto globalmente dal bundle UMD)
-          if (!window.WalletConnectProvider) {
-            throw new Error("WalletConnectProvider non disponibile.");
+    function showNotification(message) {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.style.display = 'block';
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 3000);
+    }
+
+    // Funzione per i task (Airdrop e Official Partner)
+    // Il premio (10.000 FTS) viene assegnato solo alla prima apertura del task.
+    function openTask(url, id, type) {
+      window.open(url, '_blank');
+      const key = 'taskReward_' + id;
+      const stored = localStorage.getItem(key);
+      if (!stored) {
+        const data = { clickTime: Date.now(), rewarded: false, type: type };
+        localStorage.setItem(key, JSON.stringify(data));
+        setTimeout(function() {
+          const storedData = JSON.parse(localStorage.getItem(key));
+          if (storedData && !storedData.rewarded) {
+            awardTaskReward(key);
           }
-          // Configura il provider per la BNB Chain
-          const wcProvider = new window.WalletConnectProvider({
-            rpc: { 56: BNB_RPC_URL },
-            chainId: BNB_CHAIN_ID,
-            qrcode: true,
-          });
-          // Abilita la connessione (questo mostrerà il QR code se necessario)
-          await wcProvider.enable();
-          provider = wcProvider;
-          ethersProvider = new ethers.providers.Web3Provider(provider);
-          signer = ethersProvider.getSigner();
-          const network = await ethersProvider.getNetwork();
-          if (network.chainId !== BNB_CHAIN_ID) {
-            statusEl.textContent = `Connesso su chain ${network.chainId} invece che su BNB (56).`;
-          } else {
-            statusEl.textContent = "Connesso su BNB Chain!";
-          }
-          // Inizializza il contratto del token FTS
-          tokenContract = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, signer);
-          // Mostra le sezioni nascoste
-          tokenInfoSection.style.display = "block";
-          balanceSection.style.display = "block";
-          transferSection.style.display = "block";
-          // Recupera e mostra il nome e il simbolo del token
-          const [name, symbol] = await Promise.all([
-            tokenContract.name(),
-            tokenContract.symbol()
-          ]);
-          tokenNameEl.textContent = "Nome: " + name;
-          tokenSymbolEl.textContent = "Simbolo: " + symbol;
-        } catch (err) {
-          console.error(err);
-          statusEl.textContent = "Connessione fallita: " + err.message;
+        }, 120000); // 120 secondi
+      }
+    }
+
+    function awardTaskReward(key) {
+      const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
+      const reward = 10000;
+      const newBalance = currentBalance + reward;
+      localStorage.setItem('balance', newBalance);
+      const storedData = JSON.parse(localStorage.getItem(key));
+      if (storedData) {
+        storedData.rewarded = true;
+        localStorage.setItem(key, JSON.stringify(storedData));
+        if (storedData.type === 'airdrop') {
+          showNotification("Airdrop task reward granted: 10,000 FTS!");
+        } else if (storedData.type === 'partner') {
+          showNotification("Official partner task reward granted: 10,000 FTS!");
+        } else {
+          showNotification("Task reward granted: 10,000 FTS!");
         }
       }
+      updateBalance();
+      updateClaimButtonStatus();
+    }
 
-      // FUNZIONE: MOSTRA IL SALDO DEL TOKEN
-      async function showBalance() {
-        try {
-          if (!tokenContract || !signer) {
-            alert("Per favore, collega prima il wallet.");
-            return;
+    function checkPendingTaskRewards() {
+      const taskIds = ["airdrop1", "airdrop2", "airdrop3", "airdrop4", "airdrop5", "partner1", "partner2"];
+      const now = Date.now();
+      taskIds.forEach(function(id) {
+        const key = 'taskReward_' + id;
+        const dataString = localStorage.getItem(key);
+        if (dataString) {
+          const data = JSON.parse(dataString);
+          if (!data.rewarded) {
+            const elapsed = now - data.clickTime;
+            if (elapsed >= 120000) {
+              awardTaskReward(key);
+            } else {
+              setTimeout(function() {
+                awardTaskReward(key);
+              }, 120000 - elapsed);
+            }
           }
-          const address = await signer.getAddress();
-          const decimals = await tokenContract.decimals();
-          const balance = await tokenContract.balanceOf(address);
-          balanceDisplay.textContent = "Saldo FTS: " + ethers.utils.formatUnits(balance, decimals);
-        } catch (err) {
-          console.error(err);
-          alert("Impossibile recuperare il saldo: " + err.message);
         }
-      }
+      });
+    }
 
-      // FUNZIONE: TRASFERISCI TOKEN
-      async function transferTokens(e) {
-        e.preventDefault();
-        try {
-          if (!tokenContract) {
-            alert("Per favore, collega prima il wallet.");
-            return;
+    // Verifica se tutte le task sono state completate (ossia, se per ogni task il premio è già stato assegnato)
+    function checkAllTasksCompleted() {
+      const taskIds = ["airdrop1", "airdrop2", "airdrop3", "airdrop4", "airdrop5", "partner1", "partner2"];
+      let allCompleted = true;
+      taskIds.forEach(function(id) {
+        const key = 'taskReward_' + id;
+        const dataString = localStorage.getItem(key);
+        if (!dataString) {
+          allCompleted = false;
+        } else {
+          const data = JSON.parse(dataString);
+          if (!data.rewarded) {
+            allCompleted = false;
           }
-          const recipient = document.getElementById("recipient").value;
-          const amount = document.getElementById("amount").value;
-          if (!ethers.utils.isAddress(recipient)) {
-            alert("Indirizzo destinatario non valido.");
-            return;
-          }
-          const decimals = await tokenContract.decimals();
-          const parsedAmount = ethers.utils.parseUnits(amount, decimals);
-          const tx = await tokenContract.transfer(recipient, parsedAmount);
-          transferStatus.textContent = "Transazione inviata: " + tx.hash + ". In attesa di conferma...";
-          await tx.wait();
-          transferStatus.textContent = "Transazione confermata!";
-        } catch (err) {
-          console.error(err);
-          transferStatus.textContent = "Errore: " + err.message;
         }
-      }
+      });
+      return allCompleted;
+    }
 
-      // ASSOCIA GLI EVENTI
-      connectBtn.addEventListener("click", connectWallet);
-      getBalanceBtn.addEventListener("click", showBalance);
-      transferForm.addEventListener("submit", transferTokens);
-    </script>
-  </body>
+    // Aggiorna lo stato del pulsante Claim Your FTS in base al completamento di tutte le task
+    function updateClaimButtonStatus() {
+      const claimButton = document.getElementById("claim-button");
+      if (checkAllTasksCompleted()) {
+        claimButton.disabled = false;
+        claimButton.classList.add("enabled");
+      } else {
+        claimButton.disabled = true;
+        claimButton.classList.remove("enabled");
+      }
+    }
+
+    function validateAdmin() {
+      const password = document.getElementById('admin-password').value;
+      if (password === 'admin123') { // Sostituire con un controllo sicuro in produzione
+        document.getElementById('login-modal').style.display = 'none';
+        alert('Login successful!');
+      } else {
+        alert('Incorrect password. Try again.');
+      }
+    }
+  </script>
+</body>
 </html>
