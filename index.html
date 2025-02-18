@@ -3,46 +3,57 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Token Rewards Bot</title>
+  <title>FTS GREAT AGAIN - FUCK TASK</title>
   <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+    }
     body {
       font-family: Arial, sans-serif;
       font-weight: bold;
-      margin: 0;
-      padding: 0;
       background-image: url('image7.png');
       background-size: cover;
       background-repeat: no-repeat;
       background-position: center;
-      height: 100vh;
       display: flex;
-      justify-content: center;
       align-items: center;
-      flex-direction: column;
+      justify-content: center;
       color: white;
     }
+    /* Il contenitore ora occupa l'intero schermo */
     #app {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
       padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-      position: relative;
       background: rgba(0, 0, 0, 0.5);
+      overflow-y: auto;
     }
     h1 {
       font-size: 48px;
       margin-bottom: 10px;
-      color: white;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
     h2 {
-      color: white;
+      font-size: 36px;
+      margin-bottom: 10px;
+      text-shadow: 1px 1px 2px black;
+    }
+    h3 {
+      font-size: 24px;
+      margin-bottom: 10px;
       text-shadow: 1px 1px 2px black;
     }
     p {
       font-size: 18px;
       margin-bottom: 20px;
-      color: white;
       text-shadow: 1px 1px 2px black;
+    }
+    p.header-info {
+      margin-bottom: 30px;
     }
     button {
       background-color: #006400;
@@ -61,7 +72,7 @@
       transform: scale(1.05);
     }
     ul {
-      list-style-type: none;
+      list-style: none;
       padding: 0;
     }
     li {
@@ -70,15 +81,11 @@
     #balance {
       font-size: 24px;
       margin-bottom: 20px;
-      color: white;
       text-shadow: 1px 1px 2px black;
-    }
-    #balance span {
-      color: white;
     }
     #notification {
       display: none;
-      position: absolute;
+      position: fixed;
       top: 10%;
       left: 50%;
       transform: translateX(-50%);
@@ -88,7 +95,7 @@
       border-radius: 5px;
       font-size: 24px;
       font-weight: bold;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       z-index: 1000;
       text-shadow: 1px 1px 2px black;
     }
@@ -101,7 +108,7 @@
       background-color: white;
       padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
     #login-modal input {
       padding: 10px;
@@ -116,7 +123,6 @@
       color: white;
       text-shadow: 1px 1px 2px black;
     }
-    /* Stile per il pulsante Claim Your FTS */
     #claim-button {
       background-color: gray;
       border: none;
@@ -132,18 +138,31 @@
       background-color: green;
       cursor: pointer;
     }
+    #buy-tokens {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 40px;
+    }
   </style>
 </head>
 <body onload="initializeApp()">
   <div id="app">
-    <p>Complete activities and earn tokens!</p>
+    <!-- TOP HEADER -->
+    <h1>FTS GREAT AGAIN</h1>
+    <h2>FUCK TASK</h2>
+    <p class="header-info">
+      Once you complete the tasks, rewards will be distributed within 5 minutes.<br>
+      To claim your reward, you must complete all tasks.
+    </p>
+    
+    <!-- Informazioni principali -->
     <div id="balance">Token Balance: <span id="balance-value">0</span> FTS</div>
-
     <div id="notification">Notification</div>
-
-    <!-- Sezione Task Airdrop -->
+    
+    <!-- SEZIONE TASK Airdrop -->
     <div id="airdrop-tasks">
-      <h2>Task Airdrop</h2>
+      <h3>Task Airdrop</h3>
       <ul id="airdrop-tasks-list">
         <li>
           <button onclick="openTask('https://t.me/FTSTokenOfficial/23', 'airdrop1', 'airdrop')">
@@ -172,10 +191,10 @@
         </li>
       </ul>
     </div>
-
-    <!-- Sezione Task Official Partner -->
+    
+    <!-- SEZIONE TASK Official Partner -->
     <div id="partner-tasks">
-      <h2>Task Official Partner</h2>
+      <h3>Task Official Partner</h3>
       <ul id="partner-tasks-list">
         <li>
           <button onclick="openTask('https://youtube.com/@gkyofficial-r8m?si=L0a-LFF6AOiV0gJ2', 'partner1', 'partner')">
@@ -189,33 +208,49 @@
         </li>
       </ul>
     </div>
-
-    <!-- Pulsante Claim Your FTS -->
+    
+    <!-- Pulsante Claim -->
     <div id="claim-section">
       <button id="claim-button" disabled>CLAIM YOUR FTS</button>
     </div>
-
+    
     <!-- Login Admin -->
     <div id="login-modal">
       <h2>Admin Login</h2>
       <input type="password" id="admin-password" placeholder="Enter Password" />
       <button onclick="validateAdmin()">Login</button>
     </div>
+    
+    <!-- SEZIONE PREVENDITA -->
+    <div id="buy-tokens">
+      <h2>Buy FTS Tokens</h2>
+      <p>Send the equivalent amount in BNB to:</p>
+      <p><strong>Wallet Address:</strong> <span style="color: yellow;">0x68636045dbb75E0f8f5027F15254c842C3DaF25e</span></p>
+      <ul>
+        <li>Starter - <strong>100,000 FTS</strong> → $100 (~0.2 BNB)</li>
+        <li>Bronze - <strong>1,000,000 FTS</strong> → $1,000 (~2 BNB)</li>
+        <li>Silver - <strong>10,000,000 FTS</strong> → $10,000 (~20 BNB)</li>
+        <li>Gold - <strong>50,000,000 FTS</strong> → $50,000 (~100 BNB)</li>
+        <li>Platinum - <strong>100,000,000 FTS</strong> → $100,000 (~200 BNB)</li>
+        <li>Whale - <strong>1,000,000,000 FTS</strong> → $1,000,000 (~2000 BNB)</li>
+      </ul>
+      <p>After sending BNB, submit your payment proof using the button below:</p>
+      <button onclick="openPaymentForm()">Submit Payment Proof</button>
+    </div>
   </div>
-
+  
   <script>
     function initializeApp() {
       updateBalance();
       checkPendingTaskRewards();
       updateClaimButtonStatus();
-      // Evento per il pulsante Claim: apre il link quando abilitato
       document.getElementById("claim-button").addEventListener("click", function() {
         if (!this.disabled) {
           window.open("https://docs.google.com/forms/d/e/1FAIpQLSeRqo88eocozeepgnoiTnSfPXD-o9-bklhru_HGuCZ4v4r6Nw/viewform?usp=dialog", "_blank");
         }
       });
     }
-
+    
     function updateBalance() {
       let balance = parseInt(localStorage.getItem('balance'), 10);
       if (isNaN(balance)) {
@@ -225,7 +260,7 @@
       }
       document.getElementById('balance-value').textContent = balance;
     }
-
+    
     function showNotification(message) {
       const notification = document.getElementById('notification');
       notification.textContent = message;
@@ -234,9 +269,7 @@
         notification.style.display = 'none';
       }, 3000);
     }
-
-    // Funzione per i task (Airdrop e Official Partner)
-    // Il premio (10.000 FTS) viene assegnato solo alla prima apertura del task.
+    
     function openTask(url, id, type) {
       window.open(url, '_blank');
       const key = 'taskReward_' + id;
@@ -249,10 +282,10 @@
           if (storedData && !storedData.rewarded) {
             awardTaskReward(key);
           }
-        }, 120000); // 120 secondi
+        }, 120000);
       }
     }
-
+    
     function awardTaskReward(key) {
       const currentBalance = parseInt(localStorage.getItem('balance') || '0', 10);
       const reward = 10000;
@@ -273,7 +306,7 @@
       updateBalance();
       updateClaimButtonStatus();
     }
-
+    
     function checkPendingTaskRewards() {
       const taskIds = ["airdrop1", "airdrop2", "airdrop3", "airdrop4", "airdrop5", "partner1", "partner2"];
       const now = Date.now();
@@ -295,8 +328,7 @@
         }
       });
     }
-
-    // Verifica se tutte le task sono state completate (ossia, se per ogni task il premio è già stato assegnato)
+    
     function checkAllTasksCompleted() {
       const taskIds = ["airdrop1", "airdrop2", "airdrop3", "airdrop4", "airdrop5", "partner1", "partner2"];
       let allCompleted = true;
@@ -314,8 +346,7 @@
       });
       return allCompleted;
     }
-
-    // Aggiorna lo stato del pulsante Claim Your FTS in base al completamento di tutte le task
+    
     function updateClaimButtonStatus() {
       const claimButton = document.getElementById("claim-button");
       if (checkAllTasksCompleted()) {
@@ -326,15 +357,19 @@
         claimButton.classList.remove("enabled");
       }
     }
-
+    
     function validateAdmin() {
       const password = document.getElementById('admin-password').value;
-      if (password === 'admin123') { // Sostituire con un controllo sicuro in produzione
+      if (password === 'admin123') {
         document.getElementById('login-modal').style.display = 'none';
         alert('Login successful!');
       } else {
         alert('Incorrect password. Try again.');
       }
+    }
+    
+    function openPaymentForm() {
+      window.open("https://docs.google.com/forms/d/e/1FAIpQLSeoO8BnswJdF4cSqICGjpSfA5wWmYrULckMoF3AyqcIoHO7hQ/viewform?usp=header", "_blank");
     }
   </script>
 </body>
