@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy NFTS - FuckTheSystem</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.5/web3.min.js"></script>
+    <script defer src="static/script.js"></script>
+</head>
+<body>
+    <h1>Buy NFTS</h1>
+    <button onclick="connectWallet()">Connect Wallet</button>
+    <p id="wallet-address">Not connected</p>
+
+    <h2>Select NFT Tier</h2>
+    <button onclick="buyNFT(1)">Buy Tier 1 (20 POL)</button>
+    <button onclick="buyNFT(2)">Buy Tier 2 (50 POL)</button>
+    <button onclick="buyNFT(3)">Buy Tier 3 (100 POL)</button>
+    <button onclick="buyNFT(4)">Buy Tier 4 (500 POL)</button>
+
+    <p id="status"></p>
+</body>
+</html>
